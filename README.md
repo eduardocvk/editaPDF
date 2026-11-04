@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10 y PDFium. Vista previa **0.1.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.2.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.1.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.1.1/EditorPDF-0.1.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.2.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.2.0/EditorPDF-0.2.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -12,11 +12,12 @@ Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecut
 
 Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el runtime .NET, PDFium, Noto Sans y las licencias. No requiere instalación de .NET, conexión ni descargas al iniciar. Compilación x64 sin firma Authenticode.
 
-Las pestañas **Organizar** y **Editar** están encima del panel derecho. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena mediante Subir/Bajar, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, preparación de impresión, deshacer/rehacer y recuperación local.
+**Abrir** crea pestañas de documentos independientes en la parte superior; **Unir / añadir** incorpora páginas al documento activo. Cada pestaña mantiene sus cambios, deshacer/rehacer, página, zoom y borradores. Las pestañas **Organizar** y **Editar** están encima del panel derecho y sus herramientas tienen iconos. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena mediante Subir/Bajar o arrastrando las miniaturas, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, preparación de impresión, deshacer/rehacer y recuperación local.
 
+- **Reordenar:** arrastra una miniatura y suéltala antes o después de otra. Una línea indica la inserción y la lista se desplaza al acercarse a sus extremos.
 - **Rangos:** `1-3,5`. Para dividir en varios archivos: `1-3;4-6;7`. Insertar PDF pregunta las páginas del archivo de origen.
 - **Guardar copia:** exige un nombre que todavía no exista. Nunca reemplaza el original ni otro archivo. Antes de publicar la copia comprueba reapertura, texto, geometría, rotación, número de anotaciones, presencia de marcadores, adjuntos, etiquetas, destinos con nombre y representación de cada página a 600 px.
-- **Teclado:** Tab/Mayús+Tab, Alt+A para abrir, Ctrl+O, Ctrl+S o Ctrl+Mayús+S, Ctrl+F, Ctrl+P, Ctrl+Z/Ctrl+Y; RePág/AvPág cambia de página fuera de campos de texto. En un campo, Ctrl+Z conserva el deshacer propio del campo.
+- **Teclado:** Tab/Mayús+Tab, Alt+A para abrir, Ctrl+O, Ctrl+S o Ctrl+Mayús+S, Ctrl+F, Ctrl+P, Ctrl+Z/Ctrl+Y; Ctrl+Tab/Ctrl+Mayús+Tab cambia de documento y Ctrl+W cierra la pestaña activa; RePág/AvPág cambia de página fuera de campos de texto. En un campo, Ctrl+Z conserva el deshacer propio del campo.
 - La selección azul del editor es una capa WPF de selección; **no se guarda como rectángulo en el PDF**.
 
 ## Texto y límites de esta versión
@@ -25,9 +26,9 @@ La prueba de viabilidad se ejecutó **antes de implementar la interfaz**: abrir 
 
 La unidad de edición es el **objeto PDF**, no el párrafo. El texto puede estar dividido en muchos objetos. Se conserva la fuente original cuando su mapa de caracteres permite el cambio. Si no, se rechaza la operación sin aplicarla; la sustitución por Noto Sans requiere marcar la opción y confirmar. No se reconstruyen párrafos, saltos de línea ni diseño como Word. No se edita texto dentro de XObjects/Form anidados, trazados, contornos o máscaras de texto. No se ofrece OCR, censura segura ni edición universal. Escrituras complejas y caracteres fuera del plano básico Unicode se rechazan en esta versión.
 
-PDF firmados, cifrados/protegidos, formularios y documentos etiquetados se abren en **solo lectura**; no se reescriben como una copia que aparente conservar firmas válidas. No se valida criptográficamente una firma. Se pueden añadir PDF al final de un documento con marcadores, anotaciones, destinos con nombre y adjuntos, conservando los del documento principal. También se importan notas, marcas, sellos visuales independientes y enlaces web compatibles, sin abrir esos enlaces. Mover/eliminar páginas o insertarlas entre las existentes sigue limitado en documentos con referencias. Si el archivo que quieres añadir contiene marcadores, adjuntos, destinos con nombre, enlaces internos o comentarios enlazados que aún no se pueden transferir, se informa de ello antes de aplicar cambios; puedes abrirlo como documento principal y añadir los demás al final. Sí se ha probado editar texto en un documento con marcador, adjunto y enlace interno, conservando esas estructuras. No se garantiza conservar todas las extensiones del estándar en cualquier PDF.
+PDF firmados, cifrados/protegidos y formularios XFA no se modifican. No se valida criptográficamente una firma. La unión y reordenación admiten ahora anotaciones, enlaces internos, marcadores, destinos con nombre, adjuntos, formularios AcroForm y etiquetas de accesibilidad, conservando los casos verificados. Los nombres repetidos de destinos, adjuntos y campos se distinguen para no sobrescribir datos. La edición de objetos en PDF con formularios o etiquetas sigue limitada; algunas otras operaciones de páginas también tienen límites. No se garantiza conservar todas las extensiones del estándar en cualquier PDF. Antes de aceptar una unión o movimiento se compara el texto, la geometría, el número de anotaciones y la representación de cada página; un fallo revierte la operación de la sesión.
 
-Límite inicial: 256 MiB por PDF; historial en memoria de hasta 30 operaciones/128 MiB. La recuperación conserva la última sesión, no todo su historial de deshacer. Las operaciones pesadas y la comprobación al guardar son síncronas; pueden tardar en documentos grandes.
+Límite inicial: 256 MiB por PDF; historial en memoria de hasta 30 operaciones/128 MiB. Hasta 32 documentos abiertos. La recuperación conserva las pestañas de la última sesión y los borradores del panel, no todo su historial de deshacer. Las operaciones pesadas y la comprobación al guardar son síncronas; pueden tardar en documentos grandes.
 
 ## Privacidad
 
@@ -63,8 +64,12 @@ Pendientes la identidad oficial, firma del paquete/ejecutable, instalación y de
 
 ## Código y dependencias
 
-`src/EditorPdf.Core`: ABI nativa, operaciones, transacciones, historial y recuperación. `src/EditorPdf.App`: WPF y paginación. `tests`: regresiones, render WPF y guardia de red exclusiva de desarrollo. `vendor/include`: cabeceras de la **misma distribución binaria**. No hay wrapper PDF administrado ni dependencia comercial.
+`src/EditorPdf.Core`: ABI nativa, operaciones, transacciones, historial y recuperación. `src/EditorPdf.App`: WPF, documentos en pestañas, arrastre y paginación. `tests`: regresiones, render WPF y guardia de red exclusiva de desarrollo. `vendor/include`: cabeceras de la **misma distribución binaria**. PDFium mantiene el render y la edición de texto original. iText Community 9.8.0 se usa bajo AGPL para unir y mover páginas con sus referencias; no requiere licencia comercial en esta distribución AGPL.
 
 La [API de edición de PDFium](https://pdfium.googlesource.com/pdfium/+/refs/heads/chromium/8138/public/fpdf_edit.h), los binarios y los avisos se fijan en `vendor/dependencies.lock.json`; Build verifica SHA-256 de DLL y fuente. `vendor/args.gn` registra V8/XFA desactivados. La [distribución de binarios](https://github.com/bblanchon/pdfium-binaries) incluye su licencia MIT y las licencias de PDFium y sus componentes; se conservan todas. .NET/WPF: MIT y avisos incluidos. Noto Sans: SIL OFL 1.1. Véase `NOTICE.txt` y `LICENSE.txt`. Se elige la licencia FreeType, incluida en los avisos, para FreeType.
+
+iText, Commons y su adaptador Bouncy Castle tienen avisos en `licenses/itext` y `licenses/managed`, versiones fijadas en `packages.lock.json` y fuente de producción sin modificar en `vendor/sources`. Los PDF manipulados con iText conservan su Producer y la referencia de licencia en los metadatos. Bouncy Castle y dependencias de Microsoft conservan sus licencias incluidas. La consulta de vulnerabilidades de NuGet se realizó durante el desarrollo; no se ejecuta al abrir la aplicación.
+
+El [logo](assets/logo.png), su [prompt de creación](assets/LOGO.md) y el icono ICO se incluyen en el proyecto.
 
 El repositorio público es [eduardocvk/editaPDF](https://github.com/eduardocvk/editaPDF). Los scripts no dependen de `firmar_certificado`. La descarga portable acompaña la compilación con `Source.zip`, scripts, dependencias fijadas y avisos; el código también está disponible en este repositorio.

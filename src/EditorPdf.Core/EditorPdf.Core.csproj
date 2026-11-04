@@ -1,1 +1,1 @@
-<Project Sdk="Microsoft.NET.Sdk"/>
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="itext" Version="9.8.0"/><PackageReference Include="itext.bouncy-castle-adapter" Version="9.8.0"/></ItemGroup></Project>

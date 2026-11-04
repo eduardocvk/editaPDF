@@ -1,6 +1,20 @@
 # Verificación local — 4 de noviembre de 2026
 
-Versión actual 0.1.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.2.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Cambios y comprobaciones de 0.2.0
+
+Se incorpora iText Community 9.8.0 para unir e importar páginas y reordenarlas conservando referencias; PDFium mantiene el render y la edición real de objetos de texto. Se revisaron su licencia AGPL, dependencias y compatibilidad con .NET 10; el análisis NuGet no informó vulnerabilidades conocidas en los paquetes restaurados. Se incluyen los avisos de dependencias y el código de producción de iText (con Commons y adaptador Bouncy Castle), con procedencia y SHA-256 en `vendor/sources/provenance.json`. No se utilizan servicios de validación, firma, descarga ni recursos remotos de estas bibliotecas.
+
+Las regresiones y pypdf comprueban importación y movimiento de páginas con marcadores, enlaces internos, notas, apariencia de sellos, destinos con nombre, adjuntos, campos AcroForm y árbol de etiquetas. Los casos con nombres repetidos conservan destinos de enlaces y marcadores, valores de campos y contenido de ambos adjuntos. La inicialización de marcadores se realiza después de resolver las colisiones para conservar sus referencias. Se comparan texto, geometría, anotaciones y render de las páginas antes de aceptar los cambios. Los originales mantienen su SHA-256.
+
+La interfaz abre documentos independientes en pestañas superiores. Se prueban historial por documento, cambio de página/zoom/búsqueda/borrador, recuperación completa de pestañas, cierre y aislamiento de selecciones incluso con objetos iguales en dos PDF. Los botones del panel derecho tienen iconos vectoriales. Logo e ICO con varios tamaños incluidos, junto con imágenes para MSIX; creación y prompt documentados en `assets/LOGO.md`.
+
+La reorganización por miniaturas utiliza el arrastre nativo WPF, indicador de inserción y desplazamiento de la lista. La prueba de interfaz genera un evento real enrutado `Drop` sobre una miniatura y comprueba el nuevo orden, el guardado y la independencia del resto de pestañas. **El gesto físico de arrastrar con el ratón sigue pendiente**: el controlador de escritorio volvió a fallar al activar/capturar la ventana. El render WPF se revisa a 1280 y 920 unidades lógicas y densidades de 100 %, 150 % y 200 %.
+
+Evidencia reproducible de esta versión: `artifacts/test-0.2.0.log` y el directorio `artifacts/tests-*` indicado al final del registro. Los flujos se ejecutan bajo la guardia nativa de red y el motor observa también eventos `System.Net.*`. Los límites de la evidencia de red, impresión y MSIX permanecen en la sección final.
+
+Se mantienen bloqueados los PDF firmados, protegidos y XFA. AcroForm y etiquetas permiten ahora unión y movimiento, con límites en edición de objetos y otras operaciones. No se ha probado el archivo concreto de la fotografía ni un corpus exhaustivo. Las siguientes secciones conservan la evidencia histórica y las restricciones de sus versiones correspondientes.
 
 ## Cambios y comprobaciones de 0.1.1
 

@@ -47,3 +47,31 @@ print('PASS pypdf importacion de anotaciones: nota, URI y apariencia del sello c
 rendered=PdfReader(p/'visualizado-anotaciones.pdf')
 for i,page in enumerate(before.pages):check_annotations(page,rendered.pages[i])
 print('PASS pypdf visualizacion: posiciones originales de notas y apariencias intactas despues de renderizar')
+reordered=PdfReader(p/'reordenado-estructuras.pdf')
+assert reordered.get_destination_page_number(reordered.outline[0])==1
+assert reordered.pages[1]['/Annots'][0].get_object()['/Dest'][0].idnum==reordered.pages[0].indirect_reference.idnum
+for name in ['estructuras','enlace-interno','destinos','formulario','etiquetado']:
+    merged=PdfReader(p/f'mezcla-{name}.pdf');assert len(merged.pages)==4
+    if name=='estructuras':
+        assert merged.get_destination_page_number(merged.outline[0])==0
+        assert merged.attachments['nota.txt'][0]==b'Adjunto sintetico local'
+    if name in ['estructuras','enlace-interno']:assert merged.pages[0]['/Annots'][0].get_object()['/Dest'][0].idnum==merged.pages[3].indirect_reference.idnum
+    if name=='destinos':assert merged.get_destination_page_number(merged.named_destinations['destino-sintetico'])==3
+    if name=='formulario':assert merged.get_fields()['campo']['/V']=='Valor de prueba'
+    if name=='etiquetado':
+        root=merged.trailer['/Root']['/StructTreeRoot'];assert root['/ParentTree']['/Nums']
+        def tag_pages(node):
+            if isinstance(node,list):return sum((tag_pages(n) for n in node),[])
+            node=node.get_object() if hasattr(node,'get_object') else node
+            if not isinstance(node,dict):return []
+            result=[merged.get_page_number(node['/Pg'])] if '/Pg' in node else []
+            return result+tag_pages(node.get('/K',[]))
+        assert set(tag_pages(root))=={0,3}
+    print('PASS pypdf importar y reordenar:',name)
+forms=PdfReader(p/'formularios-dobles.pdf').get_fields();assert set(forms)=={'campo','campo_2'} and all(f['/V']=='Valor de prueba' for f in forms.values())
+dest=PdfReader(p/'destinos-dobles.pdf');assert len(dest.named_destinations)==2 and sorted(dest.get_destination_page_number(d) for d in dest.named_destinations.values())==[1,3]
+print('PASS colisiones: formularios y destinos independientes, sin sobrescribir valores')
+named=PdfReader(p/'destinos-enlazados-dobles.pdf');assert named.get_destination_page_number(named.outline[0])==3
+name=str(named.pages[2]['/Annots'][0].get_object()['/A']['/D']);assert named.get_destination_page_number(named.named_destinations[name])==3
+attachments=PdfReader(p/'adjuntos-dobles.pdf').attachments;assert attachments['nota.txt'][0]==b'Adjunto sintetico local' and attachments['nota (2).txt'][0]==b'Otro adjunto sintetico'
+print('PASS colisiones: enlaces y marcadores apuntan a su documento; adjuntos con mismo nombre conservan ambos contenidos')

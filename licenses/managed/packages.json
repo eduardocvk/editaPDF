@@ -1,0 +1,124 @@
+[
+  {
+    "package": "BouncyCastle.Cryptography/2.7.0",
+    "nuget": "https://www.nuget.org/packages/BouncyCastle.Cryptography/2.7.0",
+    "notices": [
+      "bouncycastle.cryptography.nuspec",
+      "LICENSE.md"
+    ]
+  },
+  {
+    "package": "itext/9.8.0",
+    "nuget": "https://www.nuget.org/packages/itext/9.8.0",
+    "notices": [
+      "itext.nuspec",
+      "LICENSE.md",
+      "NOTICE_barcodes.txt",
+      "NOTICE_io.txt",
+      "NOTICE_kernel.txt",
+      "NOTICE_layout.txt",
+      "NOTICE_styledxmlparser.txt"
+    ]
+  },
+  {
+    "package": "itext.bouncy-castle-adapter/9.8.0",
+    "nuget": "https://www.nuget.org/packages/itext.bouncy-castle-adapter/9.8.0",
+    "notices": [
+      "itext.bouncy-castle-adapter.nuspec"
+    ]
+  },
+  {
+    "package": "itext.commons/9.8.0",
+    "nuget": "https://www.nuget.org/packages/itext.commons/9.8.0",
+    "notices": [
+      "itext.commons.nuspec"
+    ]
+  },
+  {
+    "package": "Microsoft.DotNet.PlatformAbstractions/1.1.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.DotNet.PlatformAbstractions/1.1.0",
+    "notices": [
+      "microsoft.dotnet.platformabstractions.nuspec"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.DependencyInjection/5.0.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.DependencyInjection/5.0.0",
+    "notices": [
+      "LICENSE.TXT",
+      "microsoft.extensions.dependencyinjection.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.DependencyInjection.Abstractions/5.0.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.DependencyInjection.Abstractions/5.0.0",
+    "notices": [
+      "LICENSE.TXT",
+      "microsoft.extensions.dependencyinjection.abstractions.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.DependencyModel/10.0.2",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.DependencyModel/10.0.2",
+    "notices": [
+      "microsoft.extensions.dependencymodel.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.Logging/5.0.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.Logging/5.0.0",
+    "notices": [
+      "LICENSE.TXT",
+      "microsoft.extensions.logging.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.Logging.Abstractions/5.0.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.Logging.Abstractions/5.0.0",
+    "notices": [
+      "LICENSE.TXT",
+      "microsoft.extensions.logging.abstractions.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.Options/5.0.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.Options/5.0.0",
+    "notices": [
+      "LICENSE.TXT",
+      "microsoft.extensions.options.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "Microsoft.Extensions.Primitives/5.0.0",
+    "nuget": "https://www.nuget.org/packages/Microsoft.Extensions.Primitives/5.0.0",
+    "notices": [
+      "LICENSE.TXT",
+      "microsoft.extensions.primitives.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "System.Security.Cryptography.Pkcs/6.0.5",
+    "nuget": "https://www.nuget.org/packages/System.Security.Cryptography.Pkcs/6.0.5",
+    "notices": [
+      "LICENSE.TXT",
+      "system.security.cryptography.pkcs.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  },
+  {
+    "package": "System.Security.Cryptography.Xml/6.0.2",
+    "nuget": "https://www.nuget.org/packages/System.Security.Cryptography.Xml/6.0.2",
+    "notices": [
+      "LICENSE.TXT",
+      "system.security.cryptography.xml.nuspec",
+      "THIRD-PARTY-NOTICES.TXT"
+    ]
+  }
+]

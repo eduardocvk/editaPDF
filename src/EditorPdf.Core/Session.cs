@@ -74,6 +74,23 @@ public sealed class Session : IDisposable
         if (!Originals.Contains(full, StringComparer.OrdinalIgnoreCase))
             Originals.Add(full);
     }
+    public void ImportMany(string[] paths, int at)
+    {
+        var sources = new List<PdfDocument>();
+        try
+        {
+            foreach (var path in paths)
+                sources.Add(new PdfDocument(LocalFiles.Read(path)));
+            Execute(d => { int position = at; foreach (var source in sources) { d.Import(source, Enumerable.Range(0, source.Count).ToArray(), position); position += source.Count; } });
+            foreach (var path in paths)
+            {
+                string full = Path.GetFullPath(path);
+                if (!Originals.Contains(full, StringComparer.OrdinalIgnoreCase))
+                    Originals.Add(full);
+            }
+        }
+        finally { foreach (var source in sources) source.Dispose(); }
+    }
     public void Undo()
     {
         if (!CanUndo)

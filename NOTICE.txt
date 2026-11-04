@@ -1,4 +1,4 @@
-Editor PDF 0.1.1
+Editor PDF 0.2.0
 Copyright (C) 2026 Contributors to Editor PDF
 SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -13,6 +13,9 @@ Binary distribution by bblanchon: licenses/pdfium-binaries.txt (MIT).
 Noto Sans Regular: assets/OFL.txt (SIL OFL 1.1).
 FreeType is used under its FreeType License, included with PDFium's notices.
 
-No third-party managed PDF wrapper or commercial PDF SDK is used.
+iText Community 9.8.0, Commons and Bouncy Castle adapter: AGPL-3.0-or-later; licenses/itext and licenses/managed.
+Bouncy Castle 2.7.0: MIT; licenses/managed.
+Corresponding unmodified iText production source: vendor/sources in Source.zip.
+PDF metadata retains the iText Producer and AGPL/copyright notice.
 Source code, build scripts and dependency provenance are in the editor_pdf project.
 This is a local preview, not a signed Microsoft Store distribution.

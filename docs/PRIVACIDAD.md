@@ -1,4 +1,4 @@
-# Privacidad de Editor PDF 0.1.1
+# Privacidad de Editor PDF 0.2.0
 
 El motor y la interfaz procesan los PDF en el equipo. No se implementan conexiones, servicios remotos, telemetría, analítica, actualizaciones, descargas de fuentes ni envío automático de errores. No se ejecutan JavaScript, enlaces o acciones de los documentos. PDFium se incluye sin V8 ni XFA. La app no carga páginas web.
 
@@ -8,7 +8,9 @@ La compilación autónoma incluye runtime, motor y Noto Sans. El SDK de desarrol
 
 PDF originales: solo lectura. Exportaciones: archivos nuevos elegidos por el usuario; no reemplazan existentes. El guardado utiliza un temporal en la misma carpeta y un movimiento sin reemplazo, después de comprobar la copia.
 
-La sesión se guarda automáticamente en `%LOCALAPPDATA%\EditorPDF\Recovery\session.json`. Contiene una copia del PDF, las rutas originales y el estado de cambios. No contiene contraseñas ni certificados. Es un archivo local, **sin cifrado adicional**, sujeto a los permisos del perfil Windows. Se conserva al cerrar para poder recuperar la sesión. El historial de deshacer permanece solo en memoria. Puedes eliminar la carpeta Recovery con la aplicación cerrada para borrar la recuperación; los originales no se alteran. No hay registro persistente de actividad, documentos ni búsquedas.
+La sesión se guarda automáticamente en `%LOCALAPPDATA%\EditorPDF\Recovery`. `workspace.json` conserva las pestañas y su contexto; cada subcarpeta con identificador contiene una copia del PDF, las rutas originales y el estado de cambios. Los borradores del panel, búsqueda y posición también son locales. No se guardan contraseñas ni certificados. Los archivos no tienen cifrado adicional y dependen de los permisos del perfil Windows. Se conserva la sesión al cerrar la ventana para recuperarla; cerrar una pestaña retira su recuperación después de guardar el estado de las demás. El historial de deshacer permanece en memoria y es independiente por pestaña. Las sesiones antiguas de un solo documento se pueden recuperar. Puedes eliminar la carpeta Recovery con la aplicación cerrada; los originales no se alteran. No hay registro persistente de actividad ni envío de búsquedas.
+
+iText Community se utiliza solo con flujos de memoria para las estructuras PDF. No se invocan sus funciones de firma, TSA, revocación ni recursos remotos. La generación del logo y la adquisición de bibliotecas fueron tareas de desarrollo; la app distribuida incluye todos sus archivos y no ejecuta generadores ni consultas de paquetes.
 
 Se rechazan rutas UNC, unidades de red y rutas con enlaces/redirecciones antes de leer o guardar documentos. Usa una carpeta local que no esté sincronizada si quieres que otro programa, como un cliente de nube, tampoco sincronice tus exportaciones. La app no controla programas externos ni las políticas de diagnóstico del propio Windows.
 

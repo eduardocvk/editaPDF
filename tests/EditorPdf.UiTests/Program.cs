@@ -11,6 +11,17 @@ static class UiTests
     [STAThread]
     static void Main(string[] args)
     {
+        if (args.Length == 0)
+            args = ["--interactive", Path.Combine(AppContext.BaseDirectory, "preview-recovery"), Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "structure-probe-02", "fixtures", "anotaciones.pdf"))];
+        if (args.FirstOrDefault() == "--interactive")
+        {
+            var preview = new Application();
+            preview.Resources = (ResourceDictionary)Application.LoadComponent(new Uri("/EditorPDF;component/Theme.xaml", UriKind.Relative));
+            var interactive = new MainWindow(Path.GetFullPath(args[1]), false);
+            interactive.OpenDocuments(args.Skip(2).Select(Path.GetFullPath).ToArray());
+            preview.Run(interactive);
+            return;
+        }
         string folder = Path.GetFullPath(args[0]);
         Directory.CreateDirectory(folder);
         var app = new App();
@@ -79,7 +90,65 @@ static class UiTests
         if (externalLinks.Count != 1 || externalLinks[0].AbsoluteUri != "https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ")
             throw new Exception("El banner no abre exclusivamente la dirección oficial fija");
         Console.WriteLine("PASS banner FirmaPDF: pulsacion explicita y URL fija sin datos; apertura de navegador sustituida solo en prueba");
-        session.Dispose();
+        var docTabs = (TabControl)window.FindName("DocumentTabs");
+        var first = (WorkspaceDocument)docTabs.Items[0];
+        var fixtures = Path.GetDirectoryName(Path.GetFullPath(args[1]))!;
+        window.OpenDocuments([Path.Combine(fixtures, "anotaciones.pdf"), Path.Combine(fixtures, "destinos.pdf")]);
+        if (docTabs.Items.Count != 3 || docTabs.Items.Cast<WorkspaceDocument>().Any(d => d.Session.Document.Count != 2))
+            throw new Exception("Abrir varios debe crear documentos independientes");
+        var second = (WorkspaceDocument)docTabs.Items[1];
+        ((TabItem)window.FindName("EditMode")).IsSelected = true;
+        host.Measure(new Size(1280, 780));
+        host.Arrange(new Rect(0, 0, 1280, 780));
+        host.UpdateLayout();
+        var thumbnails = (ListBox)window.FindName("PagesList");
+        thumbnails.ScrollIntoView(thumbnails.Items[1]);
+        host.UpdateLayout();
+        var dropTarget = (ListBoxItem)thumbnails.ItemContainerGenerator.ContainerFromIndex(1);
+        var pageData = new DataObject("EditorPDF.Page", second.Id + ":0");
+        var drop = (DragEventArgs)Activator.CreateInstance(typeof(DragEventArgs), BindingFlags.Instance | BindingFlags.NonPublic, null, [pageData, DragDropKeyStates.LeftMouseButton, DragDropEffects.Move, dropTarget, new Point(10, dropTarget.ActualHeight - 2)], System.Globalization.CultureInfo.InvariantCulture)!;
+        drop.RoutedEvent = DragDrop.DropEvent;
+        dropTarget.RaiseEvent(drop);
+        if (!drop.Handled)
+            throw new Exception("El evento de soltar no llegó al organizador de miniaturas");
+        if (!second.Session.Document.Text(1).Contains("Texto original compatible"))
+            throw new Exception("Mover al soltar miniatura no conserva las paginas");
+        typeof(MainWindow).GetMethod("SetZoom", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [1.5]);
+        ((TextBox)window.FindName("SearchBox")).Text = "busqueda de la segunda pestaña";
+        ((ListBox)window.FindName("ObjectsList")).SelectedIndex = 1;
+        ((TextBox)window.FindName("TextValue")).Text = "Borrador sin aplicar";
+        docTabs.SelectedIndex = 0;
+        if (!ReferenceEquals(first.Session, typeof(MainWindow).GetField("session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)) || !first.Session.Document.Text(0).Contains("Edicion visual comprobada"))
+            throw new Exception("Cambiar pestaña pierde el documento");
+        ((Button)window.FindName("UndoButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (!first.Session.Document.Text(0).Contains("Texto original compatible") || !second.Session.Document.Text(1).Contains("Texto original compatible"))
+            throw new Exception("El historial se mezcla entre pestañas");
+        ((Button)window.FindName("RedoButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        docTabs.SelectedIndex = 1;
+        if (((TextBox)window.FindName("TextValue")).Text != "Borrador sin aplicar" || !((TextBox)window.FindName("SearchBox")).Text.Contains("segunda pestaña") || second.View.Page != 1 || Math.Abs(second.View.Zoom - 1.5) > 0.01)
+            throw new Exception("La pestaña pierde posicion o borrador");
+        Capture("documentos-1280", 1280, 780);
+        second.Session.SaveNew(Path.Combine(folder, "ui-reordenado.pdf"));
+        Console.WriteLine("CHECK guardar recuperación multipestaña");
+        typeof(MainWindow).GetMethod("SaveWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        Console.WriteLine("CHECK construir ventana recuperada");
+        var recovered = new MainWindow(Path.Combine(folder, "recovery"), false, _ => { });
+        Console.WriteLine("CHECK restaurar ventana recuperada");
+        typeof(MainWindow).GetMethod("RestoreWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recovered, null);
+        if (((TabControl)recovered.FindName("DocumentTabs")).Items.Count != 3 || ((TextBox)recovered.FindName("TextValue")).Text != "Borrador sin aplicar")
+            throw new Exception("Recuperar la sesión no recupera todas las pestañas y borradores");
+        typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recovered, null);
+        Console.WriteLine("CHECK cerrar tercera pestaña sin cambios");
+        typeof(MainWindow).GetMethod("SwitchDocument", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [docTabs.Items[2]]);
+        if ((bool)typeof(MainWindow).GetMethod("HasUnappliedProperties", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null)! || ((WorkspaceDocument)docTabs.Items[2]).Session.Dirty)
+            throw new Exception("La tercera pestaña no debe tener cambios ni borradores pendientes");
+        typeof(MainWindow).GetMethod("CloseDocument", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [docTabs.Items[2]]);
+        if (docTabs.Items.Count != 2)
+            throw new Exception("Cerrar documento no conserva los demás");
+        if (window.Icon == null || ((Image)window.FindName("HeaderLogo")).Source == null)
+            throw new Exception("Falta el logo de la app");
+        Console.WriteLine("PASS documentos en pestañas: sesiones e historial independientes, orden por insercion, borradores, recuperacion completa y cierre");
+        typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS UI texto original, deshacer, rehacer y guardado");
     }
 }

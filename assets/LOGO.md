@@ -1,0 +1,7 @@
+# Logo de Editor PDF
+
+Marca creada para este proyecto mediante la herramienta integrada `image_gen`, con transparencia. El original está en `logo.png`. `Build-Brand.py` genera `EditorPDF.ico` (16–256 px) y los tamaños de MSIX; la aplicación no genera ni descarga imágenes al ejecutarse. Los iconos de herramientas son geometrías vectoriales propias en `ToolButton.cs`.
+
+Prompt de generación:
+
+> Use case: logo-brand. Asset type: production Windows 11 desktop application icon, for a free open source PDF page organizer and editor named Editor PDF / editaPDF. Create ONE clean original logo mark, no lettering, no wordmark. A sophisticated compact rounded-square cobalt blue app tile with two neatly offset white document sheets and a simple turquoise editing pencil forming a subtle forward diagonal; convey rearranging pages and editing, not document signing. Crisp flat vector-like geometry, bold silhouette, strong legibility at 16 and 32 pixels, generous internal padding, a slightly folded page corner, minimal details, professional fluent Windows style. Centered square composition on a genuinely transparent outer background. No gradients except a very restrained blue tonal change if useful, no photorealism, no 3D perspective, no mockup, no extra variants, no border text, no watermark. Use palette blue #235EBC, dark blue #15396C, white #FFFFFF, turquoise #28C7B7. Return just the single logo icon with transparency.

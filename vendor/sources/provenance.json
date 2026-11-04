@@ -1,0 +1,7 @@
+{
+  "package": "itext 9.8.0 including Commons and Bouncy Castle adapter",
+  "source": "https://github.com/itext/itext-dotnet/tree/9.8.0",
+  "archive": "itext-dotnet-9.8.0-production.zip",
+  "sha256": "0739e8baec2ffa452a4311fdbe946cf34f3f53a2ed3410955846c6cf3e998199",
+  "contents": "Unmodified production sources and root build/license files; large external test corpora excluded."
+}

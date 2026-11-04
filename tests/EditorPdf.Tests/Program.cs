@@ -125,13 +125,9 @@ if (File.Exists(fixture))
         s.Execute(d => d.ReplaceText(0, o.Index, "Edicion real 456"));
         s.SaveNew(Path.Combine(output, "estructuras-editado.pdf"));
         Assert(s.Document.Bookmarks && s.Document.Attachments == 1 && s.Document.Info(0).Annotations == 1, "edicion conserva marcadores, adjunto y anotacion");
-        bool blocked = false;
-        try
-        {
-            s.Execute(d => d.Move(0, 1));
-        }
-        catch (InvalidOperationException) { blocked = true; }
-        Assert(blocked, "reorganizacion con referencias bloqueada");
+        s.Execute(d => d.Move(0, 1));
+        Assert(s.Document.Text(1).Contains("Edicion real 456"), "reordenar con referencias conserva paginas");
+        s.SaveNew(Path.Combine(output, "reordenado-estructuras.pdf"));
     }
     using (var s = new Session())
     {
@@ -176,18 +172,41 @@ if (File.Exists(fixture))
         rendered.SaveNew(Path.Combine(output, "visualizado-anotaciones.pdf"));
         Assert(rendered.Info(0).Annotations == 3, "visualizacion aislada no altera el documento editable");
     }
-    foreach (var name in new[] { "estructuras", "enlace-interno", "destinos" })
+    foreach (var name in new[] { "estructuras", "enlace-interno", "destinos", "formulario", "etiquetado" })
     {
         using var s = new Session();
         s.Open(fixture);
-        var before = s.Document;
-        bool blocked = false;
-        try
-        {
-            s.Import(Path.Combine(output, "fixtures", name + ".pdf"), null, s.Document.Count);
-        }
-        catch (InvalidOperationException error) { blocked = error.Message.Contains("documento principal"); }
-        Assert(blocked && ReferenceEquals(s.Document, before), "importacion no compatible de " + name + " informa alternativa sin cambiar sesion");
+        s.Import(Path.Combine(output, "fixtures", name + ".pdf"), null, s.Document.Count);
+        Assert(s.Document.Count == 4, "importar estructuras de origen: " + name);
+        s.Execute(d => d.Move(2, 0));
+        s.SaveNew(Path.Combine(output, "mezcla-" + name + ".pdf"));
+    }
+    using (var s = new Session())
+    {
+        var form = Path.Combine(output, "fixtures", "formulario.pdf");
+        s.Open(form);
+        s.Import(form, null, 2);
+        s.Execute(d => d.Move(2, 0));
+        s.SaveNew(Path.Combine(output, "formularios-dobles.pdf"));
+    }
+    using (var s = new Session())
+    {
+        var named = Path.Combine(output, "fixtures", "destinos.pdf");
+        s.Open(named);
+        s.Import(named, null, 2);
+        s.SaveNew(Path.Combine(output, "destinos-dobles.pdf"));
+    }
+    using (var s = new Session())
+    {
+        s.Open(Path.Combine(output, "fixtures", "destinos.pdf"));
+        s.Import(Path.Combine(output, "fixtures", "destinos-enlazados.pdf"), null, 2);
+        s.SaveNew(Path.Combine(output, "destinos-enlazados-dobles.pdf"));
+    }
+    using (var s = new Session())
+    {
+        s.Open(Path.Combine(output, "fixtures", "estructuras.pdf"));
+        s.Import(Path.Combine(output, "fixtures", "estructuras-otro.pdf"), null, 2);
+        s.SaveNew(Path.Combine(output, "adjuntos-dobles.pdf"));
     }
     Assert(Session.ParseRanges("1-2,1", 2).SequenceEqual(new[] { 0, 1, 0 }), "analizador de rangos");
     bool remote = false;

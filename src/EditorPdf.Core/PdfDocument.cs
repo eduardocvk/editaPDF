@@ -18,12 +18,14 @@ public sealed class PdfDocument : IDisposable
     public int Count => N.FPDF_GetPageCount(handle);
     public bool Signed => N.FPDF_GetSignatureCount(handle) > 0;
     public bool Protected => N.FPDF_GetSecurityHandlerRevision(handle) >= 0;
+    public bool Xfa => N.FPDF_GetFormType(handle) >= 2;
     public bool Forms => N.FPDF_GetFormType(handle) > 0;
     public bool Tagged => N.FPDFCatalog_IsTagged(handle) != 0;
     public bool Bookmarks => N.FPDFBookmark_GetFirstChild(handle, IntPtr.Zero) != IntPtr.Zero;
     public uint NamedDestinations => N.FPDF_CountNamedDests(handle);
     public int Attachments => N.FPDFDoc_GetAttachmentCount(handle);
-    public string? EditBlock => Signed ? "El documento contiene firmas digitales. Su edición invalidaría las firmas; abre una copia sin firmar." : Protected ? "El documento está cifrado o protegido. Esta versión no modifica documentos protegidos." : Forms ? "El documento contiene formularios. Esta versión permite visualizarlo, pero bloquea la edición para conservar su estructura." : Tagged ? "El PDF está etiquetado. Se abre en modo de solo lectura para conservar su estructura de accesibilidad." : null;
+    public string? EditBlock => Signed ? "El documento contiene firmas digitales. Su edición invalidaría las firmas; abre una copia sin firmar." : Protected ? "El documento está cifrado o protegido. Esta versión no modifica documentos protegidos." : Xfa ? "Los formularios XFA no están admitidos; el documento se abre en solo lectura." : null;
+    public string? ObjectEditBlock => EditBlock ?? (Forms || Tagged ? "Puedes organizar las páginas de este PDF. La edición de objetos está limitada para conservar sus formularios o etiquetas de accesibilidad." : null);
     public PdfDocument(byte[] data)
     {
         if (data.Length > 256 * 1024 * 1024)
@@ -44,9 +46,9 @@ public sealed class PdfDocument : IDisposable
     }
     void Editable(bool structure = false)
     {
-        if (EditBlock is { } reason)
+        if ((structure ? EditBlock : ObjectEditBlock) is { } reason)
             throw new InvalidOperationException(reason);
-        if (structure && (Tagged || Bookmarks || NamedDestinations > 0 || Enumerable.Range(0, Count).Any(i => Info(i).Annotations > 0)))
+        if (structure && (Forms || Tagged || Bookmarks || NamedDestinations > 0 || Enumerable.Range(0, Count).Any(i => Info(i).Annotations > 0)))
             throw new InvalidOperationException("Este PDF tiene marcadores, anotaciones o enlaces entre páginas. Esta operación aún está limitada para conservar sus referencias. Puedes añadir PDF al final y editar sus objetos.");
     }
     void Mutating(bool structure = false)
@@ -153,80 +155,52 @@ public sealed class PdfDocument : IDisposable
         }
         finally { N.FPDF_ClosePage(p); }
     }
+    void StructureAllowed()
+    {
+        if (EditBlock is { } reason)
+            throw new InvalidOperationException(reason);
+    }
+    void ReplaceBytes(byte[] bytes)
+    {
+        using var replacement = new PdfDocument(bytes);
+        renderingCopy?.Dispose();
+        renderingCopy = null;
+        foreach (var font in fonts)
+            N.FPDFFont_Close(font);
+        fonts.Clear();
+        N.FPDF_CloseDocument(handle);
+        if (pin.IsAllocated)
+            pin.Free();
+        handle = replacement.handle;
+        pin = replacement.pin;
+        replacement.handle = IntPtr.Zero;
+        replacement.pin = default;
+        modified = false;
+    }
     public void Import(PdfDocument source, int[] pages, int at)
     {
         if (ReferenceEquals(this, source) || at < 0 || at > Count || pages.Length == 0 || pages.Any(i => i < 0 || i >= source.Count))
             throw new ArgumentException("Rango no válido.");
-        // Appending leaves every existing page index and document-level reference intact.
-        // Other structural changes still need the stricter reference checks.
-        Mutating(at != Count);
-        source.Editable();
-        if (source.Bookmarks || source.NamedDestinations > 0 || source.Attachments > 0)
-            throw new InvalidOperationException("El PDF que quieres añadir contiene marcadores, destinos con nombre o adjuntos que esta versión aún no puede transferir. Para conservarlos, ábrelo como documento principal y añade los demás al final.");
-        var annotationStates = pages.Distinct().ToDictionary(i => i, i => source.Annotations(i, true));
-        Check(N.FPDF_ImportPagesByIndex(handle, source.handle, pages, (uint)pages.Length, at), "No se pudieron importar las páginas.");
-        for (int offset = 0; offset < pages.Length; offset++)
+        StructureAllowed();
+        source.StructureAllowed();
+        var bytes = PdfStructure.Import(SaveBytes(), source.SaveBytes(), pages, at);
+        using var check = new PdfDocument(bytes);
+        if (check.Count != Count + pages.Length)
+            throw new InvalidDataException("La unión no conserva el número de páginas.");
+        for (int i = 0; i < check.Count; i++)
         {
-            var original = source.Info(pages[offset]);
-            int importedIndex = at + offset;
-            if (Info(importedIndex) != (original with
+            bool imported = i >= at && i < at + pages.Length;
+            var origin = imported ? source : this;
+            int index = imported ? pages[i - at] : i < at ? i : i - pages.Length;
+            var expected = origin.Info(index) with
             {
-                Index = importedIndex
-            }) || Text(importedIndex) != source.Text(pages[offset]) ||
-                !Annotations(importedIndex, false).SequenceEqual(annotationStates[pages[offset]]) ||
-                !SHA256.HashData(Render(importedIndex, 600).Pixels).SequenceEqual(SHA256.HashData(source.Render(pages[offset], 600).Pixels)))
-                throw new InvalidDataException("No se pudo conservar íntegramente una página importada. La operación no se ha aplicado a la sesión.");
+                Index = i
+            };
+            if (check.Info(i) != expected || check.Text(i) != origin.Text(index) ||
+                !SHA256.HashData(check.Render(i, 600).Pixels).SequenceEqual(SHA256.HashData(origin.Render(index, 600).Pixels)))
+                throw new InvalidDataException("No se pudo conservar una página al unir los PDF. La sesión no se ha cambiado.");
         }
-    }
-    sealed record AnnotationState(int Type, int Flags, NativeRect Rect, string Contents, string Title, string Subject, string Name, string Modified, string UriBytes);
-    List<AnnotationState> Annotations(int page, bool forImport)
-    {
-        using var p = Open(page);
-        var result = new List<AnnotationState>();
-        int count = N.FPDFPage_GetAnnotCount(p.H);
-        if (count < 0)
-            throw new InvalidDataException("No se pudieron comprobar las anotaciones de la página.");
-        for (int i = 0; i < count; i++)
-        {
-            var annotation = N.FPDFPage_GetAnnot(p.H, i);
-            if (annotation == IntPtr.Zero)
-                throw new InvalidDataException("No se pudo leer una anotación.");
-            try
-            {
-                int type = N.FPDFAnnot_GetSubtype(annotation);
-                if (forImport && (!new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 24 }.Contains(type) ||
-                    new[] { "Parent", "Popup", "IRT", "AA", "StructParent" }.Any(key => N.FPDFAnnot_HasKey(annotation, key) != 0)))
-                    throw new InvalidOperationException("El PDF que quieres añadir contiene anotaciones enlazadas o interactivas que aún no se pueden transferir con seguridad. Las notas, marcas y sellos independientes sí están admitidos.");
-                string uri = "";
-                if (type == 2)
-                {
-                    var link = N.FPDFAnnot_GetLink(annotation);
-                    var action = N.FPDFLink_GetAction(link);
-                    uint actionType = action == IntPtr.Zero ? 0 : N.FPDFAction_GetType(action);
-                    if (forImport && (N.FPDFAnnot_HasKey(annotation, "Dest") != 0 || action != IntPtr.Zero && actionType != 3))
-                        throw new InvalidOperationException("El PDF que quieres añadir contiene enlaces internos o acciones que aún no se pueden transferir. Ábrelo como documento principal y añade los demás al final para conservarlos.");
-                    if (actionType == 3)
-                    {
-                        var bytes = new byte[N.FPDFAction_GetURIPath(handle, action, null, 0)];
-                        if (bytes.Length > 0)
-                            N.FPDFAction_GetURIPath(handle, action, bytes, (uint)bytes.Length);
-                        uri = Convert.ToBase64String(bytes);
-                    }
-                }
-                string Value(string key)
-                {
-                    var bytes = new byte[N.FPDFAnnot_GetStringValue(annotation, key, null, 0)];
-                    if (bytes.Length == 0)
-                        return "";
-                    N.FPDFAnnot_GetStringValue(annotation, key, bytes, (uint)bytes.Length);
-                    return Encoding.Unicode.GetString(bytes).TrimEnd('\0');
-                }
-                Check(N.FPDFAnnot_GetRect(annotation, out var rect), "No se pudo comprobar la posición de una anotación.");
-                result.Add(new(type, N.FPDFAnnot_GetFlags(annotation), rect, Value("Contents"), Value("T"), Value("Subj"), Value("NM"), Value("M"), uri));
-            }
-            finally { N.FPDFPage_CloseAnnot(annotation); }
-        }
-        return result;
+        ReplaceBytes(bytes);
     }
     public void Delete(int i)
     {
@@ -246,10 +220,26 @@ public sealed class PdfDocument : IDisposable
     }
     public void Move(int from, int to)
     {
-        Mutating(true);
-        if (to < 0 || to >= Count)
+        StructureAllowed();
+        if (from < 0 || from >= Count || to < 0 || to >= Count)
             throw new ArgumentOutOfRangeException(nameof(to));
-        Check(N.FPDF_MovePages(handle, [from], 1, to), "No se pudo mover la página.");
+        if (from == to)
+            return;
+        var bytes = PdfStructure.Move(SaveBytes(), from, to);
+        using var check = new PdfDocument(bytes);
+        if (check.Count != Count || check.Attachments != Attachments || check.Bookmarks != Bookmarks || check.Tagged != Tagged || check.NamedDestinations != NamedDestinations)
+            throw new InvalidDataException("La reorganización no conserva la estructura del PDF.");
+        var order = Enumerable.Range(0, Count).ToList();
+        order.RemoveAt(from);
+        order.Insert(to, from);
+        for (int i = 0; i < Count; i++)
+            if (check.Info(i) != (Info(order[i]) with
+            {
+                Index = i
+            }) || check.Text(i) != Text(order[i]) ||
+                !SHA256.HashData(check.Render(i, 600).Pixels).SequenceEqual(SHA256.HashData(Render(order[i], 600).Pixels)))
+                throw new InvalidDataException("La reorganización no conserva el contenido de las páginas.");
+        ReplaceBytes(bytes);
     }
     public void Rotate(int i)
     {
@@ -440,7 +430,7 @@ public sealed class PdfDocument : IDisposable
     }
     public void SaveNew(string path)
     {
-        Editable();
+        StructureAllowed();
         path = LocalFiles.Validate(path);
         var bytes = SaveBytes();
         using (var check = new PdfDocument(bytes))

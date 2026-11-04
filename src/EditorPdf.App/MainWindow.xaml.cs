@@ -14,7 +14,7 @@ public partial class MainWindow : Window
 {
     readonly Action<Uri> openExternal;
     public static Uri FirmaPdfStoreUri { get; } = new("https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ");
-    readonly string recoveryFolder; readonly bool restoreOnLoad; readonly Session session = new(); int page; double zoom = 1; bool refreshing; Point? dragStart; int searchPage = -1, searchOffset; string lastQuery = "";
+    readonly string recoveryFolder; readonly bool restoreOnLoad; Session session = new(); int page; double zoom = 1; bool refreshing; Point? dragStart; int searchPage = -1, searchOffset; string lastQuery = "";
     public static string RecoveryFolder => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EditorPDF", "Recovery");
     PdfDocument Pdf => session.Document; ObjectRow? Selected => ObjectsList.SelectedItem as ObjectRow;
     public MainWindow(string? localRecovery = null, bool restore = true, Action<Uri>? externalLinkOpener = null)
@@ -23,8 +23,11 @@ public partial class MainWindow : Window
         restoreOnLoad = restore;
         openExternal = externalLinkOpener ?? (uri => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true }));
         InitializeComponent();
+        InitializeWorkspace();
+        Icon = BitmapFrame.Create(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "EditorPDF.ico")));
+        HeaderLogo.Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")));
         FontFamily = new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/#Noto Sans");
-        Loaded += (_, _) => { if (restoreOnLoad && Pdf.Count == 0 && File.Exists(System.IO.Path.Combine(recoveryFolder, "session.json")) && MessageBox.Show(this, "Hay una sesión local guardada. ¿Recuperarla?", "Recuperar sesión", MessageBoxButton.YesNo) == MessageBoxResult.Yes) Run(() => { session.Restore(recoveryFolder); Refresh(); }, "Sesión recuperada."); Refresh(); };
+        Loaded += (_, _) => { if (restoreOnLoad && HasRecovery() && MessageBox.Show(this, "Hay documentos de una sesión local anterior. ¿Recuperarlos?", "Recuperar sesión", MessageBoxButton.YesNo) == MessageBoxResult.Yes) Run(RestoreWorkspace, "Sesión recuperada."); else Refresh(); };
     }
     void Run(Action work, string? success = null)
     {
@@ -43,13 +46,14 @@ public partial class MainWindow : Window
         if (Pdf.Count == 0)
             throw new InvalidOperationException("Abre un PDF primero.");
     }
-    void Recover()
+    bool Recover()
     {
         try
         {
-            session.SaveRecovery(recoveryFolder);
+            SaveWorkspace();
+            return true;
         }
-        catch (Exception ex) { Status.Text = "Los cambios siguen en memoria; no se pudo guardar la recuperación local: " + ex.Message; MessageBox.Show(this, Status.Text, "Recuperación local", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        catch (Exception ex) { Status.Text = "Los cambios siguen en memoria; no se pudo guardar la recuperación local: " + ex.Message; MessageBox.Show(this, Status.Text, "Recuperación local", MessageBoxButton.OK, MessageBoxImage.Warning); return false; }
     }
     void Change(Action<PdfDocument> mutation, int? selectedPage = null)
     {
@@ -69,6 +73,7 @@ public partial class MainWindow : Window
     }
     public sealed class Thumb(PdfDocument doc, int index)
     {
+        public int Index => index;
         BitmapSource? cached; public string Label => $"{index + 1}"; public BitmapSource Image => cached ??= Bitmap(doc.Render(index, 140));
         public override string ToString() => $"Página {index + 1}";
     }
@@ -89,7 +94,7 @@ public partial class MainWindow : Window
             UndoButton.IsEnabled = session.CanUndo;
             RedoButton.IsEnabled = session.CanRedo;
             EmptyHint.Visibility = Pdf.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            Title = "Editor PDF" + (session.Dirty ? " •" : "");
+            UpdateTabHeaders();
             ShowPage();
         }
         finally { refreshing = false; }
@@ -131,10 +136,7 @@ public partial class MainWindow : Window
             return true;
         return SaveCopy();
     }
-    public void OpenPaths(string[] paths)
-    {
-        Run(() => { if (paths.Length == 0 || !LeaveCurrent()) return; session.OpenMany(paths); page = 0; Refresh(); Recover(); if (Pdf.EditBlock is { } reason) MessageBox.Show(this, reason, "Documento de solo lectura", MessageBoxButton.OK, MessageBoxImage.Information); });
-    }
+    public void OpenPaths(string[] paths) => Run(() => OpenDocuments(paths));
     string[] PickPdfs(bool multiple = true)
     {
         var dialog = new OpenFileDialog { Filter = "PDF (*.pdf)|*.pdf", Multiselect = multiple, CheckFileExists = true };
@@ -146,7 +148,7 @@ public partial class MainWindow : Window
         if (files.Length > 0)
             OpenPaths(files);
     }
-    void AppendClick(object sender, RoutedEventArgs e) => Run(() => { if (Pdf.Count == 0) { OpenClick(sender, e); return; } var files = PickPdfs(); foreach (var file in files) { session.Import(file, null, Pdf.Count); Refresh(); Recover(); } });
+    void AppendClick(object sender, RoutedEventArgs e) => Run(() => AppendPaths(PickPdfs()));
     void InsertClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); var files = PickPdfs(false); if (files.Length == 0) return; using var source = new PdfDocument(LocalFiles.Read(files[0])); var ranges = Prompt("Insertar páginas", "Páginas del PDF de origen", $"1-{source.Count}"); if (ranges == null) return; session.Import(files[0], Session.ParseRanges(ranges, source.Count), page + 1); page++; Refresh(); Recover(); });
     bool SaveCopy()
     {
@@ -275,7 +277,19 @@ public partial class MainWindow : Window
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control), shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         if (ctrl)
         {
-            if (e.Key == Key.O)
+            if (e.Key == Key.W)
+            {
+                if (activeDocument != null)
+                    Run(() => CloseDocument(activeDocument));
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Tab)
+            {
+                int next = (documents.IndexOf(activeDocument!) + (shift ? -1 : 1) + documents.Count) % documents.Count;
+                Run(() => { SwitchDocument(documents[next]); Recover(); });
+                e.Handled = true;
+            }
+            else if (e.Key == Key.O)
             {
                 OpenClick(sender, e);
                 e.Handled = true;
@@ -332,7 +346,7 @@ public partial class MainWindow : Window
     void WindowClosing(object? sender, CancelEventArgs e)
     {
         bool finished = false;
-        Run(() => { if (!LeaveCurrent()) return; Recover(); session.Dispose(); finished = true; });
+        Run(() => finished = CanCloseWorkspace());
         e.Cancel = !finished;
     }
     string? Prompt(string title, string label, string initial)
