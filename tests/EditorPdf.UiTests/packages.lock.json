@@ -5,7 +5,7 @@
       "EditorPDF": {
         "type": "Project",
         "dependencies": {
-          "EditorPdf.Core": "[0.1.0, )"
+          "EditorPdf.Core": "[0.1.1, )"
         }
       },
       "editorpdf.core": {

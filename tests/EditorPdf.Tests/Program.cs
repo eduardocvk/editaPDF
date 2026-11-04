@@ -138,6 +138,57 @@ if (File.Exists(fixture))
         s.Execute(d => d.Blank(0));
         Assert(s.Document.Count == 1, "sesion nueva sin PDF previo");
     }
+    foreach (var name in new[] { "estructuras", "anotaciones", "destinos" })
+    {
+        var path = Path.Combine(output, "fixtures", name + ".pdf");
+        var originalHash = SHA256.HashData(File.ReadAllBytes(path));
+        using var s = new Session();
+        s.Open(path);
+        int count = s.Document.Count;
+        var pagesBefore = Enumerable.Range(0, count).Select(i => SHA256.HashData(s.Document.Render(i, 600).Pixels)).ToArray();
+        var annotationsBefore = Enumerable.Range(0, count).Select(i => s.Document.Info(i).Annotations).ToArray();
+        bool bookmarks = s.Document.Bookmarks;
+        int attachments = s.Document.Attachments;
+        uint destinations = s.Document.NamedDestinations;
+        s.Import(fixture, null, count);
+        Assert(s.Document.Count == count + 2, "añadir al final con " + name + " sin bloqueo general");
+        Assert(s.Document.Bookmarks == bookmarks && s.Document.Attachments == attachments && s.Document.NamedDestinations == destinations &&
+            Enumerable.Range(0, count).All(i => s.Document.Info(i).Annotations == annotationsBefore[i] && SHA256.HashData(s.Document.Render(i, 600).Pixels).SequenceEqual(pagesBefore[i])),
+            "conserva paginas existentes y estructuras con " + name);
+        s.Undo();
+        Assert(s.Document.Count == count, "deshacer union con " + name);
+        s.Redo();
+        s.SaveNew(Path.Combine(output, "unido-" + name + ".pdf"));
+        Assert(originalHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(path))), "original con " + name + " intacto");
+    }
+    using (var s = new Session())
+    {
+        s.Open(fixture);
+        var path = Path.Combine(output, "fixtures", "anotaciones.pdf");
+        s.Import(path, null, s.Document.Count);
+        Assert(s.Document.Count == 4 && s.Document.Info(2).Annotations == 3, "importa nota, sello visual y enlace web sin perder anotaciones");
+        s.SaveNew(Path.Combine(output, "importado-anotaciones.pdf"));
+    }
+    using (var rendered = new PdfDocument(File.ReadAllBytes(Path.Combine(output, "fixtures", "anotaciones.pdf"))))
+    {
+        rendered.Render(0, 600);
+        rendered.Render(0, 900);
+        rendered.SaveNew(Path.Combine(output, "visualizado-anotaciones.pdf"));
+        Assert(rendered.Info(0).Annotations == 3, "visualizacion aislada no altera el documento editable");
+    }
+    foreach (var name in new[] { "estructuras", "enlace-interno", "destinos" })
+    {
+        using var s = new Session();
+        s.Open(fixture);
+        var before = s.Document;
+        bool blocked = false;
+        try
+        {
+            s.Import(Path.Combine(output, "fixtures", name + ".pdf"), null, s.Document.Count);
+        }
+        catch (InvalidOperationException error) { blocked = error.Message.Contains("documento principal"); }
+        Assert(blocked && ReferenceEquals(s.Document, before), "importacion no compatible de " + name + " informa alternativa sin cambiar sesion");
+    }
     Assert(Session.ParseRanges("1-2,1", 2).SequenceEqual(new[] { 0, 1, 0 }), "analizador de rangos");
     bool remote = false;
     try

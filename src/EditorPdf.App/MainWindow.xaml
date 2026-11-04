@@ -5,7 +5,6 @@
  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="UndoButton" Content="↶" Click="UndoClick" ToolTip="Deshacer · Ctrl+Z" AutomationProperties.Name="Deshacer"/><Button x:Name="RedoButton" Content="↷" Click="RedoClick" ToolTip="Rehacer · Ctrl+Y" AutomationProperties.Name="Rehacer"/><Button Content="Privacidad" Click="PrivacyClick"/></StackPanel>
  </DockPanel></Border>
  <Border DockPanel.Dock="Top" Background="White" Padding="14,7"><DockPanel>
- <StackPanel DockPanel.Dock="Left" Orientation="Horizontal"><RadioButton x:Name="OrganizeMode" Content="Organizar" GroupName="Mode" IsChecked="True" Checked="ModeChanged" VerticalAlignment="Center" Margin="4,0,18,0"/><RadioButton x:Name="EditMode" Content="Editar" GroupName="Mode" Checked="ModeChanged" VerticalAlignment="Center" Margin="0,0,18,0"/></StackPanel>
  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox x:Name="SearchBox" Width="185" Margin="3" AutomationProperties.Name="Buscar texto" ToolTip="Buscar · Ctrl+F" KeyDown="SearchKeys"/><Button Content="Buscar" Click="SearchClick"/><Button Content="−" Click="ZoomOut" AutomationProperties.Name="Reducir zoom"/><TextBlock x:Name="ZoomLabel" Text="100 %" Width="48" TextAlignment="Center"/><Button Content="+" Click="ZoomIn" AutomationProperties.Name="Ampliar zoom"/><Button Content="Ajustar" Click="FitClick"/></StackPanel>
  </DockPanel></Border>
  <StatusBar DockPanel.Dock="Bottom" Background="White" Padding="12,5"><StatusBarItem><TextBlock x:Name="Status" Text="Abre un PDF para comenzar." TextTrimming="CharacterEllipsis"/></StatusBarItem></StatusBar>
@@ -15,11 +14,17 @@
  <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="#DCE2EA"/>
  <Grid Grid.Column="2"><ScrollViewer x:Name="DocumentScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"><Border x:Name="Paper" Background="White" Margin="25" HorizontalAlignment="Center" VerticalAlignment="Top"><Grid><Image x:Name="PageImage" Stretch="Fill" MouseLeftButtonDown="PageMouseDown" MouseLeftButtonUp="PageMouseUp"/><Canvas x:Name="Overlay" IsHitTestVisible="False"/></Grid></Border></ScrollViewer><TextBlock x:Name="EmptyHint" Text="Tus PDF, en tu equipo." FontSize="25" Foreground="#66768C" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/></Grid>
  <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" Background="#DCE2EA"/>
- <DockPanel Grid.Column="4" Background="White" Margin="0,1,0,0"><Button x:Name="FirmaPdfBanner" DockPanel.Dock="Bottom" Content="FirmaPDF ↗" Click="FirmaPdfClick" ToolTip="Ver FirmaPDF en Microsoft Store" AutomationProperties.Name="Ver FirmaPDF en Microsoft Store" FontSize="11" Margin="14" HorizontalAlignment="Left"/>
- <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18,16">
- <TextBlock x:Name="PanelTitle" Text="Organizar" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,14"/>
+ <DockPanel x:Name="PropertiesPanel" Grid.Column="4" Background="White" Margin="0,1,0,0">
+ <Button x:Name="FirmaPdfBanner" DockPanel.Dock="Bottom" Click="FirmaPdfClick" ToolTip="Firmar documentos con certificado digital · Microsoft Store" AutomationProperties.Name="¿Quieres firmar tus PDF? Prueba FirmaPDF en Microsoft Store" Background="#EDF3FC" BorderBrush="#CBDAF0" Padding="12,11" FontSize="12" Margin="14" HorizontalContentAlignment="Stretch">
+  <StackPanel><TextBlock Text="¿Quieres firmar tus PDF?" TextWrapping="Wrap" FontWeight="SemiBold"/><TextBlock Text="Prueba FirmaPDF ↗" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,6,0,0"/></StackPanel>
+ </Button>
+ <TabControl x:Name="ModeTabs" SelectionChanged="ModeChanged" Margin="10,12,10,0" Padding="0" BorderThickness="0" Background="White" AutomationProperties.Name="Herramientas del documento">
+ <TabControl.Resources><Style TargetType="TabItem"><Setter Property="Padding" Value="12,8"/><Setter Property="MinWidth" Value="105"/><Setter Property="FontSize" Value="13"/></Style></TabControl.Resources>
+ <TabItem x:Name="OrganizeMode" Header="_Organizar" IsSelected="True" AutomationProperties.Name="Organizar"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="6,16,6,4">
  <StackPanel x:Name="OrganizePanel"><WrapPanel><Button Content="En blanco" Click="BlankClick"/><Button Content="Duplicar" Click="DuplicateClick"/><Button Content="Girar ↻" Click="RotateClick"/><Button Content="Eliminar" Click="DeletePageClick"/></WrapPanel><WrapPanel><Button Content="Subir ↑" Click="MoveUpClick"/><Button Content="Bajar ↓" Click="MoveDownClick"/></WrapPanel><Label Content="_Rangos" Target="{Binding ElementName=RangeBox}" Margin="0,15,0,0"/><TextBox x:Name="RangeBox" Text="1" ToolTip="Ejemplo: 1-3,5. Para dividir: 1-3;4-6"/><WrapPanel><Button Content="Extraer" Click="ExtractClick"/><Button Content="Dividir" Click="SplitClick"/><Button Content="Insertar PDF" Click="InsertClick"/></WrapPanel></StackPanel>
- <StackPanel x:Name="EditPanel" Visibility="Collapsed"><WrapPanel><Button Content="Añadir texto" Click="AddTextClick"/><Button Content="Imagen" Click="AddImageClick"/></WrapPanel>
+ </StackPanel></ScrollViewer></TabItem>
+ <TabItem x:Name="EditMode" Header="_Editar" AutomationProperties.Name="Editar"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="6,16,6,4">
+ <StackPanel x:Name="EditPanel"><WrapPanel><Button Content="Añadir texto" Click="AddTextClick"/><Button Content="Imagen" Click="AddImageClick"/></WrapPanel>
  <Label Content="_Objeto" Target="{Binding ElementName=ObjectsList}"/><ListBox x:Name="ObjectsList" Height="125" SelectionChanged="ObjectChanged" DisplayMemberPath="Label" AutomationProperties.Name="Objetos editables"/>
  <Label Content="_Texto" Target="{Binding ElementName=TextValue}"/><TextBox x:Name="TextValue" MinHeight="60" TextWrapping="Wrap"/>
  <TextBlock x:Name="FontLabel" TextWrapping="Wrap" FontSize="11" Foreground="#69798E"/>
@@ -29,6 +34,6 @@
  <Label Grid.Row="2" Content="_Ancho (pt)" Target="{Binding ElementName=WValue}"/><Label Grid.Row="2" Grid.Column="1" Content="A_lto (pt)" Target="{Binding ElementName=HValue}"/><TextBox Grid.Row="3" x:Name="WValue" Margin="0,3,5,8"/><TextBox Grid.Row="3" Grid.Column="1" x:Name="HValue"/></Grid>
  <WrapPanel><Button Content="Aplicar posición" Click="ApplyPositionClick"/><Button Content="Eliminar objeto" Click="DeleteObjectClick"/></WrapPanel>
  </StackPanel>
- </StackPanel></ScrollViewer></DockPanel>
+ </StackPanel></ScrollViewer></TabItem></TabControl></DockPanel>
  </Grid>
 </DockPanel></Window>

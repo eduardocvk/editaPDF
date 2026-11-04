@@ -30,6 +30,17 @@ internal static class N
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFBookmark_GetFirstChild(IntPtr d, IntPtr b);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFDoc_GetAttachmentCount(IntPtr d);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPage_GetAnnotCount(IntPtr p);
+    [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFPage_GetAnnot(IntPtr p, int index);
+    [DllImport(D, CallingConvention = C)] internal static extern void FPDFPage_CloseAnnot(IntPtr annotation);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFAnnot_GetSubtype(IntPtr annotation);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFAnnot_GetFlags(IntPtr annotation);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFAnnot_GetRect(IntPtr annotation, out NativeRect rect);
+    [DllImport(D, CallingConvention = C, CharSet = CharSet.Ansi)] internal static extern int FPDFAnnot_HasKey(IntPtr annotation, string key);
+    [DllImport(D, CallingConvention = C, CharSet = CharSet.Ansi)] internal static extern uint FPDFAnnot_GetStringValue(IntPtr annotation, string key, byte[]? buffer, uint bytes);
+    [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFAnnot_GetLink(IntPtr annotation);
+    [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFLink_GetAction(IntPtr link);
+    [DllImport(D, CallingConvention = C)] internal static extern uint FPDFAction_GetType(IntPtr action);
+    [DllImport(D, CallingConvention = C)] internal static extern uint FPDFAction_GetURIPath(IntPtr document, IntPtr action, byte[]? buffer, uint bytes);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPage_CountObjects(IntPtr p);
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFPage_GetObject(IntPtr p, int i);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetType(IntPtr o);
@@ -73,6 +84,11 @@ internal static class N
     [DllImport(D, CallingConvention = C)] internal static extern int FPDF_SaveAsCopy(IntPtr d, ref Writer w, uint flags);
     [DllImport(D, CallingConvention = C)] internal static extern void FPDF_PageToDevice(IntPtr p, int x, int y, int w, int h, int rotation, double px, double py, out int dx, out int dy);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDF_DeviceToPage(IntPtr p, int x, int y, int w, int h, int rotation, int dx, int dy, out double px, out double py);
+}
+[StructLayout(LayoutKind.Sequential)]
+internal struct NativeRect
+{
+    public float Left, Top, Right, Bottom;
 }
 [StructLayout(LayoutKind.Sequential)]
 public struct Matrix

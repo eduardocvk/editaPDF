@@ -1,8 +1,20 @@
 # Verificación local — 4 de noviembre de 2026
 
-Versión 0.1.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.1.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
 
-## Resultado comprobado
+## Cambios y comprobaciones de 0.1.1
+
+Organizar y Editar son dos pestañas WPF sobre el panel derecho. El banner inferior tiene más espacio y el texto «¿Quieres firmar tus PDF? Prueba FirmaPDF», conservando la apertura explícita de su URL fija sin datos del documento. Se han comprobado selección de pestañas, ubicación, tamaño del banner, render a 1280 y 920 unidades lógicas y escalas de 100 %, 150 % y 200 %. Las capturas se inspeccionaron.
+
+Se eliminó el bloqueo general al **añadir páginas al final** de un documento con anotaciones, marcadores o destinos con nombre. Se conservaron en las regresiones las páginas existentes, marcadores, destinos, adjuntos y enlaces internos del PDF principal, con deshacer/rehacer y guardado en copia. También se comprobó la importación de notas independientes, sellos visuales y enlaces web, preservando contenido, posición, propiedades, URI y apariencia. Cada página importada se compara con el origen en texto, geometría, anotaciones y render antes de aceptar la operación en la sesión.
+
+PDFium puede ajustar el recuadro de una nota al generar su apariencia durante la visualización. El render ahora utiliza una copia en memoria aislada del documento editable, invalidada al modificarlo. La comprobación independiente confirma que ver una página a distintos tamaños y guardarla conserva los recuadros y apariencias originales.
+
+La suite completa y la verificación independiente con pypdf pasaron en `artifacts/test-0.1.1-release.log`; datos sintéticos y capturas en `artifacts/tests-20261104-181750-741a39/`. Los flujos del motor y la interfaz volvieron a finalizar bajo la guardia de red sin intentos detectados.
+
+**Límites que permanecen:** los PDF firmados, protegidos, con formularios o etiquetados siguen en solo lectura. Mover/eliminar páginas o insertarlas en medio sigue limitado cuando el documento tiene referencias. Los marcadores, destinos con nombre y adjuntos del archivo de origen, así como enlaces internos o comentarios enlazados, todavía no se transfieren: se explica el motivo y la alternativa de abrir ese archivo como documento principal. Las regresiones comprueban que esos rechazos dejan la sesión anterior intacta. No se ha probado el documento concreto de la fotografía aportada por el usuario; la reproducción utiliza PDF sintéticos con las estructuras que provocaban el mismo bloqueo.
+
+## Evidencia inicial de 0.1.0
 
 Prueba funcional de PDFium ejecutada antes de la interfaz: edición del objeto original, regeneración, guardado, reapertura, fuente conservada, texto anterior ausente del contenido de página y sin objetos de ocultación. Después se repitió con un PDF externo de ReportLab/Helvetica. No es una afirmación de censura segura o borrado forense.
 

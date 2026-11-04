@@ -37,8 +37,14 @@ static class UiTests
         }
         Capture("organizar-1280", 1280, 780);
         Capture("organizar-920-150pct", 920, 560, 1.5);
+        var tools = (DockPanel)window.FindName("PropertiesPanel");
+        var tabs = (TabControl)window.FindName("ModeTabs");
+        if (!tools.Children.Contains(tabs) || Grid.GetColumn(tools) != 4 || tabs.Items.Count != 2 || !ReferenceEquals(tabs.Items[0], window.FindName("OrganizeMode")))
+            throw new Exception("Las pestañas deben estar encima del panel derecho");
         ((Button)window.FindName("UndoButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        ((RadioButton)window.FindName("EditMode")).IsChecked = true;
+        ((TabItem)window.FindName("EditMode")).IsSelected = true;
+        if (!ReferenceEquals(tabs.SelectedItem, window.FindName("EditMode")))
+            throw new Exception("No se pudo activar la pestaña Editar");
         var list = (ListBox)window.FindName("ObjectsList");
         list.SelectedIndex = 1;
         Capture("editar-1280", 1280, 780);
@@ -67,6 +73,8 @@ static class UiTests
         var banner = (Button)window.FindName("FirmaPdfBanner");
         if (!banner.IsEnabled)
             throw new Exception("El banner FirmaPDF no está habilitado");
+        if (banner.ActualHeight < 60 || banner.Content is not StackPanel bannerContent || bannerContent.Children.OfType<TextBlock>().Count() != 2)
+            throw new Exception("El banner debe mostrar la invitación y el nombre de FirmaPDF");
         banner.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         if (externalLinks.Count != 1 || externalLinks[0].AbsoluteUri != "https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ")
             throw new Exception("El banner no abre exclusivamente la dirección oficial fija");

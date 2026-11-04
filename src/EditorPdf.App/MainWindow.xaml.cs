@@ -177,14 +177,10 @@ public partial class MainWindow : Window
             return;
         Run(() => { page = PagesList.SelectedIndex; ShowPage(); });
     }
-    void ModeChanged(object sender, RoutedEventArgs e)
+    void ModeChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (OrganizePanel == null)
+        if (!IsInitialized || ModeTabs == null || e.Source != ModeTabs)
             return;
-        var edit = EditMode.IsChecked == true;
-        OrganizePanel.Visibility = edit ? Visibility.Collapsed : Visibility.Visible;
-        EditPanel.Visibility = edit ? Visibility.Visible : Visibility.Collapsed;
-        PanelTitle.Text = edit ? "Editar" : "Organizar";
         Overlay.Children.Clear();
     }
     void ObjectChanged(object sender, SelectionChangedEventArgs e)
@@ -240,7 +236,7 @@ public partial class MainWindow : Window
     void AddImageClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); var dialog = new OpenFileDialog { Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp" }; if (dialog.ShowDialog(this) != true) return; BitmapSource image; using (var file = File.OpenRead(LocalFiles.Validate(dialog.FileName))) { var decoder = BitmapDecoder.Create(file, BitmapCreateOptions.IgnoreImageCache, BitmapCacheOption.OnLoad); image = new FormatConvertedBitmap(decoder.Frames[0], PixelFormats.Bgra32, null, 0); } if ((long)image.PixelWidth * image.PixelHeight > 25_000_000) throw new InvalidOperationException("La imagen supera 25 megapíxeles."); int stride = image.PixelWidth * 4; var pixels = new byte[stride * image.PixelHeight]; image.CopyPixels(pixels, stride, 0); float width = Math.Min(240, Pdf.Info(page).Width - 80), height = width * image.PixelHeight / image.PixelWidth; Change(d => d.AddImage(page, image.PixelWidth, image.PixelHeight, stride, pixels, 40, Math.Max(20, Pdf.Info(page).Height - height - 60), width, height)); });
     void PageMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (EditMode.IsChecked != true || Pdf.Count == 0)
+        if (EditMode.IsSelected != true || Pdf.Count == 0)
             return;
         Run(() => { var pos = e.GetPosition(PageImage); var p = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)pos.X, (int)pos.Y); var rows = ObjectsList.Items.Cast<ObjectRow>().ToArray(); var hit = rows.LastOrDefault(x => p.X >= x.Value.Left - 3 && p.X <= x.Value.Right + 3 && p.Y >= x.Value.Bottom - 3 && p.Y <= x.Value.Top + 3); ObjectsList.SelectedItem = hit; dragStart = hit == null ? null : pos; if (hit != null) PageImage.CaptureMouse(); });
     }

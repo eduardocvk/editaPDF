@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10 y PDFium. Vista previa **0.1.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10 y PDFium. Vista previa **0.1.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.1.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.1.0/EditorPDF-0.1.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.1.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.1.1/EditorPDF-0.1.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -12,7 +12,7 @@ Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecut
 
 Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el runtime .NET, PDFium, Noto Sans y las licencias. No requiere instalación de .NET, conexión ni descargas al iniciar. Compilación x64 sin firma Authenticode.
 
-La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena mediante Subir/Bajar, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, preparación de impresión, deshacer/rehacer y recuperación local.
+Las pestañas **Organizar** y **Editar** están encima del panel derecho. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena mediante Subir/Bajar, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, preparación de impresión, deshacer/rehacer y recuperación local.
 
 - **Rangos:** `1-3,5`. Para dividir en varios archivos: `1-3;4-6;7`. Insertar PDF pregunta las páginas del archivo de origen.
 - **Guardar copia:** exige un nombre que todavía no exista. Nunca reemplaza el original ni otro archivo. Antes de publicar la copia comprueba reapertura, texto, geometría, rotación, número de anotaciones, presencia de marcadores, adjuntos, etiquetas, destinos con nombre y representación de cada página a 600 px.
@@ -25,7 +25,7 @@ La prueba de viabilidad se ejecutó **antes de implementar la interfaz**: abrir 
 
 La unidad de edición es el **objeto PDF**, no el párrafo. El texto puede estar dividido en muchos objetos. Se conserva la fuente original cuando su mapa de caracteres permite el cambio. Si no, se rechaza la operación sin aplicarla; la sustitución por Noto Sans requiere marcar la opción y confirmar. No se reconstruyen párrafos, saltos de línea ni diseño como Word. No se edita texto dentro de XObjects/Form anidados, trazados, contornos o máscaras de texto. No se ofrece OCR, censura segura ni edición universal. Escrituras complejas y caracteres fuera del plano básico Unicode se rechazan en esta versión.
 
-PDF firmados, cifrados/protegidos, formularios y documentos etiquetados se abren en **solo lectura**; no se reescriben como una copia que aparente conservar firmas válidas. No se valida criptográficamente una firma. Marcadores, anotaciones o destinos con nombre bloquean la reorganización; importar/extraer páginas de PDF con esos elementos o adjuntos también se bloquea para no perder referencias. Sí se ha probado editar texto en un documento con marcador, adjunto y enlace interno, conservando esas estructuras. No se garantiza conservar todas las extensiones del estándar en cualquier PDF.
+PDF firmados, cifrados/protegidos, formularios y documentos etiquetados se abren en **solo lectura**; no se reescriben como una copia que aparente conservar firmas válidas. No se valida criptográficamente una firma. Se pueden añadir PDF al final de un documento con marcadores, anotaciones, destinos con nombre y adjuntos, conservando los del documento principal. También se importan notas, marcas, sellos visuales independientes y enlaces web compatibles, sin abrir esos enlaces. Mover/eliminar páginas o insertarlas entre las existentes sigue limitado en documentos con referencias. Si el archivo que quieres añadir contiene marcadores, adjuntos, destinos con nombre, enlaces internos o comentarios enlazados que aún no se pueden transferir, se informa de ello antes de aplicar cambios; puedes abrirlo como documento principal y añadir los demás al final. Sí se ha probado editar texto en un documento con marcador, adjunto y enlace interno, conservando esas estructuras. No se garantiza conservar todas las extensiones del estándar en cualquier PDF.
 
 Límite inicial: 256 MiB por PDF; historial en memoria de hasta 30 operaciones/128 MiB. La recuperación conserva la última sesión, no todo su historial de deshacer. Las operaciones pesadas y la comprobación al guardar son síncronas; pueden tardar en documentos grandes.
 
