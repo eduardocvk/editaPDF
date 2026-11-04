@@ -1,0 +1,20 @@
+{
+  "pdfium": {
+    "version": "159.0.8138.0",
+    "release": "chromium/8138",
+    "asset": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8138/pdfium-win-x64.tgz",
+    "archiveSha256": "8d48973e3eb472dda0f5f2435e595ac043f9f2219dd71883392f549445afa8a5",
+    "dllSha256": "71a3e63e6ab8f5746a0fc9de9bc3d0c0dc07eb60990dfd37d9db7fc891821943",
+    "distributionSource": "https://github.com/bblanchon/pdfium-binaries/tree/0eb94b28c2252d2baae3dfe15dc6b237131d8cd8",
+    "upstreamSource": "https://pdfium.googlesource.com/pdfium/+/refs/heads/chromium/8138",
+    "v8": false,
+    "xfa": false
+  },
+  "font": {
+    "name": "Noto Sans Regular",
+    "source": "https://github.com/notofonts/noto-fonts",
+    "sha256": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
+    "license": "OFL-1.1"
+  },
+  "dotnet": { "sdk": "10.0.402", "runtime": "10.0.13", "license": "MIT" }
+}

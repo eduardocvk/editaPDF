@@ -1,0 +1,5 @@
+* text=auto eol=lf
+vendor/** -text
+assets/*.ttf binary
+vendor/bin/*.dll binary
+vendor/lib/*.lib binary

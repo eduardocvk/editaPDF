@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EditorPdf.App/EditorPdf.App.csproj" />
+    <Project Path="src/EditorPdf.Core/EditorPdf.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EditorPdf.Tests/EditorPdf.Tests.csproj" />
+    <Project Path="tests/EditorPdf.UiTests/EditorPdf.UiTests.csproj" />
+    <Project Path="tests/NetworkGuard/NetworkGuard.csproj" />
+  </Folder>
+</Solution>

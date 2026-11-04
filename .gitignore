@@ -1,0 +1,10 @@
+**/bin/
+!vendor/bin/
+!vendor/bin/pdfium.dll
+**/obj/
+.vs/
+.tools/
+artifacts/
+vendor/*.tgz
+*.user
+*.suo

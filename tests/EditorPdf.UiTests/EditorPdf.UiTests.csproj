@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><UseWPF>true</UseWPF><StartupObject>UiTests</StartupObject></PropertyGroup><ItemGroup><ProjectReference Include="..\..\src\EditorPdf.App\EditorPdf.App.csproj"/></ItemGroup></Project>

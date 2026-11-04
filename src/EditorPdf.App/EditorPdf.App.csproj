@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>WinExe</OutputType><UseWPF>true</UseWPF><AssemblyName>EditorPDF</AssemblyName><ApplicationManifest>app.manifest</ApplicationManifest></PropertyGroup><ItemGroup><ProjectReference Include="..\EditorPdf.Core\EditorPdf.Core.csproj"/></ItemGroup></Project>
