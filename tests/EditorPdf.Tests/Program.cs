@@ -117,6 +117,60 @@ if (File.Exists(fixture))
         s.SaveRecovery(recovery);
         var record = System.Text.Json.JsonSerializer.Deserialize<Session.Recovery>(File.ReadAllBytes(Path.Combine(recovery, "session.json")))!;
         Assert(record.Pdf.SequenceEqual(File.ReadAllBytes(Path.Combine(output, "fixtures", name + ".pdf"))), name + " recuperacion conserva los bytes originales");
+        using var editable = new Session();
+        editable.OpenEditableCopy(Path.Combine(output, "fixtures", name + ".pdf"));
+        Assert(editable.Document.EditBlock == null && !editable.Document.Signed && !editable.Document.Protected && editable.Dirty, name + " copia realmente editable sin cifrado ni firmas");
+        editable.Execute(d => d.AddText(0, "Copia editable comprobada", 12, 50, 100));
+        editable.SaveNew(Path.Combine(output, name + "-editable.pdf"));
+        Assert(record.Pdf.SequenceEqual(File.ReadAllBytes(Path.Combine(output, "fixtures", name + ".pdf"))), name + " original intacto tras conversion");
+    }
+    using (var s = new Session())
+    {
+        string protectedPath = Path.Combine(output, "fixtures", "con-contrasena.pdf");
+        s.Open(fixture);
+        var kept = s.Document;
+        bool rejected = false;
+        try
+        {
+            s.OpenEditableCopy(protectedPath, "incorrecta");
+        }
+        catch (PdfPasswordException) { rejected = true; }
+        Assert(rejected && ReferenceEquals(kept, s.Document), "contraseña incorrecta rechazada sin perder la sesión");
+        s.OpenEditableCopy(protectedPath, "abrir-local");
+        s.SaveNew(Path.Combine(output, "con-contrasena-editable.pdf"));
+        s.SaveRecovery(Path.Combine(output, "recovery-copia-descifrada"));
+        Assert(s.Document.EditBlock == null && s.Document.Bookmarks && s.Document.Attachments == 1, "contraseña valida: copia descifrada conserva estructuras y no guarda contraseña");
+        Assert(!File.ReadAllText(Path.Combine(output, "recovery-copia-descifrada", "session.json")).Contains("abrir-local"), "recuperacion no almacena la contraseña proporcionada");
+    }
+    {
+        string signedPath = Path.Combine(output, "firma-real-prueba.pdf");
+        SignatureFixture.Create(fixture, signedPath);
+        Assert(SignatureFixture.Verify(signedPath), "firma de prueba criptograficamente integra antes de convertir");
+        byte[] signedHash = SHA256.HashData(File.ReadAllBytes(signedPath));
+        using var copy = new Session();
+        copy.OpenEditableCopy(signedPath);
+        copy.Execute(d => d.Move(0, 1));
+        copy.SaveNew(Path.Combine(output, "firma-real-editable.pdf"));
+        Assert(!copy.Document.Signed && signedHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(signedPath))) && SignatureFixture.Verify(signedPath), "quitar firma en copia permite editar y conserva la firma integra del original");
+    }
+    using (var s = new Session())
+    {
+        s.Open(fixture);
+        var text = s.Document.Objects(0).Single(o => o.Text == "Texto original compatible 123");
+        s.Execute(d => d.SetTextStyle(0, text.Index, 24, 0xB42318));
+        var changed = s.Document.Objects(0).Single(o => o.Index == text.Index);
+        Assert(changed.Font == text.Font && changed.Text == text.Text && Math.Abs(changed.Size - 24) < .01 && changed.FillRgb == 0xB42318, "tamaño y color sobre objeto original conservan texto y fuente");
+        s.SaveNew(Path.Combine(output, "estilo-original.pdf"));
+        s.Undo();
+        Assert(s.Document.Objects(0).Single(o => o.Index == text.Index).Size == text.Size, "deshacer estilo restaura objeto");
+        s.Redo();
+        bool rejected = false;
+        try
+        {
+            s.Execute(d => d.SetTextStyle(0, text.Index, float.NaN, 0));
+        }
+        catch (ArgumentException) { rejected = true; }
+        Assert(rejected && s.Document.Objects(0).Single(o => o.Index == text.Index).FillRgb == 0xB42318, "estilo invalido no pierde cambios");
     }
     using (var s = new Session())
     {

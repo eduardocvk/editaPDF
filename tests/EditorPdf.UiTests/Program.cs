@@ -24,10 +24,10 @@ static class UiTests
         }
         string folder = Path.GetFullPath(args[0]);
         Directory.CreateDirectory(folder);
-        var app = new App();
-        app.InitializeComponent();
+        var app = new Application();
+        app.Resources = (ResourceDictionary)Application.LoadComponent(new Uri("/EditorPDF;component/Theme.xaml", UriKind.Relative));
         var externalLinks = new List<Uri>();
-        var window = new MainWindow(Path.Combine(folder, "recovery"), false, uri => externalLinks.Add(uri));
+        var window = new MainWindow(Path.Combine(folder, "recovery"), false, uri => externalLinks.Add(uri), ex => throw new Exception("Error UI", ex));
         window.OpenPaths([Path.GetFullPath(args[1])]);
         var session = (Session)typeof(MainWindow).GetField("session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
         var root = (FrameworkElement)window.Content;
@@ -147,6 +147,31 @@ static class UiTests
             throw new Exception("Cerrar documento no conserva los demás");
         if (window.Icon == null || ((Image)window.FindName("HeaderLogo")).Source == null)
             throw new Exception("Falta el logo de la app");
+        window.OpenDocuments([Path.Combine(fixtures, "firma-sintetica.pdf")]);
+        if (((FrameworkElement)window.FindName("EditableCopyPanel")).Visibility != Visibility.Visible)
+            throw new Exception("Falta la opción de copia editable en PDF firmados");
+        Capture("firmado-1280", 1280, 780);
+        window.OpenEditableCopy(Path.Combine(fixtures, "firma-sintetica.pdf"));
+        var editable = (WorkspaceDocument)docTabs.SelectedItem;
+        if (editable.Session.Document.EditBlock != null || ((FrameworkElement)window.FindName("EditableCopyPanel")).Visibility != Visibility.Collapsed)
+            throw new Exception("La copia sin firma sigue bloqueada");
+        ((TabItem)window.FindName("EditMode")).IsSelected = true;
+        var editableObjects = (ListBox)window.FindName("ObjectsList");
+        editableObjects.SelectedItem = editableObjects.Items.Cast<MainWindow.ObjectRow>().First(o => o.Value.Text == "Texto original compatible 123");
+        ((TextBox)window.FindName("FontSizeValue")).Text = "23";
+        ((TextBox)window.FindName("ColorValue")).Text = "#B42318";
+        ((Button)window.FindName("ApplyStyleButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (!editable.Session.Document.Objects(0).Any(o => o.Text == "Texto original compatible 123" && Math.Abs(o.Size - 23) < .01 && o.FillRgb == 0xB42318))
+            throw new Exception("El estilo del texto original no se aplica desde el panel");
+        editableObjects.SelectedItem = editableObjects.Items.Cast<MainWindow.ObjectRow>().First(o => o.Value.Text == "Texto original compatible 123");
+        Capture("estilo-copia-1280", 1280, 780);
+        int oldTabs = docTabs.Items.Count;
+        Console.WriteLine("CHECK union desde Explorador");
+        window.MergeDocuments([Path.Combine(fixtures, "externo.pdf"), Path.Combine(fixtures, "anotaciones.pdf")]);
+        if (docTabs.Items.Count != oldTabs + 1 || ((WorkspaceDocument)docTabs.SelectedItem).Session.Document.Count != 4)
+            throw new Exception("La unión del Explorador debe abrir una pestaña nueva con todos los PDF");
+        Console.WriteLine("CHECK integracion del Explorador");
+        ShellChecks.Run(Path.GetFullPath(args[1]), folder);
         Console.WriteLine("PASS documentos en pestañas: sesiones e historial independientes, orden por insercion, borradores, recuperacion completa y cierre");
         typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS UI texto original, deshacer, rehacer y guardado");

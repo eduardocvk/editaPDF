@@ -4,7 +4,13 @@ using System.Security.Cryptography;
 namespace EditorPdf.Core;
 
 public sealed record PageInfo(int Index, float Width, float Height, int Rotation, int Annotations);
-public sealed record PdfObject(int Index, int Type, string Text, string Font, float Size, float Left, float Bottom, float Right, float Top);
+public sealed record PdfObject(int Index, int Type, string Text, string Font, float Size, float Left, float Bottom, float Right, float Top)
+{
+    public uint FillRgb
+    {
+        get; init;
+    }
+}
 public sealed record Raster(int Width, int Height, int Stride, byte[] Pixels);
 public sealed class PdfDocument : IDisposable
 {
@@ -24,7 +30,7 @@ public sealed class PdfDocument : IDisposable
     public bool Bookmarks => N.FPDFBookmark_GetFirstChild(handle, IntPtr.Zero) != IntPtr.Zero;
     public uint NamedDestinations => N.FPDF_CountNamedDests(handle);
     public int Attachments => N.FPDFDoc_GetAttachmentCount(handle);
-    public string? EditBlock => Signed ? "El documento contiene firmas digitales. Su edición invalidaría las firmas; abre una copia sin firmar." : Protected ? "El documento está cifrado o protegido. Esta versión no modifica documentos protegidos." : Xfa ? "Los formularios XFA no están admitidos; el documento se abre en solo lectura." : null;
+    public string? EditBlock => Signed ? "El original contiene firmas digitales. Crea una copia editable para quitar las firmas sin alterar el original." : Protected ? "El original está cifrado o protegido. Puedes crear una copia editable sin restricciones." : Xfa ? "Los formularios XFA no están admitidos; el documento se abre en solo lectura." : null;
     public string? ObjectEditBlock => EditBlock ?? (Forms || Tagged ? "Puedes organizar las páginas de este PDF. La edición de objetos está limitada para conservar sus formularios o etiquetas de accesibilidad." : null);
     public PdfDocument(byte[] data)
     {
@@ -35,7 +41,9 @@ public sealed class PdfDocument : IDisposable
         if (handle == IntPtr.Zero)
         {
             pin.Free();
-            throw new InvalidDataException($"No se pudo abrir el PDF (PDFium {N.FPDF_GetLastError()}). Puede estar dañado o requerir contraseña.");
+            if (N.FPDF_GetLastError() == 4)
+                throw new PdfPasswordException();
+            throw new InvalidDataException($"No se pudo abrir el PDF (PDFium {N.FPDF_GetLastError()}). Puede estar dañado.");
         }
     }
     public PdfDocument()
@@ -137,7 +145,11 @@ public sealed class PdfDocument : IDisposable
                         font = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
                     }
                 }
-                result.Add(new(j, type, text, font, size, l, b, r, top));
+                N.FPDFPageObj_GetFillColor(o, out var red, out var green, out var blue, out _);
+                result.Add(new(j, type, text, font, size, l, b, r, top)
+                {
+                    FillRgb = red << 16 | green << 8 | blue
+                });
             }
             return result;
         }
@@ -334,6 +346,20 @@ public sealed class PdfDocument : IDisposable
             throw new InvalidOperationException("Objeto no editable.");
         Check(N.FPDFPage_RemoveObject(p.H, o), "No se pudo eliminar el objeto.");
         N.FPDFPageObj_Destroy(o);
+        Generate(p.H);
+    }
+    public void SetTextStyle(int page, int index, float size, uint rgb)
+    {
+        if (!float.IsFinite(size) || size < 1 || size > 512 || rgb > 0xFFFFFF)
+            throw new ArgumentException("Usa un tamaño entre 1 y 512 pt y un color #RRGGBB.");
+        Mutating();
+        using var p = Open(page);
+        var o = N.FPDFPage_GetObject(p.H, index);
+        if (N.FPDFPageObj_GetType(o) != 1 || N.FPDFTextObj_GetTextRenderMode(o) != 0)
+            throw new InvalidOperationException("Selecciona texto compatible con relleno normal.");
+        Check(N.FPDFPageObj_GetFillColor(o, out _, out _, out _, out uint alpha), "No se pudo leer el color original.");
+        Check(N.FPDFTextObj_SetFontSize(o, size), "PDFium no pudo cambiar el tamaño.");
+        Check(N.FPDFPageObj_SetFillColor(o, rgb >> 16, rgb >> 8 & 255, rgb & 255, alpha), "No se pudo cambiar el color.");
         Generate(p.H);
     }
     public void Transform(int page, int index, float dx, float dy, float sx = 1, float sy = 1)

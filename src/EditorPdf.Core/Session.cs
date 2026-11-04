@@ -24,6 +24,21 @@ public sealed class Session : IDisposable
         }
     }
     public void Open(string path) => OpenMany([path]);
+    public void OpenEditableCopy(string path, string? password = null)
+        => OpenEditableCopy(LocalFiles.Read(path), path, password);
+    public byte[] EditableCopySource() => (readOnlyOriginal ?? Document.SaveBytes()).ToArray();
+    public void OpenEditableCopy(byte[] original, string path, string? password = null)
+    {
+        var bytes = EditableCopy.Create(original, password);
+        var next = new PdfDocument(bytes);
+        Document.Dispose();
+        Document = next;
+        readOnlyOriginal = null;
+        Originals = [Path.GetFullPath(path)];
+        undo.Clear();
+        redo.Clear();
+        Dirty = true;
+    }
     public void OpenMany(string[] paths)
     {
         if (paths.Length == 0)

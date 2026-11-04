@@ -58,6 +58,7 @@ internal static class N
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFText_GetText(IntPtr t, int start, int count, byte[] buffer);
     [DllImport(D, CallingConvention = C)] internal static extern uint FPDFTextObj_GetText(IntPtr o, IntPtr t, byte[]? buffer, uint bytes);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFTextObj_GetFontSize(IntPtr o, out float size);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFTextObj_SetFontSize(IntPtr o, float size);
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFTextObj_GetFont(IntPtr o);
     [DllImport(D, CallingConvention = C)] internal static extern nuint FPDFFont_GetBaseFontName(IntPtr f, byte[]? b, nuint length);
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFText_LoadFont(IntPtr d, byte[] bytes, uint length, int type, int cid);

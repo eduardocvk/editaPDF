@@ -75,3 +75,18 @@ named=PdfReader(p/'destinos-enlazados-dobles.pdf');assert named.get_destination_
 name=str(named.pages[2]['/Annots'][0].get_object()['/A']['/D']);assert named.get_destination_page_number(named.named_destinations[name])==3
 attachments=PdfReader(p/'adjuntos-dobles.pdf').attachments;assert attachments['nota.txt'][0]==b'Adjunto sintetico local' and attachments['nota (2).txt'][0]==b'Otro adjunto sintetico'
 print('PASS colisiones: enlaces y marcadores apuntan a su documento; adjuntos con mismo nombre conservan ambos contenidos')
+for name in ['protegido-editable','firma-sintetica-editable','con-contrasena-editable','firma-real-editable']:
+    copy=PdfReader(p/f'{name}.pdf');assert not copy.is_encrypted and len(copy.pages)==2
+    assert '/Perms' not in copy.trailer['/Root']
+    assert not any(field.get('/FT')=='/Sig' for field in (copy.get_fields() or {}).values())
+    assert any('Texto original compatible 123' in page.extract_text() for page in copy.pages)
+    assert any('Segunda pagina conservada' in page.extract_text() for page in copy.pages)
+    if name=='con-contrasena-editable':
+        assert copy.attachments['nota.txt'][0]==b'Adjunto sintetico local'
+        assert copy.get_destination_page_number(copy.outline[0])==0
+style=PdfReader(p/'estilo-original.pdf');ops=style.pages[0].get_contents().operations
+assert any(op==b'Tf' and abs(float(args[-1])-24)<.001 for args,op in ops)
+assert any(op==b'rg' and all(abs(float(a)-b/255)<.0001 for a,b in zip(args,[0xB4,0x23,0x18])) for args,op in ops)
+assert 'Texto original compatible 123' in style.pages[0].extract_text()
+assert 'Contenido independiente que debe conservarse.' in style.pages[0].extract_text()
+print('PASS pypdf copias sin cifrado ni campos de firma, referencias conservadas; tamaño y color en operadores PDF reales')

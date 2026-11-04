@@ -1,4 +1,4 @@
-# Privacidad de Editor PDF 0.2.0
+# Privacidad de Editor PDF 0.3.0
 
 El motor y la interfaz procesan los PDF en el equipo. No se implementan conexiones, servicios remotos, telemetría, analítica, actualizaciones, descargas de fuentes ni envío automático de errores. No se ejecutan JavaScript, enlaces o acciones de los documentos. PDFium se incluye sin V8 ni XFA. La app no carga páginas web.
 
@@ -15,6 +15,10 @@ iText Community se utiliza solo con flujos de memoria para las estructuras PDF. 
 Se rechazan rutas UNC, unidades de red y rutas con enlaces/redirecciones antes de leer o guardar documentos. Usa una carpeta local que no esté sincronizada si quieres que otro programa, como un cliente de nube, tampoco sincronice tus exportaciones. La app no controla programas externos ni las políticas de diagnóstico del propio Windows.
 
 ## Impresión y FirmaPDF
+
+La creación de una copia editable de un PDF protegido requiere confirmación. Se retira el cifrado y las firmas de la copia; su recuperación se guarda sin contraseña en el perfil local. La contraseña se introduce en un campo oculto y no se persiste. Los bytes de contraseña de la biblioteca se ponen a cero al finalizar; las cadenas gestionadas permanecen sujetas a la gestión de memoria de .NET. La copia no acredita la firma del original.
+
+La integración opcional del Explorador registra únicamente claves del usuario actual y un acceso directo en su carpeta Enviar a; se puede retirar desde Opciones. No cambia la asociación predeterminada. El acceso directo contiene la ruta de la app y --merge; Windows entrega los archivos seleccionados como argumentos. Si hay una instancia abierta, usa WM_COPYDATA. No hay sockets, servicios residentes, servidores COM propios, archivos de intercambio con rutas ni conexiones remotas. Las rutas se usan para la apertura/unión solicitada y se aplican las comprobaciones de unidades locales.
 
 La impresión solo se inicia por una acción explícita y se entrega al sistema de impresión de Windows. El selector enumera únicamente colas locales y acepta puertos USB, LPT, COM, FILE, XPSPort o PORTPROMPT (como Microsoft Print to PDF). No ofrece colas remotas ni puertos TCP/IP o WSD. El controlador, la cola y los diálogos de destino pertenecen a Windows; la app no controla su comportamiento interno. No se han impreso documentos durante las pruebas.
 

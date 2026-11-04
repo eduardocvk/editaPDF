@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.2.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.3.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.2.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.2.0/EditorPDF-0.2.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.3.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.3.0/EditorPDF-0.3.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -19,6 +19,25 @@ Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el ru
 - **Guardar copia:** exige un nombre que todavía no exista. Nunca reemplaza el original ni otro archivo. Antes de publicar la copia comprueba reapertura, texto, geometría, rotación, número de anotaciones, presencia de marcadores, adjuntos, etiquetas, destinos con nombre y representación de cada página a 600 px.
 - **Teclado:** Tab/Mayús+Tab, Alt+A para abrir, Ctrl+O, Ctrl+S o Ctrl+Mayús+S, Ctrl+F, Ctrl+P, Ctrl+Z/Ctrl+Y; Ctrl+Tab/Ctrl+Mayús+Tab cambia de documento y Ctrl+W cierra la pestaña activa; RePág/AvPág cambia de página fuera de campos de texto. En un campo, Ctrl+Z conserva el deshacer propio del campo.
 - La selección azul del editor es una capa WPF de selección; **no se guarda como rectángulo en el PDF**.
+
+## PDF firmados o protegidos
+
+El original se abre en solo lectura y ofrece **Quitar firmas (copia)** o **Crear copia editable** en el panel derecho. Se crea otra pestaña y el original permanece intacto. La conversión elimina las firmas digitales, sus campos/sellos visibles y el cifrado o restricciones; la copia pierde el valor de autenticación del original. Requiere confirmación y el guardado siempre usa un nombre nuevo.
+
+Si hace falta contraseña para abrir el PDF, se solicita en un campo oculto; una contraseña incorrecta no altera la sesión. No se averiguan contraseñas. La copia editable y su recuperación local quedan **sin cifrado**. No se guardan contraseñas. XFA sigue excluido y los límites de edición de formularios y etiquetas permanecen. Retirar firmas no ofrece borrado forense ni valida la confianza de los certificados.
+
+## Explorador de Windows
+
+En **Opciones → Activar menú del Explorador** registra para tu usuario, sin permisos de administrador:
+
+- **Abrir con Editor PDF**: abre los PDF seleccionados en pestañas.
+- **Enviar a → Unir PDF con Editor PDF**: abre una nueva pestaña con todos, en el orden entregado por Windows. Revisa el orden con las miniaturas antes de guardar.
+
+En Windows 11 están en **Mostrar más opciones**. No cambia el lector PDF predeterminado. También registra la app en «Abrir con». Conserva la carpeta portable en su ubicación; si la mueves, vuelve a activar el menú desde la nueva carpeta. **Opciones → Quitar menú del Explorador** retira solo las entradas de Editor PDF. Alternativa de consola: `EditorPDF.exe --register-explorer` / `--unregister-explorer`. `--open` y `--merge` admiten rutas como argumentos.
+
+La unión utiliza un acceso directo nativo en la carpeta Enviar a del usuario. Windows entrega los archivos como argumentos; no hay extensión cargada en Explorer, servidor COM propio ni archivo de intercambio con rutas. Si la app ya está abierta, la selección se entrega mediante mensajes locales de ventana. La entrada directa de unión y la integración moderna del menú principal, junto con su declaración MSIX, quedan para la fase de empaquetado.
+
+El panel Editar permite cambiar **tamaño y color** del texto original compatible conservando su fuente y transparencia. El [desarrollo de la siguiente fase](docs/EDICION.md) recoge este incremento y los próximos criterios para selección múltiple y edición directa.
 
 ## Texto y límites de esta versión
 

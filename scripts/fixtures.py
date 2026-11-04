@@ -25,6 +25,7 @@ w.add_annotation(0,Link(rect=(50,690,400,720),target_page_index=1))
 w.pages[0]['/Annots'][-1].get_object()['/Dest'][0]=w.pages[1].indirect_reference
 w.add_metadata({'/Title':'Prueba de estructuras','/Author':'Datos sinteticos'});w.write(out/'estructuras.pdf')
 w=PdfWriter(clone_from=PdfReader(BytesIO(base)));w.encrypt('', 'owner-synthetic-only',permissions_flag=4);w.write(out/'protegido.pdf')
+w=PdfWriter(clone_from=PdfReader(out/'estructuras.pdf'));w.encrypt('abrir-local', 'owner-synthetic-only',permissions_flag=4);w.write(out/'con-contrasena.pdf')
 w=PdfWriter(clone_from=PdfReader(BytesIO(base)))
 sig=DictionaryObject({NameObject('/Type'):NameObject('/Sig'),NameObject('/Filter'):NameObject('/Adobe.PPKLite'),NameObject('/SubFilter'):NameObject('/adbe.pkcs7.detached'),NameObject('/ByteRange'):ArrayObject([NumberObject(0),NumberObject(0),NumberObject(0),NumberObject(0)]),NameObject('/Contents'):ByteStringObject(b'SYNTHETIC-NOT-A-VALID-SIGNATURE')})
 field=DictionaryObject({NameObject('/FT'):NameObject('/Sig'),NameObject('/Type'):NameObject('/Annot'),NameObject('/Subtype'):NameObject('/Widget'),NameObject('/Rect'):ArrayObject([NumberObject(0)]*4),NameObject('/V'):w._add_object(sig)})

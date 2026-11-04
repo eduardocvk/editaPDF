@@ -1,6 +1,18 @@
-# Verificación local — 4 de noviembre de 2026
+# Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.2.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.3.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Cambios y comprobaciones de 0.3.0
+
+Conversión explícita en memoria a otra pestaña editable, retirando cifrado, restricciones, campos de firma, certificación y DSS. No hay escritura en el original. La advertencia explica la retirada de firmas/sellos visibles y la recuperación sin cifrar. XFA se rechaza. La contraseña se pide con PasswordBox, no se guarda y una contraseña errónea conserva la sesión anterior. La validación de copia compara páginas, texto, geometría, render PDFium y presencia de estructuras. PDFium no dibuja widgets de firma con este render; retirar su apariencia es parte declarada de la operación.
+
+Pruebas de restricción de propietario, contraseña de apertura correcta/incorrecta, firma sintética y firma CAdES con clave efímera y certificado de prueba autofirmado generados localmente. Se verifica integridad criptográfica de la firma de prueba antes y después de la conversión del PDF a copia: el SHA-256 y la firma del original siguen intactos. Esto no añade validación de confianza de certificados a la aplicación. La verificación independiente con pypdf comprueba la ausencia de cifrado/campos de firma y la conservación del texto, marcadores y adjuntos.
+
+La integración del Explorador usa «Abrir con Editor PDF» y «Enviar a → Unir PDF con Editor PDF» en el menú clásico. Se verifica registro/desregistro bajo una raíz aislada, preservación de asociaciones ajenas, creación y lectura del acceso .lnk con destino/argumentos correctos, y entrega completa de dos rutas mediante WM_COPYDATA a una ventana de prueba. La unión abre otra pestaña sin alterar las existentes. El mecanismo Enviar a sigue la [integración documentada por Microsoft](https://devblogs.microsoft.com/oldnewthing/20170403-00/?p=95885). La pulsación física del menú y la entrega nativa del Shell no están verificadas de extremo a extremo: la prueba automatizada de Drop sobre el acceso directo quedó bloqueada y no forma parte de la suite que pasa. La entrada directa de unión, el menú principal moderno y MSIX permanecen pendientes. No se distribuye el servidor COM propio ensayado durante desarrollo, cuya activación devolvía 0x80040154.
+
+Primer incremento de la siguiente fase: tamaño y color sobre el objeto de texto original, conservando fuente, contenido, matriz y alfa. Se prueba aplicación desde controles WPF, guardado/reapertura, deshacer/rehacer y rechazo de medidas inválidas sin perder cambios. pypdf comprueba operadores Tf y rg del contenido. La API experimental FPDFTextObj_SetFontSize pertenece al binario PDFium fijado y se ha ejercitado funcionalmente. Próximos incrementos en EDICION.md.
+
+Registro de la suite: `artifacts/test-0.3.0.log`. Los flujos de motor e interfaz, incluyendo registro del acceso y activación local, se ejecutan bajo la guardia de red. Capturas WPF de las funciones nuevas en `estilo-copia-1280.png` dentro de la ejecución indicada por el registro. Siguen vigentes las comprobaciones pendientes de impresión, desconexión física, ratón, MSIX y corpus amplio que se detallan al final.
 
 ## Cambios y comprobaciones de 0.2.0
 

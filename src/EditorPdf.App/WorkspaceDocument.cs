@@ -41,4 +41,5 @@ public sealed class DocumentView
     {
         get; set;
     }
+    public string[] StyleDraft { get; set; } = [];
 }

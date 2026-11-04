@@ -33,7 +33,8 @@ public partial class MainWindow
             Ranges = RangeBox.Text,
             Object = Selected?.Value.Index,
             Draft = [TextValue.Text, XValue.Text, YValue.Text, WValue.Text, HValue.Text],
-            Substitute = SubstituteFont.IsChecked == true
+            Substitute = SubstituteFont.IsChecked == true,
+            StyleDraft = [FontSizeValue.Text, ColorValue.Text]
         };
     }
     void UpdateTabHeaders()
@@ -75,6 +76,11 @@ public partial class MainWindow
                     WValue.Text = target.View.Draft[3];
                     HValue.Text = target.View.Draft[4];
                     SubstituteFont.IsChecked = target.View.Substitute;
+                    if (target.View.StyleDraft.Length == 2)
+                    {
+                        FontSizeValue.Text = target.View.StyleDraft[0];
+                        ColorValue.Text = target.View.StyleDraft[1];
+                    }
                 }
             }
             (DocumentTabs.ItemContainerGenerator.ContainerFromItem(target) as FrameworkElement)?.BringIntoView();
@@ -106,8 +112,25 @@ public partial class MainWindow
                 var next = new Session();
                 try
                 {
-                    next.Open(full);
-                    created.Add(new WorkspaceDocument(next, Path.GetFileName(full)) { SourcePath = full });
+                    bool copy = false;
+                    try
+                    {
+                        next.Open(full);
+                    }
+                    catch (PdfPasswordException)
+                    {
+                        if (!ConfirmEditableCopy())
+                        {
+                            next.Dispose();
+                            continue;
+                        }
+                        next.Dispose();
+                        next = CreateEditableSession(full)!;
+                        if (next == null)
+                            continue;
+                        copy = true;
+                    }
+                    created.Add(new WorkspaceDocument(next, Path.GetFileName(full) + (copy ? " — copia editable" : "")) { SourcePath = copy ? null : full });
                 }
                 catch { next.Dispose(); throw; }
             }
@@ -128,7 +151,7 @@ public partial class MainWindow
             created.Clear();
             Recover();
             if (Pdf.EditBlock is { } reason)
-                MessageBox.Show(this, reason, "Documento de solo lectura", MessageBoxButton.OK, MessageBoxImage.Information);
+                Status.Text = reason;
         }
         finally { foreach (var document in created) { if (!documents.Contains(document)) document.Dispose(); } }
     }
@@ -188,7 +211,7 @@ public partial class MainWindow
             return false;
         var value = row.Value;
         var culture = System.Globalization.CultureInfo.CurrentCulture;
-        return TextValue.Text != value.Text || SubstituteFont.IsChecked == true || XValue.Text != value.Left.ToString("0.##", culture) || YValue.Text != value.Bottom.ToString("0.##", culture) || WValue.Text != (value.Right - value.Left).ToString("0.##", culture) || HValue.Text != (value.Top - value.Bottom).ToString("0.##", culture);
+        return TextValue.Text != value.Text || SubstituteFont.IsChecked == true || XValue.Text != value.Left.ToString("0.##", culture) || YValue.Text != value.Bottom.ToString("0.##", culture) || WValue.Text != (value.Right - value.Left).ToString("0.##", culture) || HValue.Text != (value.Top - value.Bottom).ToString("0.##", culture) || value.Type == 1 && (FontSizeValue.Text != value.Size.ToString("0.##", culture) || !string.Equals(ColorValue.Text, $"#{value.FillRgb:X6}", StringComparison.OrdinalIgnoreCase));
     }
     string DocumentRecoveryFolder(string id)
     {

@@ -13,14 +13,16 @@ namespace EditorPdf.App;
 public partial class MainWindow : Window
 {
     readonly Action<Uri> openExternal;
+    readonly Action<Exception>? reportError;
     public static Uri FirmaPdfStoreUri { get; } = new("https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ");
     readonly string recoveryFolder; readonly bool restoreOnLoad; Session session = new(); int page; double zoom = 1; bool refreshing; Point? dragStart; int searchPage = -1, searchOffset; string lastQuery = "";
     public static string RecoveryFolder => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EditorPDF", "Recovery");
     PdfDocument Pdf => session.Document; ObjectRow? Selected => ObjectsList.SelectedItem as ObjectRow;
-    public MainWindow(string? localRecovery = null, bool restore = true, Action<Uri>? externalLinkOpener = null)
+    public MainWindow(string? localRecovery = null, bool restore = true, Action<Uri>? externalLinkOpener = null, Action<Exception>? errorReporter = null)
     {
         recoveryFolder = localRecovery ?? RecoveryFolder;
         restoreOnLoad = restore;
+        reportError = errorReporter;
         openExternal = externalLinkOpener ?? (uri => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true }));
         InitializeComponent();
         InitializeWorkspace();
@@ -38,7 +40,7 @@ public partial class MainWindow : Window
             if (success != null)
                 Status.Text = success;
         }
-        catch (Exception ex) when (ex is not OutOfMemoryException) { Status.Text = ex.Message; MessageBox.Show(this, ex.Message, "Editor PDF", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { Status.Text = ex.Message; if (reportError != null) reportError(ex); else MessageBox.Show(this, ex.Message, "Editor PDF", MessageBoxButton.OK, MessageBoxImage.Warning); }
         finally { Mouse.OverrideCursor = null; }
     }
     void RequireDocument()
@@ -53,7 +55,7 @@ public partial class MainWindow : Window
             SaveWorkspace();
             return true;
         }
-        catch (Exception ex) { Status.Text = "Los cambios siguen en memoria; no se pudo guardar la recuperación local: " + ex.Message; MessageBox.Show(this, Status.Text, "Recuperación local", MessageBoxButton.OK, MessageBoxImage.Warning); return false; }
+        catch (Exception ex) { Status.Text = "Los cambios siguen en memoria; no se pudo guardar la recuperación local: " + ex.Message; if (reportError != null) reportError(ex); else MessageBox.Show(this, Status.Text, "Recuperación local", MessageBoxButton.OK, MessageBoxImage.Warning); return false; }
     }
     void Change(Action<PdfDocument> mutation, int? selectedPage = null)
     {
@@ -95,6 +97,9 @@ public partial class MainWindow : Window
             RedoButton.IsEnabled = session.CanRedo;
             EmptyHint.Visibility = Pdf.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateTabHeaders();
+            EditableCopyPanel.Visibility = Pdf.Signed || Pdf.Protected ? Visibility.Visible : Visibility.Collapsed;
+            EditableCopyButton.Visibility = Pdf.Signed ? Visibility.Collapsed : Visibility.Visible;
+            RemoveSignaturesButton.Visibility = Pdf.Signed ? Visibility.Visible : Visibility.Collapsed;
             ShowPage();
         }
         finally { refreshing = false; }
@@ -193,6 +198,9 @@ public partial class MainWindow : Window
             TextValue.Clear();
             TextValue.IsEnabled = false;
             FontLabel.Text = "";
+            FontSizeValue.Clear();
+            ColorValue.Clear();
+            FontSizeValue.IsEnabled = ColorValue.IsEnabled = false;
             SubstituteFont.IsChecked = false;
             SubstituteFont.IsEnabled = false;
             foreach (var field in new[] { XValue, YValue, WValue, HValue })
@@ -210,6 +218,9 @@ public partial class MainWindow : Window
         XValue.IsEnabled = YValue.IsEnabled = true;
         WValue.IsEnabled = HValue.IsEnabled = o.Type == 3;
         FontLabel.Text = o.Type == 1 ? o.Font : "";
+        FontSizeValue.IsEnabled = ColorValue.IsEnabled = o.Type == 1;
+        FontSizeValue.Text = o.Type == 1 ? o.Size.ToString("0.##", CultureInfo.CurrentCulture) : "";
+        ColorValue.Text = o.Type == 1 ? $"#{o.FillRgb:X6}" : "";
         XValue.Text = o.Left.ToString("0.##", CultureInfo.CurrentCulture);
         YValue.Text = o.Bottom.ToString("0.##", CultureInfo.CurrentCulture);
         WValue.Text = (o.Right - o.Left).ToString("0.##", CultureInfo.CurrentCulture);
@@ -227,6 +238,16 @@ public partial class MainWindow : Window
     }
     void AddTextClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); var text = Prompt("Añadir texto", "Texto", "Texto"); if (text == null) return; Change(d => d.AddText(page, text, 14, 50, Pdf.Info(page).Height - 70)); });
     void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException("Selecciona un objeto de texto."); var text = TextValue.Text; var substitute = SubstituteFont.IsChecked == true; if (substitute && MessageBox.Show(this, "Se sustituirá la fuente de este objeto por Noto Sans. Puede cambiar su aspecto. ¿Continuar?", "Sustituir fuente", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute)); });
+    void ApplyStyleClick(object sender, RoutedEventArgs e) => Run(() =>
+    {
+        if (Selected is not { } row || row.Value.Type != 1)
+            throw new InvalidOperationException("Selecciona un objeto de texto.");
+        string color = ColorValue.Text.Trim();
+        if (color.Length != 7 || color[0] != '#' || !uint.TryParse(color.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
+            throw new ArgumentException("Usa un color #RRGGBB, por ejemplo #235EBC.");
+        float size = Number(FontSizeValue.Text);
+        Change(d => d.SetTextStyle(page, row.Value.Index, size, rgb));
+    });
     void DeleteObjectClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o) throw new InvalidOperationException("Selecciona texto o imagen."); Change(d => d.RemoveObject(page, o.Value.Index)); });
     static float Number(string text)
     {
