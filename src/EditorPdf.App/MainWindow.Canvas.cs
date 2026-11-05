@@ -15,6 +15,10 @@ public partial class MainWindow
     TextBox? inlineText;
     InlineTextDraft? inlineDraft;
     Rectangle? selectionOutline;
+    Border? textToolbar;
+    ComboBox? toolbarFont;
+    TextBox? toolbarSize;
+    Button? toolbarColorButton;
     readonly List<ResizeThumb> resizeHandles = [];
     PdfDocument? gesturePreview;
     PdfObject? gestureObject;
@@ -67,7 +71,84 @@ public partial class MainWindow
                 Overlay.Children.Add(handle);
             }
         }
+        if (obj.Type == 1 && EditMode.IsSelected && Pdf.ObjectEditBlock == null)
+            BuildTextToolbar(obj);
         PositionSelection(DeviceBounds(obj));
+    }
+    void BuildTextToolbar(PdfObject obj)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        toolbarFont = new ComboBox { Width = 138, ItemsSource = FontChoice.ItemsSource, SelectedIndex = FontChoice.SelectedIndex, ToolTip = "Fuente del texto", Margin = new Thickness(0, 0, 4, 0) };
+        toolbarFont.SelectionChanged += (_, _) => { if (toolbarFont.SelectedIndex >= 0) FontChoice.SelectedIndex = toolbarFont.SelectedIndex; };
+        row.Children.Add(toolbarFont);
+        toolbarSize = new TextBox { Width = 45, Text = FontSizeValue.Text, Margin = new Thickness(0, 0, 2, 0), Padding = new Thickness(2), ToolTip = "Tamaño en puntos" };
+        toolbarSize.TextChanged += (_, _) => FontSizeValue.Text = toolbarSize.Text;
+        row.Children.Add(toolbarSize);
+        Button Small(string label, string tip, Action click)
+        {
+            var button = new Button { Content = label, MinWidth = 25, MinHeight = 25, Padding = new Thickness(2), Margin = new Thickness(1, 0, 0, 0), ToolTip = tip };
+            System.Windows.Automation.AutomationProperties.SetName(button, tip);
+            button.Click += (_, _) => click();
+            row.Children.Add(button);
+            return button;
+        }
+        Small("−", "Reducir tamaño de texto", () => { AdjustFontSize(-1); toolbarSize.Text = FontSizeValue.Text; });
+        Small("+", "Aumentar tamaño de texto", () => { AdjustFontSize(1); toolbarSize.Text = FontSizeValue.Text; });
+        Button? boldButton = null;
+        boldButton = Small("B", "Negrita", () => { BoldChoice.IsChecked = BoldChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); boldButton!.Background = BoldChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
+        boldButton.FontWeight = FontWeights.Bold;
+        boldButton.Background = BoldChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White;
+        Button? italicButton = null;
+        italicButton = Small("I", "Cursiva", () => { ItalicChoice.IsChecked = ItalicChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); italicButton!.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
+        italicButton.FontStyle = FontStyles.Italic;
+        italicButton.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White;
+        var color = Small("●", "Elegir color de texto", () => { PickColorClick(this, new RoutedEventArgs()); });
+        toolbarColorButton = color;
+        color.Foreground = new SolidColorBrush(Color.FromRgb((byte)(obj.FillRgb >> 16), (byte)(obj.FillRgb >> 8), (byte)obj.FillRgb));
+        Small("✓", "Aplicar propiedades de texto", () => Run(ApplyContextTextProperties));
+        textToolbar = new Border { Background = Brushes.White, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1), Padding = new Thickness(4), Child = row, Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 5, Opacity = .18 }, LayoutTransform = new ScaleTransform(Math.Clamp(zoom, .35, 1), Math.Clamp(zoom, .35, 1)) };
+        System.Windows.Automation.AutomationProperties.SetName(textToolbar, "Barra contextual de texto");
+        Canvas.SetZIndex(textToolbar, 10);
+        Overlay.Children.Add(textToolbar);
+    }
+    void ChooseStyleFont(PdfObject obj)
+    {
+        string name = obj.Font;
+        if (name.Length > 7 && name[6] == '+') name = name[7..];
+        name = name.Split('-')[0];
+        string family = PdfDocument.IncludedFontFamilies.FirstOrDefault(f => f != "Noto Sans" && f.Replace(" ", "").Equals(name, StringComparison.OrdinalIgnoreCase)) ?? "Liberation Sans";
+        FontChoice.SelectedItem = family;
+        if (toolbarFont != null) toolbarFont.SelectedItem = family;
+        Status.Text = $"Se usará {family} para el estilo elegido.";
+    }
+    void ApplyContextTextProperties()
+    {
+        if (Selected is not { } selection || selection.Value.Type != 1) throw new InvalidOperationException("Selecciona texto.");
+        var original = selection.Value;
+        string value = TextValue.Text;
+        bool requestedBold = BoldChoice.IsChecked == true, requestedItalic = ItalicChoice.IsChecked == true;
+        bool originalBold = original.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase), originalItalic = original.Font.Contains("Italic", StringComparison.OrdinalIgnoreCase) || original.Font.Contains("Oblique", StringComparison.OrdinalIgnoreCase);
+        if (FontChoice.SelectedIndex == 0 && (requestedBold != originalBold || requestedItalic != originalItalic)) ChooseStyleFont(original);
+        bool substitute = FontChoice.SelectedIndex > 0;
+        float size = Number(FontSizeValue.Text);
+        string colorText = ColorValue.Text.Trim();
+        if (colorText.Length != 7 || colorText[0] != '#' || !uint.TryParse(colorText.AsSpan(1), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint rgb))
+            throw new ArgumentException("Selecciona un color válido.");
+        bool textChange = substitute || value != original.Text;
+        bool styleChange = Math.Abs(size - original.Size) > .001 || rgb != original.FillRgb;
+        if (!textChange && !styleChange) return;
+        int index = original.Index;
+        Change(d =>
+        {
+            if (textChange)
+            {
+                string family = substitute ? (string)FontChoice.SelectedItem : "Noto Sans";
+                d.ReplaceText(page, index, value, substitute, family, BoldChoice.IsChecked == true, ItalicChoice.IsChecked == true);
+                if (substitute) index = d.Objects(page).Last(o => o.Type == 1).Index;
+            }
+            if (styleChange) d.SetTextStyle(page, index, size, rgb);
+        });
+        SelectObject(index);
     }
     void PositionSelection(Rect bounds)
     {
@@ -82,6 +163,12 @@ public partial class MainWindow
             string corner = (string)handle.Tag;
             Canvas.SetLeft(handle, (corner.EndsWith('W') ? bounds.Left : bounds.Right) - 5.5);
             Canvas.SetTop(handle, (corner.StartsWith('N') ? bounds.Top : bounds.Bottom) - 5.5);
+        }
+        if (textToolbar != null && Overlay.Children.Contains(textToolbar))
+        {
+            double scale = Math.Clamp(zoom, .35, 1);
+            Canvas.SetLeft(textToolbar, Math.Clamp(bounds.Left, 0, Math.Max(0, Overlay.Width - 370 * scale)));
+            Canvas.SetTop(textToolbar, bounds.Top >= 46 * scale ? bounds.Top - 43 * scale : Math.Min(Overlay.Height - 36 * scale, bounds.Bottom + 6));
         }
     }
     void RequireObjectEditing()
@@ -252,7 +339,7 @@ public partial class MainWindow
         float size = originalObject?.VisualSize is > 0 ? originalObject.VisualSize : 14;
         double scale = PageImage.Width / Pdf.Info(page).Width;
         var baseline = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)point.X, (int)(point.Y + size * scale * 1.15));
-        inlineDraft = new InlineTextDraft(initial, (float)baseline.X, (float)baseline.Y, size, page, originalIndex, family, bold, italic, substitute);
+        inlineDraft = new InlineTextDraft(initial, (float)baseline.X, (float)baseline.Y, size, page, originalIndex, family, bold, italic, substitute, originalObject?.Text);
         FontFamily displayFamily = family == "Noto Sans" ? FontFamily : new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/fonts/#" + family);
         if (originalObject != null && !substitute)
         {
@@ -301,6 +388,16 @@ public partial class MainWindow
         {
             Text = inlineText.Text
         };
+        if (draft.OriginalIndex is int unchangedIndex && draft.Text == (draft.OriginalText ?? Pdf.Objects(draft.Page).FirstOrDefault(o => o.Index == unchangedIndex)?.Text))
+        {
+            inlineRecoveryTimer.Stop();
+            inlineText = null;
+            inlineDraft = null;
+            ShowPage();
+            SelectObject(unchangedIndex);
+            Recover();
+            return;
+        }
         // Validate on a disposable candidate first; leave the editor intact on an error.
         if (!string.IsNullOrWhiteSpace(draft.Text))
         {
@@ -438,4 +535,4 @@ public partial class MainWindow
     }
 }
 
-public sealed record InlineTextDraft(string Text, float X, float Y, float Size, int Page, int? OriginalIndex = null, string Family = "Noto Sans", bool Bold = false, bool Italic = false, bool Substitute = false);
+public sealed record InlineTextDraft(string Text, float X, float Y, float Size, int Page, int? OriginalIndex = null, string Family = "Noto Sans", bool Bold = false, bool Italic = false, bool Substitute = false, string? OriginalText = null);

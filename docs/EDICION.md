@@ -20,3 +20,5 @@ En 0.5.0, doble clic en texto compatible abre la edición en la página. La fuen
 En 0.5.1, seleccionar un objeto deja «Conservar original» como valor inicial. Elegir una familia incluida sustituye la fuente al aplicar. Si la codificación de la fuente original no admite algún carácter, incluso un número, se mantiene la sesión sin cambios y se indica elegir una fuente incluida.
 
 En 0.6.0 se mantiene el tamaño nominal y la escala del texto original en la superposición WPF y el cursor se coloca donde se hace doble clic cuando el texto es horizontal. Las páginas o textos girados siguen editándose desde propiedades. La edición de párrafo refluye grupos uniformes de objetos de texto horizontal; valida ancho, límite de página, solapamientos y conservación de caracteres en una transacción. No reconstruye columnas o documentos completos como un procesador de textos.
+
+En 0.6.1, abrir y cerrar el editor de texto original sin cambios no invoca PDFium para reescribirlo. Una barra contextual se muestra junto al texto seleccionado con controles de estilo y aplicación única; si se pide negrita o cursiva que la fuente original no tiene, se indica qué familia incluida se usará.

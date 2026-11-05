@@ -216,6 +216,8 @@ public partial class MainWindow : Window
             ColorValue.Clear();
             FontSizeValue.IsEnabled = ColorValue.IsEnabled = false;
             FontChoice.SelectedIndex = 1;
+            BoldChoice.IsChecked = false;
+            ItalicChoice.IsChecked = false;
             foreach (var field in new[] { XValue, YValue, WValue, HValue })
             {
                 field.Clear();
@@ -227,6 +229,8 @@ public partial class MainWindow : Window
         TextValue.Text = o.Text;
         TextValue.IsEnabled = o.Type == 1;
         FontChoice.SelectedIndex = 0;
+        BoldChoice.IsChecked = o.Type == 1 && o.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase);
+        ItalicChoice.IsChecked = o.Type == 1 && (o.Font.Contains("Italic", StringComparison.OrdinalIgnoreCase) || o.Font.Contains("Oblique", StringComparison.OrdinalIgnoreCase));
         XValue.IsEnabled = YValue.IsEnabled = true;
         WValue.IsEnabled = HValue.IsEnabled = o.Type == 3;
         FontLabel.Text = o.Type == 1 ? o.Font : "";
@@ -242,7 +246,7 @@ public partial class MainWindow : Window
     }
     void Mark(PdfObject o) => DrawObjectSelection(o);
     void AddTextClick(object sender, RoutedEventArgs e) => Run(ArmTextInsertion);
-    void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException("Selecciona un objeto de texto."); var text = TextValue.Text; bool substitute = FontChoice.SelectedIndex > 0; string family = substitute ? (string)FontChoice.SelectedItem : "Noto Sans"; bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute, family, bold, italic)); });
+    void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException("Selecciona un objeto de texto."); var text = TextValue.Text; bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true; bool originalBold = o.Value.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase), originalItalic = o.Value.Font.Contains("Italic", StringComparison.OrdinalIgnoreCase) || o.Value.Font.Contains("Oblique", StringComparison.OrdinalIgnoreCase); if (FontChoice.SelectedIndex == 0 && (bold != originalBold || italic != originalItalic)) ChooseStyleFont(o.Value); bool substitute = FontChoice.SelectedIndex > 0; if (!substitute && text == o.Value.Text) return; string family = substitute ? (string)FontChoice.SelectedItem : "Noto Sans"; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute, family, bold, italic)); });
     void ApplyStyleClick(object sender, RoutedEventArgs e) => Run(() =>
     {
         if (Selected is not { } row || row.Value.Type != 1)
@@ -261,6 +265,7 @@ public partial class MainWindow : Window
         if (picker.ShowDialog() != true) return;
         ColorValue.Text = $"#{picker.SelectedColor:X6}";
         ColorSwatch.Background = new SolidColorBrush(Color.FromRgb((byte)(picker.SelectedColor >> 16), (byte)(picker.SelectedColor >> 8), (byte)picker.SelectedColor));
+        if (toolbarColorButton != null) toolbarColorButton.Foreground = ColorSwatch.Background;
     });
     void FontSizeUp(object sender, RoutedEventArgs e) => AdjustFontSize(1);
     void FontSizeDown(object sender, RoutedEventArgs e) => AdjustFontSize(-1);

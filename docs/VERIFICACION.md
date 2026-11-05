@@ -1,6 +1,10 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.6.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.6.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Corrección 0.6.1
+
+Cerrar un editor original sin cambios y pulsar Aplicar sin cambios no reemplazan el documento de sesión. La barra contextual flotante muestra fuente, tamaño, negrita, cursiva, color y Aplicar; se ha comprobado en una captura WPF y con una modificación real del tamaño y una variante negrita guardada. Pruebas de regresión en artifacts/test-0.6.1.log.
 
 ## Edición 0.6.0
 

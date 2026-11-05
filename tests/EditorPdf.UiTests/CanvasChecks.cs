@@ -121,6 +121,11 @@ static class CanvasChecks
             throw new Exception("Cancelar conserva texto no confirmado");
         var editableText = session.Document.Objects(0).First(o => o.Type == 1 && o.Text.Contains("Segunda pagina"));
         Console.WriteLine($"CHECK texto original: fuente={editableText.Font}, tamaño={editableText.Size:0.##}, visual={editableText.VisualSize:0.##}, alto={editableText.Top - editableText.Bottom:0.##}");
+        var beforeUnchanged = session.Document;
+        window.BeginInlineText(new Point(55, 80), editableText.Text, editableText.Index);
+        window.FinishInlineText();
+        if (!ReferenceEquals(beforeUnchanged, session.Document))
+            throw new Exception("Cerrar un texto sin cambios intenta reescribir la fuente original");
         window.BeginInlineText(new Point(55, 80), editableText.Text, editableText.Index);
         var editor = overlay.Children.OfType<TextBox>().Single();
         if (Math.Abs(editor.FontSize - editableText.Size * image.Width / session.Document.Info(0).Width) > .2 || Math.Abs(Canvas.GetLeft(editor) - session.Document.ToDevice(0, (int)image.Width, (int)image.Height, editableText.Left, editableText.Top).X) > 3)
@@ -140,6 +145,27 @@ static class CanvasChecks
         typeof(MainWindow).GetMethod("ApplyTextClick", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [window, new RoutedEventArgs()]);
         if (!session.Document.Objects(0).Any(o => o.Text == "Numero 12345" && o.Font.Contains("Liberation", StringComparison.OrdinalIgnoreCase)))
             throw new Exception("La fuente elegida no sustituye la original ni conserva el número");
+        objects.SelectedItem = objects.Items.Cast<MainWindow.ObjectRow>().First(o => o.Value.Text == "Numero 12345");
+        var bar = overlay.Children.OfType<Border>().SingleOrDefault(b => System.Windows.Automation.AutomationProperties.GetName(b) == "Barra contextual de texto");
+        if (bar == null || bar.Child is not StackPanel barContent || !barContent.Children.OfType<Button>().Any(b => Equals(b.ToolTip, "Aplicar propiedades de texto")))
+            throw new Exception("Falta la barra contextual junto al texto seleccionado");
+        capture("barra-contextual", 1280, 780, 1);
+        var beforeToolbarNoOp = session.Document;
+        barContent.Children.OfType<Button>().First(b => Equals(b.ToolTip, "Aplicar propiedades de texto")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (!ReferenceEquals(beforeToolbarNoOp, session.Document))
+            throw new Exception("La barra contextual reescribe texto aunque no se cambió ninguna propiedad");
+        float previousSize = session.Document.Objects(0).First(o => o.Text == "Numero 12345").Size;
+        ((TextBox)window.FindName("FontSizeValue")).Text = (previousSize + 1).ToString(System.Globalization.CultureInfo.CurrentCulture);
+        barContent.Children.OfType<Button>().First(b => Equals(b.ToolTip, "Aplicar propiedades de texto")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (!session.Document.Objects(0).Any(o => o.Text == "Numero 12345" && Math.Abs(o.Size - previousSize - 1) < .05))
+            throw new Exception("La barra contextual no aplica el nuevo tamaño al PDF");
+        objects.SelectedItem = objects.Items.Cast<MainWindow.ObjectRow>().First(o => o.Value.Text == "Numero 12345");
+        var styleBar = overlay.Children.OfType<Border>().Single(b => System.Windows.Automation.AutomationProperties.GetName(b) == "Barra contextual de texto");
+        var styleControls = (StackPanel)styleBar.Child;
+        styleControls.Children.OfType<Button>().First(b => Equals(b.ToolTip, "Negrita")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        styleControls.Children.OfType<Button>().First(b => Equals(b.ToolTip, "Aplicar propiedades de texto")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (!session.Document.Objects(0).Any(o => o.Text == "Numero 12345" && o.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase)))
+            throw new Exception("La barra contextual no aplica negrita real al PDF");
         using (var fontDocument = new PdfDocument(File.ReadAllBytes(fixture)))
         {
             int n = 0;

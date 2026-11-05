@@ -90,7 +90,7 @@
       "EditorPDF": {
         "type": "Project",
         "dependencies": {
-          "EditorPdf.Core": "[0.6.0, )"
+          "EditorPdf.Core": "[0.6.1, )"
         }
       },
       "editorpdf.core": {
