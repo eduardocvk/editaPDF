@@ -1,6 +1,10 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.6.2. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.7.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Interfaz y reflujo 0.7.0
+
+La suite local verifica reflujo de líneas y separación entre párrafos, selección por arrastre y acción contextual, navegación con la rueda al borde de página, acción sobre una miniatura concreta, render WPF a 1280 y 920 unidades lógicas y guardia nativa de red. Las capturas se inspeccionaron visualmente. Queda por probar manualmente la edición del contrato concreto y una variedad mayor de PDF.
 
 ## Corrección 0.6.2
 

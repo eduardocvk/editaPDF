@@ -110,7 +110,7 @@ public partial class MainWindow : Window
     }
     void ShowPage()
     {
-        if (paragraphArmed) CancelParagraphSelection();
+        if (paragraphArmed || areaSelection != null) CancelParagraphSelection();
         CancelCanvasGesture(false);
         Overlay.Children.Clear();
         if (Pdf.Count == 0)
@@ -182,6 +182,43 @@ public partial class MainWindow : Window
     void MoveDownClick(object sender, RoutedEventArgs e) => Run(() => { if (page < Pdf.Count - 1) { int from = page; Change(d => d.Move(from, from + 1), from + 1); } });
     void UndoClick(object sender, RoutedEventArgs e) => Run(() => { session.Undo(); Refresh(); Recover(); });
     void RedoClick(object sender, RoutedEventArgs e) => Run(() => { session.Redo(); Refresh(); Recover(); });
+    void PageActionClick(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Button { DataContext: Thumb thumb, Tag: string action }) return;
+        Run(() =>
+        {
+            int index = thumb.Index;
+            if (index < 0 || index >= Pdf.Count) return;
+            switch (action)
+            {
+                case "up" when index > 0: Change(d => d.Move(index, index - 1), index - 1); break;
+                case "down" when index < Pdf.Count - 1: Change(d => d.Move(index, index + 1), index + 1); break;
+                case "duplicate": Change(d => d.Duplicate(index), index + 1); break;
+                case "rotate": Change(d => d.Rotate(index), index); break;
+                case "delete": Change(d => d.Delete(index), Math.Min(index, Pdf.Count - 2)); break;
+            }
+        });
+    }
+    void DocumentMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Pdf.Count < 2 || Keyboard.Modifiers != ModifierKeys.None || paragraphStart != null || gestureObject != null) return;
+        bool next = e.Delta < 0;
+        bool atEdge = next ? DocumentScroll.VerticalOffset + DocumentScroll.ViewportHeight >= DocumentScroll.ExtentHeight - 2
+            : DocumentScroll.VerticalOffset <= 2;
+        if (!atEdge || (next ? page >= Pdf.Count - 1 : page <= 0)) return;
+        e.Handled = true;
+        Run(() =>
+        {
+            FinishInlineText();
+            page += next ? 1 : -1;
+            refreshing = true;
+            PagesList.SelectedIndex = page;
+            refreshing = false;
+            ShowPage();
+            Dispatcher.BeginInvoke(() => DocumentScroll.ScrollToVerticalOffset(next ? 0 : DocumentScroll.ScrollableHeight), System.Windows.Threading.DispatcherPriority.Loaded);
+        });
+    }
     void PageChanged(object sender, SelectionChangedEventArgs e)
     {
         if (refreshing || PagesList.SelectedIndex < 0)
@@ -195,12 +232,7 @@ public partial class MainWindow : Window
             return;
         if (inlineText != null)
             Run(FinishInlineText);
-        if (paragraphArmed) CancelParagraphSelection();
-        if (OrganizeMode.IsSelected)
-        {
-            addTextArmed = false;
-            PageImage.Cursor = Cursors.Arrow;
-        }
+        if (paragraphArmed || areaSelection != null) CancelParagraphSelection();
         CancelCanvasGesture(false);
         Overlay.Children.Clear();
         if (Selected is { } selected)
@@ -267,7 +299,7 @@ public partial class MainWindow : Window
         if (picker.ShowDialog() != true) return;
         ColorValue.Text = $"#{picker.SelectedColor:X6}";
         ColorSwatch.Background = new SolidColorBrush(Color.FromRgb((byte)(picker.SelectedColor >> 16), (byte)(picker.SelectedColor >> 8), (byte)picker.SelectedColor));
-        if (toolbarColorButton != null) toolbarColorButton.Foreground = ColorSwatch.Background;
+        if (toolbarColorSwatch != null) toolbarColorSwatch.Background = ColorSwatch.Background;
     });
     void FontSizeUp(object sender, RoutedEventArgs e) => AdjustFontSize(1);
     void FontSizeDown(object sender, RoutedEventArgs e) => AdjustFontSize(-1);
@@ -292,6 +324,7 @@ public partial class MainWindow : Window
         Run(() =>
         {
             var point = e.GetPosition(PageImage);
+            if (areaSelection != null) CancelParagraphSelection();
             if (paragraphArmed) { StartParagraphSelection(point); e.Handled = true; return; }
             if (addTextArmed)
             {
@@ -310,6 +343,12 @@ public partial class MainWindow : Window
                 return;
             }
             ObjectsList.SelectedItem = hit;
+            if (hit == null && Pdf.ObjectEditBlock == null)
+            {
+                StartParagraphSelection(point, passive: true);
+                e.Handled = true;
+                return;
+            }
             if (hit != null && Pdf.ObjectEditBlock == null)
             {
                 BeginObjectGesture(hit.Value, point);
@@ -347,9 +386,9 @@ public partial class MainWindow : Window
     void PrivacyClick(object sender, RoutedEventArgs e) => MessageBox.Show(this, "Procesamiento local. Sin telemetría, descargas, JavaScript PDF ni servicios remotos.\n\nLa recuperación guarda una copia del PDF en tu perfil local. No se guardan contraseñas. La impresión solo admite puertos locales compatibles.\n\nEl banner FirmaPDF solo abre su ficha en el navegador al pulsarlo, sin documentos, rutas ni datos de sesión.\n\nAGPL-3.0-or-later. Licencias y fuentes incluidas.", "Privacidad", MessageBoxButton.OK, MessageBoxImage.Information);
     void KeysPressed(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && (inlineText != null || addTextArmed || gestureObject != null || paragraphArmed))
+        if (e.Key == Key.Escape && (inlineText != null || addTextArmed || gestureObject != null || paragraphArmed || areaSelection != null))
         {
-            if (paragraphArmed) CancelParagraphSelection();
+            if (paragraphArmed || areaSelection != null) CancelParagraphSelection();
             else if (inlineText != null || addTextArmed)
                 CancelInlineText();
             else

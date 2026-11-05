@@ -197,7 +197,7 @@ static class CanvasChecks
         var cornerB = session.Document.ToDevice(0, (int)image.Width, (int)image.Height, textForArea.Right, textForArea.Bottom);
         var area = new Rect(new Point(Math.Min(cornerA.X, cornerB.X) - 4, Math.Min(cornerA.Y, cornerB.Y) - 4), new Point(Math.Max(cornerA.X, cornerB.X) + 4, Math.Max(cornerA.Y, cornerB.Y) + 4));
         typeof(MainWindow).GetMethod("ArmParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
-        typeof(MainWindow).GetMethod("StartParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.TopLeft]);
+        typeof(MainWindow).GetMethod("StartParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.TopLeft, false]);
         typeof(MainWindow).GetMethod("UpdateParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.BottomRight]);
         if (!overlay.Children.OfType<System.Windows.Shapes.Rectangle>().Any(r => r.Width > 0 && r.Height > 0))
             throw new Exception("El recuadro de selección de párrafo no aparece al arrastrar");
@@ -205,6 +205,11 @@ static class CanvasChecks
         if (!chosenArea.Any(o => o.Index == textForArea.Index))
             throw new Exception("El recuadro no incluye el texto seleccionado");
         capture("parrafo-recuadro", 1280, 780, 1);
+        typeof(MainWindow).GetMethod("CancelParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        typeof(MainWindow).GetMethod("StartParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.TopLeft, true]);
+        typeof(MainWindow).GetMethod("CompleteParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.BottomRight]);
+        if (!overlay.Children.OfType<ToolButton>().Any(b => Equals(b.ToolTip, "Editar texto seleccionado")))
+            throw new Exception("La selección de texto por arrastre no ofrece el botón contextual de edición");
         typeof(MainWindow).GetMethod("CancelParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS lienzo: texto visible, recuperación de borrador, movimiento con vista previa, cancelación, esquinas, menú contextual y selección visual de páginas");
     }

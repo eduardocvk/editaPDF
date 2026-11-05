@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using EditorPdf.Core;
@@ -61,12 +62,29 @@ static class UiTests
             encoder.Save(f);
             Console.WriteLine("PASS WPF render " + name);
         }
-        Capture("organizar-1280", 1280, 780);
-        Capture("organizar-920-150pct", 920, 560, 1.5);
+        Capture("paginas-1280", 1280, 780);
+        Capture("paginas-920-150pct", 920, 560, 1.5);
+        var pageList = (ListBox)window.FindName("PagesList");
+        var documentScroll = (ScrollViewer)window.FindName("DocumentScroll");
+        documentScroll.ScrollToBottom();
+        documentScroll.UpdateLayout();
+        var wheel = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120) { RoutedEvent = UIElement.PreviewMouseWheelEvent };
+        typeof(MainWindow).GetMethod("DocumentMouseWheel", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [documentScroll, wheel]);
+        if (pageList.SelectedIndex != 1 || !wheel.Handled)
+            throw new Exception("La rueda no avanza a la página siguiente desde el borde inferior");
+        pageList.SelectedIndex = 0;
+        var rotatePage = new ToolButton { DataContext = pageList.Items[1], Tag = "rotate" };
+        int rotationBefore = session.Document.Info(1).Rotation;
+        typeof(MainWindow).GetMethod("PageActionClick", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [rotatePage, new RoutedEventArgs(Button.ClickEvent)]);
+        if (session.Document.Info(1).Rotation == rotationBefore)
+            throw new Exception("El botón de girar la miniatura no actúa sobre su página");
+        session.Undo();
+        typeof(MainWindow).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        pageList.SelectedIndex = 0;
         var tools = (DockPanel)window.FindName("PropertiesPanel");
         var tabs = (TabControl)window.FindName("ModeTabs");
-        if (!tools.Children.Contains(tabs) || Grid.GetColumn(tools) != 4 || tabs.Items.Count != 2 || !ReferenceEquals(tabs.Items[0], window.FindName("OrganizeMode")))
-            throw new Exception("Las pestañas deben estar encima del panel derecho");
+        if (!tools.Children.Contains(tabs) || Grid.GetColumn(tools) != 4 || tabs.Items.Count != 1 || !ReferenceEquals(tabs.Items[0], window.FindName("EditMode")))
+            throw new Exception("El panel derecho debe contener solo las herramientas de edición");
         ((Button)window.FindName("UndoButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         ((TabItem)window.FindName("EditMode")).IsSelected = true;
         if (!ReferenceEquals(tabs.SelectedItem, window.FindName("EditMode")))

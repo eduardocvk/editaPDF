@@ -9,11 +9,13 @@ public sealed class ParagraphEditorDialog : Window
     readonly TextBox editor = new() { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 220, MaxLength = 10000 };
     readonly TextBox widthBox = new() { Width = 80, Margin = new Thickness(8, 0, 0, 0) };
     readonly ComboBox fonts = new() { MinWidth = 180, Margin = new Thickness(8, 0, 0, 0) };
+    readonly float maxWidth;
     public string ParagraphText => editor.Text;
     public float ParagraphWidth => float.Parse(widthBox.Text, CultureInfo.CurrentCulture);
     public string? FontChoice => fonts.SelectedIndex == 0 ? null : fonts.SelectedItem as string;
-    public ParagraphEditorDialog(Window owner, string text, float width, int objects, bool mixedStyles = false)
+    public ParagraphEditorDialog(Window owner, string text, float width, int objects, bool mixedStyles = false, float maxWidth = 2000)
     {
+        this.maxWidth = maxWidth;
         if (owner.IsVisible) Owner = owner;
         Title = "Editar párrafo";
         Width = 650;
@@ -32,8 +34,8 @@ public sealed class ParagraphEditorDialog : Window
         var apply = new Button { Content = "Aplicar párrafo", IsDefault = true };
         apply.Click += (_, _) =>
         {
-            if (!float.TryParse(widthBox.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out var value) || value < 30 || value > 2000 || string.IsNullOrWhiteSpace(editor.Text))
-            { MessageBox.Show(this, "Introduce texto y un ancho entre 30 y 2000 pt.", "Editar párrafo"); return; }
+            if (!float.TryParse(widthBox.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out var value) || value < 30 || value > this.maxWidth + .1f || string.IsNullOrWhiteSpace(editor.Text))
+            { MessageBox.Show(this, $"Introduce texto y un ancho entre 30 y {this.maxWidth:0.##} pt. El párrafo no puede superar su margen derecho actual.", "Editar párrafo"); return; }
             DialogResult = true;
         };
         footer.Children.Add(cancel);

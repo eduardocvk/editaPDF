@@ -18,7 +18,7 @@ public partial class MainWindow
     Border? textToolbar;
     ComboBox? toolbarFont;
     TextBox? toolbarSize;
-    Button? toolbarColorButton;
+    Border? toolbarColorSwatch;
     readonly List<ResizeThumb> resizeHandles = [];
     PdfDocument? gesturePreview;
     PdfObject? gestureObject;
@@ -93,8 +93,8 @@ public partial class MainWindow
             row.Children.Add(button);
             return button;
         }
-        Small("−", "Reducir tamaño de texto", () => { AdjustFontSize(-1); toolbarSize.Text = FontSizeValue.Text; });
-        Small("+", "Aumentar tamaño de texto", () => { AdjustFontSize(1); toolbarSize.Text = FontSizeValue.Text; });
+        Small("A", "Reducir tamaño de texto", () => { AdjustFontSize(-1); toolbarSize.Text = FontSizeValue.Text; }).FontSize = 10;
+        Small("A", "Aumentar tamaño de texto", () => { AdjustFontSize(1); toolbarSize.Text = FontSizeValue.Text; }).FontSize = 17;
         Button? boldButton = null;
         boldButton = Small("B", "Negrita", () => { BoldChoice.IsChecked = BoldChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); boldButton!.Background = BoldChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
         boldButton.FontWeight = FontWeights.Bold;
@@ -103,9 +103,9 @@ public partial class MainWindow
         italicButton = Small("I", "Cursiva", () => { ItalicChoice.IsChecked = ItalicChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); italicButton!.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
         italicButton.FontStyle = FontStyles.Italic;
         italicButton.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White;
-        var color = Small("●", "Elegir color de texto", () => { PickColorClick(this, new RoutedEventArgs()); });
-        toolbarColorButton = color;
-        color.Foreground = new SolidColorBrush(Color.FromRgb((byte)(obj.FillRgb >> 16), (byte)(obj.FillRgb >> 8), (byte)obj.FillRgb));
+        var color = Small("", "Elegir color de texto", () => { PickColorClick(this, new RoutedEventArgs()); });
+        toolbarColorSwatch = new Border { Width = 20, Height = 14, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Background = new SolidColorBrush(Color.FromRgb((byte)(obj.FillRgb >> 16), (byte)(obj.FillRgb >> 8), (byte)obj.FillRgb)) };
+        color.Content = toolbarColorSwatch;
         Small("✓", "Aplicar propiedades de texto", () => Run(ApplyContextTextProperties));
         textToolbar = new Border { Background = Brushes.White, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1), Padding = new Thickness(4), Child = row, Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 5, Opacity = .18 }, LayoutTransform = new ScaleTransform(Math.Clamp(zoom, .35, 1), Math.Clamp(zoom, .35, 1)) };
         System.Windows.Automation.AutomationProperties.SetName(textToolbar, "Barra contextual de texto");

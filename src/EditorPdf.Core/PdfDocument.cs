@@ -377,8 +377,9 @@ public sealed class PdfDocument : IDisposable
         var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
         if (normalized.Length > 10000 || string.IsNullOrWhiteSpace(normalized))
             throw new ArgumentException("Introduce texto para el párrafo.");
-        if (normalized.Split('\n').Any(string.IsNullOrWhiteSpace) || normalized.Contains("  ") || normalized.Contains('\t'))
-            throw new ArgumentException("Este editor de párrafos admite líneas con espacios simples, sin líneas vacías ni tabulaciones.");
+        var paragraphs = normalized.Split("\n\n", StringSplitOptions.None);
+        if (paragraphs.Any(p => p.Split('\n').Any(string.IsNullOrWhiteSpace)) || normalized.Contains("  ") || normalized.Contains('\t'))
+            throw new ArgumentException("Usa espacios simples y una sola línea vacía entre párrafos, sin tabulaciones.");
         using var p = Open(page);
         int count = N.FPDFPage_CountObjects(p.H);
         if (indices.Any(i => i < 0 || i >= count)) throw new ArgumentOutOfRangeException(nameof(indices));
@@ -430,11 +431,12 @@ public sealed class PdfDocument : IDisposable
         }
         try
         {
-            var lines = new List<string>();
-            foreach (string paragraph in normalized.Split('\n'))
+            var lines = new List<string?>();
+            foreach (string paragraph in paragraphs)
             {
+                if (lines.Count > 0) lines.Add(null);
                 string current = "";
-                foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                foreach (string word in paragraph.Replace('\n', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
                     string candidate = current.Length == 0 ? word : current + " " + word;
                     var probe = Create(candidate, startX, startY);
@@ -448,8 +450,9 @@ public sealed class PdfDocument : IDisposable
             if (lines.Count == 0 || lines.Count > 100) throw new ArgumentException("El párrafo contiene demasiadas líneas.");
             for (int i = 0; i < lines.Count; i++)
             {
-                var obj = Create(lines[i], startX, startY - i * spacing);
-                prepared.Add((obj, lines[i]));
+                if (lines[i] is not { } line) continue;
+                var obj = Create(line, startX, startY - i * spacing);
+                prepared.Add((obj, line));
                 N.FPDFPageObj_GetBounds(obj, out float l, out float b, out float r, out float t);
                 if (l < 0 || b < 0 || r > Info(page).Width + 1 || t > Info(page).Height + 1 || r - l > width + 2)
                     throw new InvalidOperationException("El párrafo no cabe en la página o en el ancho elegido.");

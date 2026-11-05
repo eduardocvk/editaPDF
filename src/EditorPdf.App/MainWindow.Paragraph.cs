@@ -10,8 +10,10 @@ namespace EditorPdf.App;
 public partial class MainWindow
 {
     bool paragraphArmed;
+    bool paragraphPassive;
     Point? paragraphStart;
     Rectangle? paragraphOutline;
+    PdfObject[]? areaSelection;
 
     void ArmParagraphSelection()
     {
@@ -23,6 +25,7 @@ public partial class MainWindow
         ObjectsList.SelectedItem = null;
         Overlay.Children.Clear();
         paragraphArmed = true;
+        paragraphPassive = false;
         PageImage.Cursor = Cursors.Cross;
         Status.Text = "Arrastra un recuadro alrededor de todo el párrafo · Esc cancela.";
     }
@@ -30,15 +33,19 @@ public partial class MainWindow
     void CancelParagraphSelection()
     {
         paragraphArmed = false;
+        paragraphPassive = false;
         paragraphStart = null;
         paragraphOutline = null;
+        areaSelection = null;
         PageImage.ReleaseMouseCapture();
         PageImage.Cursor = Cursors.Arrow;
         Overlay.Children.Clear();
     }
 
-    void StartParagraphSelection(Point point)
+    void StartParagraphSelection(Point point, bool passive = false)
     {
+        paragraphArmed = true;
+        paragraphPassive = passive;
         paragraphStart = point;
         paragraphOutline = new Rectangle { Stroke = Brushes.RoyalBlue, StrokeThickness = 1.5,
             StrokeDashArray = new DoubleCollection { 4, 3 }, Fill = new SolidColorBrush(Color.FromArgb(32, 65, 105, 225)), IsHitTestVisible = false };
@@ -69,14 +76,42 @@ public partial class MainWindow
     {
         if (paragraphStart is not { } start) return;
         var area = new Rect(start, point);
+        bool passive = paragraphPassive;
         CancelParagraphSelection();
         if (area.Width < 8 || area.Height < 8) { Status.Text = "Arrastra alrededor de las líneas del párrafo."; return; }
         var group = ParagraphObjectsIn(area);
         if (group.Length == 0) { Status.Text = "No hay texto compatible dentro del recuadro."; return; }
+        if (passive)
+        {
+            areaSelection = group;
+            paragraphOutline = new Rectangle { Width = area.Width, Height = area.Height, Stroke = Brushes.RoyalBlue, StrokeThickness = 1.5, StrokeDashArray = new DoubleCollection { 4, 3 }, IsHitTestVisible = false };
+            Canvas.SetLeft(paragraphOutline, area.Left);
+            Canvas.SetTop(paragraphOutline, area.Top);
+            Overlay.Children.Add(paragraphOutline);
+            var edit = new ToolButton { Content = "Editar texto seleccionado", Icon = "Paragraph", IconOnly = true, ToolTip = "Editar texto seleccionado", Padding = new Thickness(5), MinWidth = 29, MinHeight = 29 };
+            edit.Click += (_, _) => Run(EditAreaSelection);
+            Canvas.SetLeft(edit, Math.Min(area.Right + 5, Overlay.Width - 34));
+            Canvas.SetTop(edit, Math.Clamp(area.Top, 0, Overlay.Height - 34));
+            Overlay.Children.Add(edit);
+            Status.Text = $"{group.Length} fragmentos seleccionados. Pulsa el botón junto al recuadro para editarlos.";
+            return;
+        }
+        EditParagraphObjects(group);
+    }
+
+    void EditAreaSelection()
+    {
+        if (areaSelection is not { Length: > 0 } group) return;
+        CancelParagraphSelection();
+        EditParagraphObjects(group);
+    }
+
+    void EditParagraphObjects(PdfObject[] group)
+    {
         bool mixed = group.Select(o => (o.Font, o.Size, o.FillRgb)).Distinct().Count() > 1;
         var info = Pdf.Info(page);
-        float width = Math.Min(info.Width - group.Min(o => o.Left) - 10, Math.Max(200, group.Max(o => o.Right) - group.Min(o => o.Left)));
-        var dialog = new ParagraphEditorDialog(this, ParagraphSelection.Compose(group), width, group.Length, mixed);
+        float width = Math.Min(info.Width - group.Min(o => o.Left) - 10, Math.Max(30, group.Max(o => o.Right) - group.Min(o => o.Left)));
+        var dialog = new ParagraphEditorDialog(this, ParagraphSelection.Compose(group), width, group.Length, mixed, width);
         Mouse.OverrideCursor = null;
         if (dialog.ShowDialog() != true) return;
         var indices = group.Select(o => o.Index).ToArray();

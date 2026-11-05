@@ -28,7 +28,7 @@ public partial class MainWindow
         {
             Page = page,
             Zoom = zoom,
-            Mode = ModeTabs.SelectedIndex,
+            Mode = 1,
             Search = SearchBox.Text,
             Ranges = RangeBox.Text,
             Object = Selected?.Value.Index,
@@ -65,7 +65,7 @@ public partial class MainWindow
             zoom = Math.Clamp(target.View.Zoom, 0.25, 4);
             SearchBox.Text = target.View.Search;
             RangeBox.Text = target.View.Ranges;
-            ModeTabs.SelectedIndex = target.View.Mode == 1 ? 1 : 0;
+            ModeTabs.SelectedIndex = 0;
             searchPage = -1;
             searchOffset = 0;
             lastQuery = "";

@@ -408,6 +408,17 @@ using (var fragments = new PdfDocument())
     using var reopened = new PdfDocument(File.ReadAllBytes(path));
     Assert(reopened.Objects(0).Any(o => o.Text == "Fuera") && reopened.Text(0).Contains("modificada") && !reopened.Text(0).Contains("Primera linea\nSegunda linea"), "reflujo de párrafo fragmentado con estilos distintos y texto ajeno conservado");
 }
+using (var flowing = new PdfDocument())
+{
+    flowing.Blank(0);
+    flowing.AddText(0, "Uno dos", 14, 40, 700);
+    flowing.AddText(0, "tres cuatro", 14, 40, 680);
+    flowing.AddText(0, "Otro bloque", 14, 40, 625);
+    var selected = ParagraphSelection.InArea(flowing.Objects(0), 35, 605, 180, 720);
+    Assert(ParagraphSelection.Compose(selected) == "Uno dos\ntres cuatro\n\nOtro bloque", "saltos entre párrafos conservados en la selección");
+    flowing.ReplaceParagraph(0, selected.Select(o => o.Index).ToArray(), "Uno dos\ntres cuatro cinco\n\nOtro bloque ampliado", 150);
+    Assert(flowing.Text(0).Contains("cinco") && flowing.Text(0).Contains("ampliado") && flowing.Objects(0).Where(o => o.Type == 1).All(o => o.Right <= 192), "reflujo dentro del ancho con separación entre párrafos");
+}
 File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: PDFium original text edit, same font, save/reopen, preserve independent text, move/remove, pages, images, no overwrite.\n");
 sealed class NetworkAudit : EventListener
 {

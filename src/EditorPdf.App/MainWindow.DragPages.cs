@@ -18,8 +18,22 @@ public partial class MainWindow
     }
     Point? thumbnailStart; int thumbnailFrom; long lastDragScroll;
     AdornerLayer? dropLayer; InsertionLine? dropLine;
+    static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
+    {
+        while (element != null)
+        {
+            if (element is T found) return found;
+            element = element is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element);
+        }
+        return null;
+    }
     void ThumbnailMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (e.OriginalSource is DependencyObject source && FindAncestor<Button>(source) != null)
+        {
+            thumbnailStart = null;
+            return;
+        }
         var item = ItemsControl.ContainerFromElement(PagesList, e.OriginalSource as DependencyObject) as ListBoxItem;
         if (item?.DataContext is not Thumb thumb)
         {

@@ -10,6 +10,7 @@ public static class ParagraphSelection
     public static string Compose(IEnumerable<PdfObject> objects)
     {
         var sorted = objects.OrderByDescending(o => o.Top).ThenBy(o => o.Left).ToArray();
+        if (sorted.Length == 0) return "";
         var lines = new List<List<PdfObject>>();
         foreach (var obj in sorted)
         {
@@ -17,7 +18,7 @@ public static class ParagraphSelection
             if (line == null) lines.Add([obj]);
             else line.Add(obj);
         }
-        return string.Join("\n", lines.Select(line =>
+        var composed = lines.Select(line =>
         {
             var parts = line.OrderBy(o => o.Left).ToArray();
             string result = parts[0].Text;
@@ -30,6 +31,14 @@ public static class ParagraphSelection
                 result += next.Text;
             }
             return string.Join(' ', result.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        }));
+        }).ToArray();
+        string result = composed[0];
+        for (int i = 1; i < composed.Length; i++)
+        {
+            float gap = Math.Abs(lines[i - 1][0].Bottom - lines[i][0].Bottom);
+            result += gap > Math.Max(lines[i - 1][0].Size, lines[i][0].Size) * 1.85f ? "\n\n" : "\n";
+            result += composed[i];
+        }
+        return result;
     }
 }
