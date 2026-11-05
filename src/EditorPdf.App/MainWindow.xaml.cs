@@ -110,6 +110,7 @@ public partial class MainWindow : Window
     }
     void ShowPage()
     {
+        if (paragraphArmed) CancelParagraphSelection();
         CancelCanvasGesture(false);
         Overlay.Children.Clear();
         if (Pdf.Count == 0)
@@ -194,6 +195,7 @@ public partial class MainWindow : Window
             return;
         if (inlineText != null)
             Run(FinishInlineText);
+        if (paragraphArmed) CancelParagraphSelection();
         if (OrganizeMode.IsSelected)
         {
             addTextArmed = false;
@@ -290,6 +292,7 @@ public partial class MainWindow : Window
         Run(() =>
         {
             var point = e.GetPosition(PageImage);
+            if (paragraphArmed) { StartParagraphSelection(point); e.Handled = true; return; }
             if (addTextArmed)
             {
                 BeginInlineText(point);
@@ -316,11 +319,13 @@ public partial class MainWindow : Window
     }
     void PageMouseUp(object sender, MouseButtonEventArgs e)
     {
+        if (paragraphStart != null) { Run(() => CompleteParagraphSelection(e.GetPosition(PageImage))); e.Handled = true; return; }
         if (gestureObject != null && resizeCorner == null)
             Run(CommitObjectGesture);
     }
     void SetZoom(double value)
     {
+        if (paragraphArmed) CancelParagraphSelection();
         FinishInlineText();
         CancelCanvasGesture(false);
         zoom = Math.Clamp(value, 0.25, 4);
@@ -342,9 +347,10 @@ public partial class MainWindow : Window
     void PrivacyClick(object sender, RoutedEventArgs e) => MessageBox.Show(this, "Procesamiento local. Sin telemetría, descargas, JavaScript PDF ni servicios remotos.\n\nLa recuperación guarda una copia del PDF en tu perfil local. No se guardan contraseñas. La impresión solo admite puertos locales compatibles.\n\nEl banner FirmaPDF solo abre su ficha en el navegador al pulsarlo, sin documentos, rutas ni datos de sesión.\n\nAGPL-3.0-or-later. Licencias y fuentes incluidas.", "Privacidad", MessageBoxButton.OK, MessageBoxImage.Information);
     void KeysPressed(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && (inlineText != null || addTextArmed || gestureObject != null))
+        if (e.Key == Key.Escape && (inlineText != null || addTextArmed || gestureObject != null || paragraphArmed))
         {
-            if (inlineText != null || addTextArmed)
+            if (paragraphArmed) CancelParagraphSelection();
+            else if (inlineText != null || addTextArmed)
                 CancelInlineText();
             else
                 CancelCanvasGesture();

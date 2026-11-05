@@ -192,6 +192,20 @@ static class CanvasChecks
         if (paragraphDialog.ParagraphText != "Una línea\nOtra línea" || paragraphDialog.FontChoice != null || paragraphDialog.ParagraphWidth != 240)
             throw new Exception("El editor de párrafos no presenta el texto y la fuente original");
         CaptureDialog(paragraphDialog, Path.Combine(folder, "editor-parrafo.png"), 650, 480);
+        var textForArea = session.Document.Objects(0).First(o => o.Type == 1 && !string.IsNullOrWhiteSpace(o.Text) && o.HorizontalText);
+        var cornerA = session.Document.ToDevice(0, (int)image.Width, (int)image.Height, textForArea.Left, textForArea.Top);
+        var cornerB = session.Document.ToDevice(0, (int)image.Width, (int)image.Height, textForArea.Right, textForArea.Bottom);
+        var area = new Rect(new Point(Math.Min(cornerA.X, cornerB.X) - 4, Math.Min(cornerA.Y, cornerB.Y) - 4), new Point(Math.Max(cornerA.X, cornerB.X) + 4, Math.Max(cornerA.Y, cornerB.Y) + 4));
+        typeof(MainWindow).GetMethod("ArmParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        typeof(MainWindow).GetMethod("StartParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.TopLeft]);
+        typeof(MainWindow).GetMethod("UpdateParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.BottomRight]);
+        if (!overlay.Children.OfType<System.Windows.Shapes.Rectangle>().Any(r => r.Width > 0 && r.Height > 0))
+            throw new Exception("El recuadro de selección de párrafo no aparece al arrastrar");
+        var chosenArea = (PdfObject[])typeof(MainWindow).GetMethod("ParagraphObjectsIn", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area])!;
+        if (!chosenArea.Any(o => o.Index == textForArea.Index))
+            throw new Exception("El recuadro no incluye el texto seleccionado");
+        capture("parrafo-recuadro", 1280, 780, 1);
+        typeof(MainWindow).GetMethod("CancelParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS lienzo: texto visible, recuperación de borrador, movimiento con vista previa, cancelación, esquinas, menú contextual y selección visual de páginas");
     }
     static void CapturePicker(PageSelectionDialog picker, string path)

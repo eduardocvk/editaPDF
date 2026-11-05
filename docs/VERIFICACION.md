@@ -1,6 +1,10 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.6.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.6.2. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Corrección 0.6.2
+
+«Editar párrafo» permite marcar en la página todo el bloque; la selección incluye los fragmentos horizontales que caben en el recuadro y los presenta en orden de lectura. El motor admite estilos mixtos si se elige una fuente incluida y comprueba guardado/reapertura sin alterar contenido ajeno. El contrato indicado por el usuario se inspeccionó solo con métricas de objetos, sin incorporar su texto ni el archivo al repositorio: sus líneas tienen varios fragmentos. La prueba sintética cubre ese caso; el resultado de edición manual en ese documento concreto queda por comprobar.
 
 ## Corrección 0.6.1
 

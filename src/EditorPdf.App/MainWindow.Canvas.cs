@@ -41,6 +41,7 @@ public partial class MainWindow
         ObjectsList.ContextMenu = PageImage.ContextMenu;
         ObjectsList.ContextMenuOpening += CanvasContextOpening;
         PageImage.LostMouseCapture += (_, _) => { if (gestureObject != null && resizeCorner == null && Mouse.LeftButton == MouseButtonState.Pressed) CancelCanvasGesture(); };
+        PageImage.LostMouseCapture += (_, _) => { if (paragraphStart != null && Mouse.LeftButton == MouseButtonState.Pressed) CancelParagraphSelection(); };
     }
     Rect DeviceBounds(PdfObject obj)
     {
@@ -306,6 +307,8 @@ public partial class MainWindow
     }
     void CanvasMouseMove(object sender, MouseEventArgs e)
     {
+        if (paragraphStart != null && e.LeftButton == MouseButtonState.Pressed)
+            UpdateParagraphSelection(e.GetPosition(PageImage));
         if (gestureObject != null && resizeCorner == null && e.LeftButton == MouseButtonState.Pressed)
             Run(() => UpdateObjectGesture(e.GetPosition(PageImage)));
     }
@@ -480,7 +483,7 @@ public partial class MainWindow
         {
             menu.Items.Add(new Separator());
             if (row.Value.Type == 1) Item("Editar texto", () => BeginInlineText(DeviceBounds(row.Value).TopLeft, row.Value.Text, row.Value.Index), editable, "Text");
-            if (row.Value.Type == 1) Item("Editar párrafo…", EditSelectedParagraph, editable, "Text");
+            if (row.Value.Type == 1) Item("Editar párrafo…", ArmParagraphSelection, editable, "Text");
             Item("Traer al frente", () => OrderSelectedObject(1, true), editable, "Up");
             Item("Adelantar", () => OrderSelectedObject(1), editable, "Up");
             Item("Atrasar", () => OrderSelectedObject(-1), editable, "Down");
@@ -502,29 +505,7 @@ public partial class MainWindow
         Change(d => target = d.OrderObject(page, row.Value.Index, direction, extreme));
         SelectObject(target);
     }
-    void EditSelectedParagraph()
-    {
-        RequireObjectEditing();
-        if (Selected is not { } selection || selection.Value.Type != 1) throw new InvalidOperationException("Selecciona texto del párrafo.");
-        var anchor = selection.Value;
-        var candidates = Pdf.Objects(page).Where(o => o.Type == 1 && o.Font == anchor.Font && Math.Abs(o.Size - anchor.Size) < .1 && o.FillRgb == anchor.FillRgb && Math.Abs(o.Left - anchor.Left) < 18 && !string.IsNullOrWhiteSpace(o.Text)).OrderByDescending(o => o.Top).ToArray();
-        int center = Array.FindIndex(candidates, o => o.Index == anchor.Index);
-        if (center < 0) throw new InvalidOperationException("No se pudo identificar el texto seleccionado.");
-        int first = center, last = center;
-        float maxGap = Math.Max(anchor.Size * 2.2f, 18);
-        while (first > 0 && candidates[first - 1].Top - candidates[first].Top <= maxGap) first--;
-        while (last + 1 < candidates.Length && candidates[last].Top - candidates[last + 1].Top <= maxGap) last++;
-        var group = candidates[first..(last + 1)];
-        string initial = string.Join(Environment.NewLine, group.Select(o => o.Text));
-        float width = Math.Min(Pdf.Info(page).Width - group.Min(o => o.Left) - 20, Math.Max(240, group.Max(o => o.Right) - group.Min(o => o.Left)));
-        var dialog = new ParagraphEditorDialog(this, initial, width, group.Length);
-        Mouse.OverrideCursor = null;
-        if (dialog.ShowDialog() != true) return;
-        int[] indices = group.Select(o => o.Index).ToArray();
-        Change(d => d.ReplaceParagraph(page, indices, dialog.ParagraphText, dialog.ParagraphWidth, dialog.FontChoice));
-        SelectObject(indices.Min());
-    }
-    void EditParagraphClick(object sender, RoutedEventArgs e) => Run(EditSelectedParagraph);
+    void EditParagraphClick(object sender, RoutedEventArgs e) => Run(ArmParagraphSelection);
     void DisposeCanvas()
     {
         canvasPreviewTimer.Stop();

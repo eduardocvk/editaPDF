@@ -404,11 +404,11 @@ public sealed class PdfDocument : IDisposable
             var font = N.FPDFTextObj_GetFont(obj);
             var bytes = new byte[(int)N.FPDFFont_GetBaseFontName(font, null, 0)];
             N.FPDFFont_GetBaseFontName(font, bytes, (nuint)bytes.Length);
-            if (Math.Abs(itemSize - size) > .1 || Encoding.UTF8.GetString(bytes).TrimEnd('\0') != baseFont || Math.Abs(matrix.A - baseMatrix.A) > .001 || Math.Abs(matrix.B) > .001 || Math.Abs(matrix.C) > .001 || Math.Abs(matrix.D - baseMatrix.D) > .001 || (itemRed, itemGreen, itemBlue, itemAlpha) != (red, green, blue, alpha))
+            if (Math.Abs(matrix.B) > .001 || Math.Abs(matrix.C) > .001 || matrix.A <= 0 || matrix.D <= 0 || (family == null && (Math.Abs(itemSize - size) > .1 || Encoding.UTF8.GetString(bytes).TrimEnd('\0') != baseFont || Math.Abs(matrix.A - baseMatrix.A) > .001 || Math.Abs(matrix.D - baseMatrix.D) > .001 || (itemRed, itemGreen, itemBlue, itemAlpha) != (red, green, blue, alpha))))
                 throw new InvalidOperationException("El párrafo contiene estilos u orientaciones distintos. Selecciona un grupo uniforme.");
         }
         var ordered = chosen.Select(o => { N.FPDFPageObj_GetBounds(o, out float l, out _, out _, out float t); N.FPDFPageObj_GetMatrix(o, out var m); return (Left: l, Top: t, Base: m.F); }).OrderByDescending(x => x.Top).ToArray();
-        float spacing = ordered.Length > 1 ? Math.Abs(ordered[0].Base - ordered[1].Base) : size * 1.3f;
+        float spacing = ordered.Skip(1).Select(x => Math.Abs(ordered[0].Base - x.Base)).FirstOrDefault(x => x > size * .4f);
         if (spacing < size * .7f || spacing > size * 2.2f) spacing = size * 1.3f;
         var originalBounds = chosen.Select(o => { N.FPDFPageObj_GetBounds(o, out float l, out float b, out float r, out float t); return (l, b, r, t); }).ToArray();
         float startX = originalBounds.Min(x => x.l);

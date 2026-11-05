@@ -2,6 +2,20 @@ using EditorPdf.Core;
 using System.Security.Cryptography;
 using System.Diagnostics.Tracing;
 using System.Text;
+if (args.FirstOrDefault() == "--diagnose-paragraph")
+{
+    using var document = new PdfDocument(LocalFiles.Read(args[1]));
+    Console.WriteLine($"Pages={document.Count} ObjectEditBlocked={document.ObjectEditBlock != null}");
+    for (int i = 0; i < document.Count; i++)
+    {
+        var texts = document.Objects(i).Where(o => o.Type == 1 && !string.IsNullOrWhiteSpace(o.Text)).ToArray();
+        var bands = texts.GroupBy(o => (int)Math.Round(o.Top / 5) * 5).Where(g => g.Count() > 1).ToArray();
+        var sample = bands.FirstOrDefault();
+        int selected = sample == null ? 0 : ParagraphSelection.InArea(texts, sample.Min(o => o.Left) - 3, sample.Min(o => o.Bottom) - 3, sample.Max(o => o.Right) + 3, sample.Max(o => o.Top) + 3).Length;
+        Console.WriteLine($"Page={i + 1} TextObjects={texts.Length} FragmentedBands={bands.Length} LargestBand={bands.Select(g => g.Count()).DefaultIfEmpty().Max()} SampleSelection={selected} Fonts={texts.Select(o => o.Font).Distinct().Count()}");
+    }
+    return;
+}
 if (args.FirstOrDefault() == "--diagnose-import")
 {
     using var first = new PdfDocument(LocalFiles.Read(args[1]));
@@ -377,6 +391,22 @@ using (var paragraph = new PdfDocument())
     using var reopened = new PdfDocument(File.ReadAllBytes(copy));
     var textObjects = reopened.Objects(0);
     Assert(textObjects.Any(o => o.Text == "Contenido aparte") && textObjects.Count(o => o.Type == 1) > 3 && string.Join(" ", textObjects.Where(o => o.Text != "Contenido aparte").Select(o => o.Text)).Contains("palabras añadidas para cambiar la longitud del párrafo"), "párrafo refluido y contenido ajeno conservado al reabrir");
+}
+using (var fragments = new PdfDocument())
+{
+    fragments.Blank(0);
+    fragments.AddText(0, "Primera", 14, 40, 700);
+    fragments.AddText(0, " linea", 14, 90, 700);
+    fragments.AddText(0, "Segunda", 14, 40, 680, family: "Liberation Serif");
+    fragments.AddText(0, " linea", 14, 101, 680);
+    fragments.AddText(0, "Fuera", 14, 400, 700);
+    var group = ParagraphSelection.InArea(fragments.Objects(0), 35, 665, 180, 720);
+    Assert(group.Length == 4 && ParagraphSelection.Compose(group) == "Primera linea\nSegunda linea", "selección de párrafo fragmentado en orden de lectura");
+    fragments.ReplaceParagraph(0, group.Select(o => o.Index).ToArray(), "Primera linea modificada y más larga\nSegunda linea también modificada", 170, "Noto Sans");
+    string path = Path.Combine(output, "parrafo-fragmentado.pdf");
+    fragments.SaveNew(path);
+    using var reopened = new PdfDocument(File.ReadAllBytes(path));
+    Assert(reopened.Objects(0).Any(o => o.Text == "Fuera") && reopened.Text(0).Contains("modificada") && !reopened.Text(0).Contains("Primera linea\nSegunda linea"), "reflujo de párrafo fragmentado con estilos distintos y texto ajeno conservado");
 }
 File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: PDFium original text edit, same font, save/reopen, preserve independent text, move/remove, pages, images, no overwrite.\n");
 sealed class NetworkAudit : EventListener

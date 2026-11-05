@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.6.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.6.2**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.6.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.6.1/EditorPDF-0.6.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.6.2](https://github.com/eduardocvk/editaPDF/releases/download/v0.6.2/EditorPDF-0.6.2-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -51,7 +51,7 @@ El panel Editar permite cambiar **tamaño y color** del texto original compatibl
 
 La prueba de viabilidad se ejecutó **antes de implementar la interfaz**: abrir un PDF, modificar el objeto de texto existente con `FPDFText_SetText`, regenerar contenido, guardar y reabrir. Se comprobó la conservación de fuente y la ausencia del texto anterior y de objetos de ocultación. Después se verificó también con PDF externos de ReportLab/Helvetica y un lector independiente.
 
-La unidad de edición es el **objeto PDF**, no el párrafo. El texto puede estar dividido en muchos objetos. Se conserva la fuente original cuando su mapa de caracteres permite el cambio. Si no, se rechaza la operación sin aplicarla; la sustitución por Noto Sans requiere marcar la opción y confirmar. No se reconstruyen párrafos, saltos de línea ni diseño como Word. No se edita texto dentro de XObjects/Form anidados, trazados, contornos o máscaras de texto. No se ofrece OCR, censura segura ni edición universal. Escrituras complejas y caracteres fuera del plano básico Unicode se rechazan en esta versión.
+El texto PDF puede estar dividido en muchos objetos. Para editar un párrafo, pulsa **Editar párrafo** y arrastra un recuadro que abarque todos sus fragmentos; revisa el contenido reunido antes de aplicarlo. La operación sustituye esos objetos por líneas de texto PDF reales. Si los fragmentos tienen estilos distintos, el diálogo elige una fuente incluida y avisa de que se unificarán. La fuente original se conserva cuando es uniforme y admite los caracteres nuevos. No se reconstruye el diseño como Word. No se edita texto dentro de XObjects/Form anidados, trazados, contornos o máscaras de texto. No se ofrece OCR, censura segura ni edición universal. Escrituras complejas y caracteres fuera del plano básico Unicode se rechazan en esta versión.
 
 PDF firmados, cifrados/protegidos y formularios XFA no se modifican. No se valida criptográficamente una firma. La unión y reordenación admiten ahora anotaciones, enlaces internos, marcadores, destinos con nombre, adjuntos, formularios AcroForm y etiquetas de accesibilidad, conservando los casos verificados. Los nombres repetidos de destinos, adjuntos y campos se distinguen para no sobrescribir datos. La edición de objetos en PDF con formularios o etiquetas sigue limitada; algunas otras operaciones de páginas también tienen límites. No se garantiza conservar todas las extensiones del estándar en cualquier PDF. Antes de aceptar una unión o movimiento se compara el texto, la geometría, el número de anotaciones y la representación de cada página; un fallo revierte la operación de la sesión.
 
@@ -107,7 +107,7 @@ El recuadro de selección se conserva tras pulsar y soltar. Doble clic en texto 
 
 ## Edición de texto 0.6.1
 
-El doble clic abre el texto compatible en su posición, con tamaño y color tomados del objeto; el cursor se coloca cerca del punto pulsado. El editor oculta temporalmente ese objeto solo en la vista mientras se escribe. Selecciona un texto y usa «Editar párrafo» para revisar las líneas agrupadas, cambiar el contenido y distribuirlo dentro de un ancho; las líneas resultantes son objetos de texto PDF reales. Esta función admite grupos uniformes de texto horizontal; rechaza diferencias de estilo, tabulaciones, líneas vacías, falta de espacio y solapamientos antes de guardar. Comprueba las líneas propuestas en el diálogo: PDF no define párrafos de forma universal.
+El doble clic abre el texto compatible en su posición, con tamaño y color tomados del objeto; el cursor se coloca cerca del punto pulsado. El editor oculta temporalmente ese objeto solo en la vista mientras se escribe. «Editar párrafo» permite arrastrar un recuadro alrededor de todo el bloque, revisar los fragmentos reunidos, cambiar el contenido y distribuirlo dentro de un ancho; las líneas resultantes son objetos de texto PDF reales. Si hay estilos distintos, elige la fuente incluida con la que se unificarán. Se rechazan tabulaciones, líneas vacías, falta de espacio y solapamientos antes de guardar. Comprueba el texto propuesto en el diálogo: PDF no define párrafos de forma universal.
 
 El color se elige en una paleta visual, y el tamaño tiene controles para subir y bajar. Se incluyen diez familias de fuentes, con DejaVu Sans, Serif, Sans Mono y Sans Condensed añadidas a las anteriores.
 

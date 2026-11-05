@@ -12,7 +12,7 @@ public sealed class ParagraphEditorDialog : Window
     public string ParagraphText => editor.Text;
     public float ParagraphWidth => float.Parse(widthBox.Text, CultureInfo.CurrentCulture);
     public string? FontChoice => fonts.SelectedIndex == 0 ? null : fonts.SelectedItem as string;
-    public ParagraphEditorDialog(Window owner, string text, float width, int objects)
+    public ParagraphEditorDialog(Window owner, string text, float width, int objects, bool mixedStyles = false)
     {
         if (owner.IsVisible) Owner = owner;
         Title = "Editar párrafo";
@@ -25,6 +25,7 @@ public sealed class ParagraphEditorDialog : Window
         widthBox.Text = width.ToString("0.##", CultureInfo.CurrentCulture);
         fonts.ItemsSource = new[] { "Conservar original" }.Concat(PdfDocument.IncludedFontFamilies).ToArray();
         fonts.SelectedIndex = 0;
+        if (mixedStyles) fonts.SelectedIndex = 1;
         var root = new DockPanel { Margin = new Thickness(18), Background = System.Windows.Media.Brushes.White };
         var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         var cancel = new Button { Content = "Cancelar", IsCancel = true };
@@ -47,7 +48,7 @@ public sealed class ParagraphEditorDialog : Window
         DockPanel.SetDock(controls, Dock.Bottom);
         root.Children.Add(controls);
         var body = new DockPanel();
-        var count = new TextBlock { Text = $"{objects} objeto(s) de texto seleccionado(s)", Margin = new Thickness(0, 0, 0, 8) };
+        var count = new TextBlock { Text = mixedStyles ? $"{objects} fragmentos · Los estilos se unificarán con la fuente elegida." : $"{objects} fragmentos seleccionados", Margin = new Thickness(0, 0, 0, 8) };
         DockPanel.SetDock(count, Dock.Top);
         body.Children.Add(count);
         body.Children.Add(editor);

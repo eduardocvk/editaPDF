@@ -50,6 +50,7 @@ public partial class MainWindow
             return;
         FinishInlineText();
         CancelCanvasGesture(false);
+        if (paragraphArmed) CancelParagraphSelection();
         StoreView();
         addTextArmed = false;
         PageImage.Cursor = Cursors.Arrow;
