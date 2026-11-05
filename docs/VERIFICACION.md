@@ -1,6 +1,10 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.5.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.6.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Edición 0.6.0
+
+Selector de color visual HSV, controles de tamaño, cuatro familias DejaVu adicionales incluidas con licencia y edición directa que toma el tamaño/posición/color de texto horizontal original y ubica el cursor en el punto pulsado. Edición de párrafos uniformes con reflujo, validación de colisión y conservación del contenido ajeno. Prueba PDF real guardado/reabierto e inspección independiente con pypdf de texto y contenido ajeno; prueba WPF de controles y capturas en artifacts/test-0.6.0-final.log. Pendiente validación manual con documentos variados y párrafos fragmentados complejos.
 
 ## Corrección 0.5.1
 

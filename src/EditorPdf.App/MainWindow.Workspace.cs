@@ -74,8 +74,11 @@ public partial class MainWindow
             if (target.View.Inline is { } draft)
             {
                 page = Math.Clamp(draft.Page, 0, Math.Max(0, Pdf.Count - 1));
+                FontChoice.SelectedItem = draft.OriginalIndex == null || draft.Substitute ? draft.Family : "Conservar original";
+                BoldChoice.IsChecked = draft.Bold;
+                ItalicChoice.IsChecked = draft.Italic;
                 var position = Device(draft.X, draft.Y);
-                BeginInlineText(new System.Windows.Point(position.X, position.Y - draft.Size * PageImage.Width / Pdf.Info(page).Width * 1.15), draft.Text);
+                BeginInlineText(new System.Windows.Point(position.X, position.Y - draft.Size * PageImage.Width / Pdf.Info(page).Width * 1.15), draft.Text, draft.OriginalIndex);
                 inlineDraft = draft;
             }
             if (target.View.Object is { } index)

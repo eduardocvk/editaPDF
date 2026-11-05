@@ -232,23 +232,46 @@ public partial class MainWindow
         PageImage.Cursor = Cursors.IBeam;
         Status.Text = "Haz clic en la página para escribir.";
     }
-    public void BeginInlineText(Point point, string initial = "", int? originalIndex = null)
+    public void BeginInlineText(Point point, string initial = "", int? originalIndex = null, Point? caretPoint = null)
     {
         RequireObjectEditing();
         FinishInlineText();
+        var originalObject = originalIndex is int selectedIndex ? Pdf.Objects(page).FirstOrDefault(o => o.Index == selectedIndex && o.Type == 1) : null;
+        if (originalIndex != null && originalObject == null) throw new InvalidOperationException("El texto original ya no está disponible.");
+        if (originalObject != null && (!originalObject.HorizontalText || Pdf.Info(page).Rotation != 0))
+            throw new InvalidOperationException("Este texto girado se edita desde el panel de propiedades.");
+        if (originalObject != null) point = DeviceBounds(originalObject).TopLeft;
         bool substitute = originalIndex != null && FontChoice.SelectedIndex > 0;
         string family = FontChoice.SelectedIndex > 0 ? (string)FontChoice.SelectedItem : "Noto Sans";
         bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true;
         addTextArmed = false;
         PageImage.Cursor = Cursors.Arrow;
-        ObjectsList.SelectedItem = null;
+        if (originalObject == null) ObjectsList.SelectedItem = null;
         Overlay.Children.Clear();
         resizeHandles.Clear();
-        const float size = 14;
+        float size = originalObject?.VisualSize is > 0 ? originalObject.VisualSize : 14;
         double scale = PageImage.Width / Pdf.Info(page).Width;
         var baseline = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)point.X, (int)(point.Y + size * scale * 1.15));
         inlineDraft = new InlineTextDraft(initial, (float)baseline.X, (float)baseline.Y, size, page, originalIndex, family, bold, italic, substitute);
-        inlineText = new TextBox { Text = initial, FontFamily = family == "Noto Sans" ? FontFamily : new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/fonts/#" + family), FontWeight = bold ? FontWeights.Bold : FontWeights.Normal, FontStyle = italic ? FontStyles.Italic : FontStyles.Normal, FontSize = size * scale, Padding = new Thickness(1), Margin = new Thickness(0), MinWidth = 140, MinHeight = size * scale * 1.5, MaxWidth = Math.Max(140, PageImage.Width - point.X), Background = new SolidColorBrush(Color.FromArgb(225, 255, 255, 255)), BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1), AcceptsReturn = false, MaxLength = 10000, ToolTip = "Intro: aplicar · Esc: cancelar" };
+        FontFamily displayFamily = family == "Noto Sans" ? FontFamily : new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/fonts/#" + family);
+        if (originalObject != null && !substitute)
+        {
+            string name = originalObject.Font;
+            if (name.Length > 7 && name[6] == '+') name = name[7..];
+            name = name.Split('-')[0];
+            name = name.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase) ? "Arial" : name.StartsWith("Times", StringComparison.OrdinalIgnoreCase) ? "Times New Roman" : name.StartsWith("Courier", StringComparison.OrdinalIgnoreCase) ? "Courier New" : name;
+            var included = PdfDocument.IncludedFontFamilies.FirstOrDefault(f => f.Replace(" ", "").Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (included != null) displayFamily = included == "Noto Sans" ? FontFamily : new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/fonts/#" + included);
+            else if (!string.IsNullOrWhiteSpace(name)) displayFamily = new FontFamily(name);
+        }
+        double textWidth = originalObject == null ? 140 : Math.Max(30, DeviceBounds(originalObject).Width + 10);
+        inlineText = new TextBox { Text = initial, FontFamily = displayFamily, FontWeight = bold || originalObject?.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase) == true ? FontWeights.Bold : FontWeights.Normal, FontStyle = italic || originalObject?.Font.Contains("Italic", StringComparison.OrdinalIgnoreCase) == true ? FontStyles.Italic : FontStyles.Normal, Foreground = originalObject == null ? Brushes.Black : new SolidColorBrush(Color.FromRgb((byte)(originalObject.FillRgb >> 16), (byte)(originalObject.FillRgb >> 8), (byte)originalObject.FillRgb)), FontSize = size * scale, Padding = new Thickness(1), Margin = new Thickness(0), MinWidth = textWidth, MinHeight = size * scale * 1.3, MaxWidth = Math.Max(textWidth, PageImage.Width - point.X), Background = Brushes.Transparent, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1), AcceptsReturn = false, MaxLength = 10000, ToolTip = "Intro: aplicar · Esc: cancelar" };
+        if (originalObject != null)
+        {
+            using var blanked = new PdfDocument(Pdf.SaveBytes());
+            blanked.RemoveObject(page, originalObject.Index);
+            PageImage.Source = Bitmap(blanked.Render(page, (int)PageImage.Width));
+        }
         System.Windows.Automation.AutomationProperties.SetName(inlineText, "Texto sobre la página");
         Canvas.SetLeft(inlineText, point.X);
         Canvas.SetTop(inlineText, point.Y);
@@ -257,7 +280,9 @@ public partial class MainWindow
         inlineText.LostKeyboardFocus += (_, _) => { if (inlineText != null) Run(FinishInlineText); };
         inlineText.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { Run(FinishInlineText); e.Handled = true; } else if (e.Key == Key.Escape) { CancelInlineText(); e.Handled = true; } };
         inlineText.Focus();
-        inlineText.CaretIndex = inlineText.Text.Length;
+        if (caretPoint is { } clicked)
+            Dispatcher.BeginInvoke(() => { if (inlineText != null) { inlineText.UpdateLayout(); inlineText.CaretIndex = Math.Max(0, inlineText.GetCharacterIndexFromPoint(new Point(clicked.X - point.X, clicked.Y - point.Y), true)); } });
+        else inlineText.CaretIndex = inlineText.Text.Length;
         Status.Text = "Escribe en la página · Intro para aplicar · Esc para cancelar.";
     }
     public string? InlineTextValue
@@ -358,6 +383,7 @@ public partial class MainWindow
         {
             menu.Items.Add(new Separator());
             if (row.Value.Type == 1) Item("Editar texto", () => BeginInlineText(DeviceBounds(row.Value).TopLeft, row.Value.Text, row.Value.Index), editable, "Text");
+            if (row.Value.Type == 1) Item("Editar párrafo…", EditSelectedParagraph, editable, "Text");
             Item("Traer al frente", () => OrderSelectedObject(1, true), editable, "Up");
             Item("Adelantar", () => OrderSelectedObject(1), editable, "Up");
             Item("Atrasar", () => OrderSelectedObject(-1), editable, "Down");
@@ -379,6 +405,29 @@ public partial class MainWindow
         Change(d => target = d.OrderObject(page, row.Value.Index, direction, extreme));
         SelectObject(target);
     }
+    void EditSelectedParagraph()
+    {
+        RequireObjectEditing();
+        if (Selected is not { } selection || selection.Value.Type != 1) throw new InvalidOperationException("Selecciona texto del párrafo.");
+        var anchor = selection.Value;
+        var candidates = Pdf.Objects(page).Where(o => o.Type == 1 && o.Font == anchor.Font && Math.Abs(o.Size - anchor.Size) < .1 && o.FillRgb == anchor.FillRgb && Math.Abs(o.Left - anchor.Left) < 18 && !string.IsNullOrWhiteSpace(o.Text)).OrderByDescending(o => o.Top).ToArray();
+        int center = Array.FindIndex(candidates, o => o.Index == anchor.Index);
+        if (center < 0) throw new InvalidOperationException("No se pudo identificar el texto seleccionado.");
+        int first = center, last = center;
+        float maxGap = Math.Max(anchor.Size * 2.2f, 18);
+        while (first > 0 && candidates[first - 1].Top - candidates[first].Top <= maxGap) first--;
+        while (last + 1 < candidates.Length && candidates[last].Top - candidates[last + 1].Top <= maxGap) last++;
+        var group = candidates[first..(last + 1)];
+        string initial = string.Join(Environment.NewLine, group.Select(o => o.Text));
+        float width = Math.Min(Pdf.Info(page).Width - group.Min(o => o.Left) - 20, Math.Max(240, group.Max(o => o.Right) - group.Min(o => o.Left)));
+        var dialog = new ParagraphEditorDialog(this, initial, width, group.Length);
+        Mouse.OverrideCursor = null;
+        if (dialog.ShowDialog() != true) return;
+        int[] indices = group.Select(o => o.Index).ToArray();
+        Change(d => d.ReplaceParagraph(page, indices, dialog.ParagraphText, dialog.ParagraphWidth, dialog.FontChoice));
+        SelectObject(indices.Min());
+    }
+    void EditParagraphClick(object sender, RoutedEventArgs e) => Run(EditSelectedParagraph);
     void DisposeCanvas()
     {
         canvasPreviewTimer.Stop();

@@ -233,6 +233,7 @@ public partial class MainWindow : Window
         FontSizeValue.IsEnabled = ColorValue.IsEnabled = o.Type == 1;
         FontSizeValue.Text = o.Type == 1 ? o.Size.ToString("0.##", CultureInfo.CurrentCulture) : "";
         ColorValue.Text = o.Type == 1 ? $"#{o.FillRgb:X6}" : "";
+        if (o.Type == 1) ColorSwatch.Background = new SolidColorBrush(Color.FromRgb((byte)(o.FillRgb >> 16), (byte)(o.FillRgb >> 8), (byte)o.FillRgb));
         XValue.Text = o.Left.ToString("0.##", CultureInfo.CurrentCulture);
         YValue.Text = o.Bottom.ToString("0.##", CultureInfo.CurrentCulture);
         WValue.Text = (o.Right - o.Left).ToString("0.##", CultureInfo.CurrentCulture);
@@ -252,6 +253,22 @@ public partial class MainWindow : Window
         float size = Number(FontSizeValue.Text);
         Change(d => d.SetTextStyle(page, row.Value.Index, size, rgb));
     });
+    void PickColorClick(object sender, RoutedEventArgs e) => Run(() =>
+    {
+        uint original = uint.TryParse(ColorValue.Text.TrimStart('#'), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb) ? rgb : 0;
+        var picker = new ColorPickerDialog(this, original);
+        Mouse.OverrideCursor = null;
+        if (picker.ShowDialog() != true) return;
+        ColorValue.Text = $"#{picker.SelectedColor:X6}";
+        ColorSwatch.Background = new SolidColorBrush(Color.FromRgb((byte)(picker.SelectedColor >> 16), (byte)(picker.SelectedColor >> 8), (byte)picker.SelectedColor));
+    });
+    void FontSizeUp(object sender, RoutedEventArgs e) => AdjustFontSize(1);
+    void FontSizeDown(object sender, RoutedEventArgs e) => AdjustFontSize(-1);
+    void AdjustFontSize(int delta)
+    {
+        float current = float.TryParse(FontSizeValue.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out var value) ? value : 14;
+        FontSizeValue.Text = Math.Clamp(current + delta, 1, 512).ToString("0.##", CultureInfo.CurrentCulture);
+    }
     void DeleteObjectClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o) throw new InvalidOperationException("Selecciona texto o imagen."); Change(d => d.RemoveObject(page, o.Value.Index)); });
     static float Number(string text)
     {
@@ -280,7 +297,7 @@ public partial class MainWindow : Window
             if (e.ClickCount == 2 && hit?.Value.Type == 1 && Pdf.ObjectEditBlock == null)
             {
                 var bounds = DeviceBounds(hit.Value);
-                BeginInlineText(bounds.TopLeft, hit.Value.Text, hit.Value.Index);
+                BeginInlineText(bounds.TopLeft, hit.Value.Text, hit.Value.Index, point);
                 e.Handled = true;
                 return;
             }

@@ -10,6 +10,8 @@ public sealed record PdfObject(int Index, int Type, string Text, string Font, fl
     {
         get; init;
     }
+    public float VisualSize { get; init; }
+    public bool HorizontalText { get; init; } = true;
 }
 public sealed record Raster(int Width, int Height, int Stride, byte[] Pixels);
 public sealed class PdfDocument : IDisposable
@@ -133,10 +135,15 @@ public sealed class PdfDocument : IDisposable
                 N.FPDFPageObj_GetBounds(o, out var l, out var b, out var r, out var top);
                 string text = "", font = "";
                 float size = 0;
+                float visualSize = 0;
+                bool horizontalText = true;
                 if (type == 1)
                 {
                     text = ObjectText(o, t);
                     N.FPDFTextObj_GetFontSize(o, out size);
+                    N.FPDFPageObj_GetMatrix(o, out var textMatrix);
+                    visualSize = size * MathF.Sqrt(textMatrix.A * textMatrix.A + textMatrix.B * textMatrix.B);
+                    horizontalText = Math.Abs(textMatrix.B) < .01 && Math.Abs(textMatrix.C) < .01;
                     var f = N.FPDFTextObj_GetFont(o);
                     var bytes = new byte[(int)N.FPDFFont_GetBaseFontName(f, null, 0)];
                     if (bytes.Length > 0)
@@ -148,7 +155,9 @@ public sealed class PdfDocument : IDisposable
                 N.FPDFPageObj_GetFillColor(o, out var red, out var green, out var blue, out _);
                 result.Add(new(j, type, text, font, size, l, b, r, top)
                 {
-                    FillRgb = red << 16 | green << 8 | blue
+                    FillRgb = red << 16 | green << 8 | blue,
+                    VisualSize = visualSize,
+                    HorizontalText = horizontalText
                 });
             }
             return result;
@@ -265,7 +274,7 @@ public sealed class PdfDocument : IDisposable
         if (string.IsNullOrEmpty(text) || text.Any(c => char.IsControl(c) || char.IsSurrogate(c) || c >= 0x0590 && c <= 0x109F))
             throw new ArgumentException("Esta versión edita texto en una sola línea, sin escritura compleja ni caracteres fuera del plano básico Unicode.");
     }
-    public static readonly string[] IncludedFontFamilies = ["Noto Sans", "Liberation Sans", "Liberation Serif", "Liberation Mono", "Liberation Sans Narrow", "Carlito"];
+    public static readonly string[] IncludedFontFamilies = ["Noto Sans", "Liberation Sans", "Liberation Serif", "Liberation Mono", "Liberation Sans Narrow", "Carlito", "DejaVu Sans", "DejaVu Serif", "DejaVu Sans Mono", "DejaVu Sans Condensed"];
     static string FontFile(string family, bool bold, bool italic)
     {
         if (!IncludedFontFamilies.Contains(family)) throw new ArgumentException("Selecciona una fuente incluida.");
@@ -275,6 +284,8 @@ public sealed class PdfDocument : IDisposable
             return "NotoSans-Regular.ttf";
         }
         var stem = family.Replace(" ", "");
+        if (family.StartsWith("DejaVu", StringComparison.Ordinal))
+            return Path.Combine("fonts", stem + (bold && italic ? family == "DejaVu Serif" ? "-BoldItalic" : "-BoldOblique" : bold ? "-Bold" : italic ? family == "DejaVu Serif" ? "-Italic" : "-Oblique" : "") + ".ttf");
         return Path.Combine("fonts", stem + "-" + (bold && italic ? "BoldItalic" : bold ? "Bold" : italic ? "Italic" : "Regular") + ".ttf");
     }
     IntPtr NewText(string text, float size, string family = "Noto Sans", bool bold = false, bool italic = false)
@@ -356,6 +367,129 @@ public sealed class PdfDocument : IDisposable
                 throw new InvalidOperationException("La fuente original no conserva todos los caracteres. Elige una fuente en el desplegable para sustituirla en este objeto. El PDF no se ha cambiado.");
         }
         finally { N.FPDFText_ClosePage(t); }
+    }
+    // Rebuilds a simple horizontal paragraph as real text objects, inside Session.Execute's transaction.
+    public void ReplaceParagraph(int page, int[] indices, string text, float width, string? family = null, bool bold = false, bool italic = false)
+    {
+        Mutating();
+        if (indices.Length == 0 || indices.Distinct().Count() != indices.Length || !float.IsFinite(width) || width < 30 || width > 2000)
+            throw new ArgumentException("Selecciona líneas de texto y un ancho válido.");
+        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        if (normalized.Length > 10000 || string.IsNullOrWhiteSpace(normalized))
+            throw new ArgumentException("Introduce texto para el párrafo.");
+        if (normalized.Split('\n').Any(string.IsNullOrWhiteSpace) || normalized.Contains("  ") || normalized.Contains('\t'))
+            throw new ArgumentException("Este editor de párrafos admite líneas con espacios simples, sin líneas vacías ni tabulaciones.");
+        using var p = Open(page);
+        int count = N.FPDFPage_CountObjects(p.H);
+        if (indices.Any(i => i < 0 || i >= count)) throw new ArgumentOutOfRangeException(nameof(indices));
+        var chosen = indices.Select(i => N.FPDFPage_GetObject(p.H, i)).ToArray();
+        foreach (var obj in chosen)
+            if (N.FPDFPageObj_GetType(obj) != 1 || N.FPDFTextObj_GetTextRenderMode(obj) != 0)
+                throw new InvalidOperationException("El párrafo contiene un objeto de texto no compatible.");
+        var first = chosen.OrderByDescending(o => { N.FPDFPageObj_GetBounds(o, out _, out _, out _, out float top); return top; }).First();
+        N.FPDFTextObj_GetFontSize(first, out float size);
+        N.FPDFPageObj_GetMatrix(first, out var baseMatrix);
+        if (Math.Abs(baseMatrix.B) > .001 || Math.Abs(baseMatrix.C) > .001 || baseMatrix.A <= 0 || baseMatrix.D <= 0)
+            throw new InvalidOperationException("La edición de párrafos admite texto horizontal sin inclinación.");
+        N.FPDFPageObj_GetFillColor(first, out uint red, out uint green, out uint blue, out uint alpha);
+        var originalFont = N.FPDFTextObj_GetFont(first);
+        var fontName = new byte[(int)N.FPDFFont_GetBaseFontName(originalFont, null, 0)];
+        N.FPDFFont_GetBaseFontName(originalFont, fontName, (nuint)fontName.Length);
+        string baseFont = Encoding.UTF8.GetString(fontName).TrimEnd('\0');
+        foreach (var obj in chosen)
+        {
+            N.FPDFTextObj_GetFontSize(obj, out float itemSize);
+            N.FPDFPageObj_GetMatrix(obj, out var matrix);
+            N.FPDFPageObj_GetFillColor(obj, out uint itemRed, out uint itemGreen, out uint itemBlue, out uint itemAlpha);
+            var font = N.FPDFTextObj_GetFont(obj);
+            var bytes = new byte[(int)N.FPDFFont_GetBaseFontName(font, null, 0)];
+            N.FPDFFont_GetBaseFontName(font, bytes, (nuint)bytes.Length);
+            if (Math.Abs(itemSize - size) > .1 || Encoding.UTF8.GetString(bytes).TrimEnd('\0') != baseFont || Math.Abs(matrix.A - baseMatrix.A) > .001 || Math.Abs(matrix.B) > .001 || Math.Abs(matrix.C) > .001 || Math.Abs(matrix.D - baseMatrix.D) > .001 || (itemRed, itemGreen, itemBlue, itemAlpha) != (red, green, blue, alpha))
+                throw new InvalidOperationException("El párrafo contiene estilos u orientaciones distintos. Selecciona un grupo uniforme.");
+        }
+        var ordered = chosen.Select(o => { N.FPDFPageObj_GetBounds(o, out float l, out _, out _, out float t); N.FPDFPageObj_GetMatrix(o, out var m); return (Left: l, Top: t, Base: m.F); }).OrderByDescending(x => x.Top).ToArray();
+        float spacing = ordered.Length > 1 ? Math.Abs(ordered[0].Base - ordered[1].Base) : size * 1.3f;
+        if (spacing < size * .7f || spacing > size * 2.2f) spacing = size * 1.3f;
+        var originalBounds = chosen.Select(o => { N.FPDFPageObj_GetBounds(o, out float l, out float b, out float r, out float t); return (l, b, r, t); }).ToArray();
+        float startX = originalBounds.Min(x => x.l);
+        float startY = ordered[0].Base;
+        var prepared = new List<(IntPtr Object, string Text)>();
+        int attached = 0;
+        IntPtr Create(string line, float x, float y)
+        {
+            CheckText(line);
+            var obj = family == null ? N.FPDFPageObj_CreateTextObj(handle, originalFont, size) : NewText(line, size, family, bold, italic);
+            if (obj == IntPtr.Zero) throw new InvalidOperationException("No se pudo crear la línea del párrafo.");
+            if (family == null && N.FPDFText_SetText(obj, line) == 0) { N.FPDFPageObj_Destroy(obj); throw new InvalidOperationException("La fuente original no admite el párrafo. Elige una fuente incluida."); }
+            var matrix = baseMatrix;
+            matrix.E = x;
+            matrix.F = y;
+            N.FPDFPageObj_SetMatrix(obj, ref matrix);
+            N.FPDFPageObj_SetFillColor(obj, red, green, blue, alpha);
+            return obj;
+        }
+        try
+        {
+            var lines = new List<string>();
+            foreach (string paragraph in normalized.Split('\n'))
+            {
+                string current = "";
+                foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string candidate = current.Length == 0 ? word : current + " " + word;
+                    var probe = Create(candidate, startX, startY);
+                    N.FPDFPageObj_GetBounds(probe, out float l, out _, out float r, out _);
+                    N.FPDFPageObj_Destroy(probe);
+                    if (r - l > width && current.Length > 0) { lines.Add(current); current = word; }
+                    else current = candidate;
+                }
+                if (current.Length > 0) lines.Add(current);
+            }
+            if (lines.Count == 0 || lines.Count > 100) throw new ArgumentException("El párrafo contiene demasiadas líneas.");
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var obj = Create(lines[i], startX, startY - i * spacing);
+                prepared.Add((obj, lines[i]));
+                N.FPDFPageObj_GetBounds(obj, out float l, out float b, out float r, out float t);
+                if (l < 0 || b < 0 || r > Info(page).Width + 1 || t > Info(page).Height + 1 || r - l > width + 2)
+                    throw new InvalidOperationException("El párrafo no cabe en la página o en el ancho elegido.");
+                for (int j = 0; j < count; j++)
+                {
+                    if (indices.Contains(j)) continue;
+                    var other = N.FPDFPage_GetObject(p.H, j);
+                    if (N.FPDFPageObj_GetType(other) is not (1 or 3)) continue;
+                    N.FPDFPageObj_GetBounds(other, out float ol, out float ob, out float oright, out float ot);
+                    if (Math.Min(r, oright) - Math.Max(l, ol) > 2 && Math.Min(t, ot) - Math.Max(b, ob) > 2)
+                        throw new InvalidOperationException("El párrafo ampliado se solaparía con otro objeto. Reduce el texto o cambia el ancho.");
+                }
+            }
+            foreach (int index in indices.OrderDescending())
+            {
+                var obj = N.FPDFPage_GetObject(p.H, index);
+                Check(N.FPDFPage_RemoveObject(p.H, obj), "No se pudo retirar una línea original.");
+                N.FPDFPageObj_Destroy(obj);
+            }
+            int at = indices.Min();
+            foreach (var item in prepared)
+            {
+                if (N.FPDFPage_InsertObjectAtIndex(p.H, item.Object, (nuint)at++) == 0)
+                    throw new InvalidOperationException("No se pudo insertar una línea del párrafo.");
+                attached++;
+            }
+            Generate(p.H);
+            var textPage = N.FPDFText_LoadPage(p.H);
+            try
+            {
+                foreach (var item in prepared)
+                    if (ObjectText(item.Object, textPage) != item.Text)
+                        throw new InvalidOperationException("La fuente no conserva todos los caracteres del párrafo. Elige otra fuente incluida.");
+            }
+            finally { N.FPDFText_ClosePage(textPage); }
+        }
+        finally
+        {
+            foreach (var item in prepared.Skip(attached)) N.FPDFPageObj_Destroy(item.Object);
+        }
     }
     public void RemoveObject(int page, int index)
     {

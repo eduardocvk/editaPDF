@@ -357,6 +357,27 @@ if (File.Exists(fixture))
     }
 }
 Assert(network.Count == 0, "sin eventos de red .NET durante los flujos probados");
+using (var paragraph = new PdfDocument())
+{
+    paragraph.Blank(0);
+    paragraph.AddText(0, "Primera linea", 14, 40, 700);
+    paragraph.AddText(0, "Segunda linea", 14, 40, 680);
+    paragraph.AddText(0, "Tercera linea", 14, 40, 660);
+    paragraph.AddText(0, "Contenido aparte", 14, 370, 700);
+    var beforeCollision = paragraph.Objects(0).Select(o => (o.Text, o.Left, o.Bottom, o.Right, o.Top)).ToArray();
+    var beforeRaster = SHA256.HashData(paragraph.Render(0, 600).Pixels);
+    bool collision = false;
+    try { paragraph.ReplaceParagraph(0, [0, 1, 2], string.Concat(Enumerable.Repeat("palabra ", 120)), 40); }
+    catch (ArgumentException) { collision = true; }
+    catch (InvalidOperationException) { collision = true; }
+    Assert(collision && beforeCollision.SequenceEqual(paragraph.Objects(0).Select(o => (o.Text, o.Left, o.Bottom, o.Right, o.Top))) && beforeRaster.SequenceEqual(SHA256.HashData(paragraph.Render(0, 600).Pixels)), "rechazo de párrafo incompatible sin modificar el PDF");
+    paragraph.ReplaceParagraph(0, [0, 1, 2], "Primera linea con varias palabras añadidas para cambiar la longitud del párrafo y desplazar el resto de sus líneas", 180);
+    var copy = Path.Combine(output, "parrafo-real.pdf");
+    paragraph.SaveNew(copy);
+    using var reopened = new PdfDocument(File.ReadAllBytes(copy));
+    var textObjects = reopened.Objects(0);
+    Assert(textObjects.Any(o => o.Text == "Contenido aparte") && textObjects.Count(o => o.Type == 1) > 3 && string.Join(" ", textObjects.Where(o => o.Text != "Contenido aparte").Select(o => o.Text)).Contains("palabras añadidas para cambiar la longitud del párrafo"), "párrafo refluido y contenido ajeno conservado al reabrir");
+}
 File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: PDFium original text edit, same font, save/reopen, preserve independent text, move/remove, pages, images, no overwrite.\n");
 sealed class NetworkAudit : EventListener
 {

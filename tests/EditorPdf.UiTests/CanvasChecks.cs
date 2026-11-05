@@ -120,7 +120,12 @@ static class CanvasChecks
         if (session.Document.Text(0).Contains("Cancelar este borrador"))
             throw new Exception("Cancelar conserva texto no confirmado");
         var editableText = session.Document.Objects(0).First(o => o.Type == 1 && o.Text.Contains("Segunda pagina"));
+        Console.WriteLine($"CHECK texto original: fuente={editableText.Font}, tamaño={editableText.Size:0.##}, visual={editableText.VisualSize:0.##}, alto={editableText.Top - editableText.Bottom:0.##}");
         window.BeginInlineText(new Point(55, 80), editableText.Text, editableText.Index);
+        var editor = overlay.Children.OfType<TextBox>().Single();
+        if (Math.Abs(editor.FontSize - editableText.Size * image.Width / session.Document.Info(0).Width) > .2 || Math.Abs(Canvas.GetLeft(editor) - session.Document.ToDevice(0, (int)image.Width, (int)image.Height, editableText.Left, editableText.Top).X) > 3)
+            throw new Exception("El editor directo cambia el tamaño o la posición del texto original");
+        capture("texto-original-en-sitio", 1280, 780, 1);
         window.InlineTextValue = editableText.Text + " editado";
         window.FinishInlineText();
         if (!session.Document.Objects(0).Any(o => o.Text == editableText.Text + " editado"))
@@ -144,9 +149,23 @@ static class CanvasChecks
             var saved = Path.Combine(folder, "fuentes-incluidas.pdf");
             fontDocument.SaveNew(saved);
             using var reopened = new PdfDocument(File.ReadAllBytes(saved));
-            if (!reopened.Text(0).Contains("Fuente 6") || !reopened.Text(0).Contains("Negrita cursiva"))
+            if (!reopened.Text(0).Contains("Fuente 10") || !reopened.Text(0).Contains("Negrita cursiva"))
                 throw new Exception("Las fuentes incluidas no sobreviven al guardado");
         }
+        var sizeField = (TextBox)window.FindName("FontSizeValue");
+        sizeField.Text = "14";
+        typeof(MainWindow).GetMethod("AdjustFontSize", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [1]);
+        if (sizeField.Text != "15") throw new Exception("La flecha no aumenta el tamaño de letra");
+        var colors = new ColorPickerDialog(window, 0x123456);
+        var swatches = (System.Windows.Controls.Primitives.UniformGrid)typeof(ColorPickerDialog).GetField("palette", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(colors)!;
+        if (swatches.Children.Count != 144) throw new Exception("Faltan colores en la paleta visual");
+        ((Button)swatches.Children[swatches.Children.Count - 1]).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (colors.SelectedColor == 0x123456) throw new Exception("La paleta no selecciona colores");
+        CaptureDialog(colors, Path.Combine(folder, "selector-color.png"), 475, 440);
+        var paragraphDialog = new ParagraphEditorDialog(window, "Una línea\nOtra línea", 240, 2);
+        if (paragraphDialog.ParagraphText != "Una línea\nOtra línea" || paragraphDialog.FontChoice != null || paragraphDialog.ParagraphWidth != 240)
+            throw new Exception("El editor de párrafos no presenta el texto y la fuente original");
+        CaptureDialog(paragraphDialog, Path.Combine(folder, "editor-parrafo.png"), 650, 480);
         Console.WriteLine("PASS lienzo: texto visible, recuperación de borrador, movimiento con vista previa, cancelación, esquinas, menú contextual y selección visual de páginas");
     }
     static void CapturePicker(PageSelectionDialog picker, string path)
@@ -158,6 +177,21 @@ static class CanvasChecks
         root.UpdateLayout();
         var bitmap = new RenderTargetBitmap(900, 620, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
         bitmap.Render(root);
+        var png = new PngBitmapEncoder();
+        png.Frames.Add(BitmapFrame.Create(bitmap));
+        using var file = File.Create(path);
+        png.Save(file);
+    }
+    static void CaptureDialog(Window dialog, string path, int width, int height)
+    {
+        var root = (FrameworkElement)dialog.Content;
+        dialog.Content = null;
+        var host = new Border { Background = System.Windows.Media.Brushes.White, Child = root };
+        host.Measure(new Size(width, height));
+        host.Arrange(new Rect(0, 0, width, height));
+        host.UpdateLayout();
+        var bitmap = new RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(host);
         var png = new PngBitmapEncoder();
         png.Frames.Add(BitmapFrame.Create(bitmap));
         using var file = File.Create(path);

@@ -1,16 +1,16 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.5.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.6.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.5.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.5.1/EditorPDF-0.5.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.6.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.6.0/EditorPDF-0.6.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
 ## Ejecutar
 
-Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el runtime .NET, PDFium, Noto Sans y las licencias. No requiere instalación de .NET, conexión ni descargas al iniciar. Compilación x64 sin firma Authenticode.
+Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el runtime .NET, PDFium, diez familias de fuentes y las licencias. No requiere instalación de .NET, conexión ni descargas al iniciar. Compilación x64 sin firma Authenticode.
 
 **Abrir** crea pestañas de documentos independientes en la parte superior; **Unir / añadir** incorpora páginas al documento activo. Cada pestaña mantiene sus cambios, deshacer/rehacer, página, zoom y borradores. Las pestañas **Organizar** y **Editar** están encima del panel derecho y sus herramientas tienen iconos. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena mediante Subir/Bajar o arrastrando las miniaturas, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, preparación de impresión, deshacer/rehacer y recuperación local.
 
@@ -101,6 +101,12 @@ El [logo](assets/logo.png), su [prompt de creación](assets/LOGO.md) y el icono 
 
 El repositorio público es [eduardocvk/editaPDF](https://github.com/eduardocvk/editaPDF). Los scripts no dependen de `firmar_certificado`. La descarga portable acompaña la compilación con `Source.zip`, scripts, dependencias fijadas y avisos; el código también está disponible en este repositorio.
 
-## Novedades 0.5.1
+## Novedades 0.5.0
 
 El recuadro de selección se conserva tras pulsar y soltar. Doble clic en texto compatible para editarlo sobre la página; el menú contextual incorpora iconos. En el panel derecho puedes elegir seis familias tipográficas incluidas y aplicar negrita o cursiva a texto nuevo o sustituido. Imprimir abre el cuadro estándar de Windows, con impresoras y rango de páginas; se confirma el envío a posibles impresoras de red. El menú Opciones se llama Configuración.
+
+## Edición de texto 0.6.0
+
+El doble clic abre el texto compatible en su posición, con tamaño y color tomados del objeto; el cursor se coloca cerca del punto pulsado. El editor oculta temporalmente ese objeto solo en la vista mientras se escribe. Selecciona un texto y usa «Editar párrafo» para revisar las líneas agrupadas, cambiar el contenido y distribuirlo dentro de un ancho; las líneas resultantes son objetos de texto PDF reales. Esta función admite grupos uniformes de texto horizontal; rechaza diferencias de estilo, tabulaciones, líneas vacías, falta de espacio y solapamientos antes de guardar. Comprueba las líneas propuestas en el diálogo: PDF no define párrafos de forma universal.
+
+El color se elige en una paleta visual, y el tamaño tiene controles para subir y bajar. Se incluyen diez familias de fuentes, con DejaVu Sans, Serif, Sans Mono y Sans Condensed añadidas a las anteriores.

@@ -1,8 +1,8 @@
-# Privacidad de Editor PDF 0.5.1
+# Privacidad de Editor PDF 0.6.0
 
 El motor y la interfaz procesan los PDF en el equipo. No se implementan conexiones, servicios remotos, telemetría, analítica, actualizaciones, descargas de fuentes ni envío automático de errores. No se ejecutan JavaScript, enlaces o acciones de los documentos. PDFium se incluye sin V8 ni XFA. La app no carga páginas web.
 
-La compilación autónoma incluye runtime, motor y las seis familias de fuentes incluidas. El SDK de desarrollo y los scripts de adquisición de dependencias son herramientas separadas; no se ejecutan al usar la aplicación. Los scripts de compilación desactivan la telemetría del SDK.
+La compilación autónoma incluye runtime, motor y las diez familias de fuentes incluidas. El SDK de desarrollo y los scripts de adquisición de dependencias son herramientas separadas; no se ejecutan al usar la aplicación. Los scripts de compilación desactivan la telemetría del SDK.
 
 ## Datos locales
 

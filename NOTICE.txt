@@ -1,4 +1,4 @@
-Editor PDF 0.5.1
+Editor PDF 0.6.0
 Copyright (C) 2026 Contributors to Editor PDF
 SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -21,3 +21,4 @@ Source code, build scripts and dependency provenance are in the editor_pdf proje
 This is a local preview, not a signed Microsoft Store distribution.
 
 Fuentes Liberation (Sans, Serif, Mono y Sans Narrow): SIL Open Font License 1.1; texto en licenses/Liberation-OFL.txt. Carlito: SIL Open Font License 1.1; texto en licenses/Carlito-OFL.txt. Fuentes incluidas en assets/fonts. https://github.com/liberationfonts/liberation-fonts y https://github.com/google/fonts/tree/main/ofl/carlito
+DejaVu Sans, Serif, Sans Mono y Sans Condensed: licencia de Bitstream Vera, cambios DejaVu en dominio público; texto oficial incluido en licenses/DejaVu-License.html y https://dejavu-fonts.github.io/License.html.

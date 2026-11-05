@@ -151,7 +151,12 @@ public sealed class Session : IDisposable
             file.Write(data);
             file.Flush(true);
         }
-        File.Move(temp, target, true);
+        for (int attempt = 0; ; attempt++)
+        {
+            try { File.Move(temp, target, true); break; }
+            catch (IOException) when (attempt < 3) { Thread.Sleep(100); }
+            catch (UnauthorizedAccessException) when (attempt < 3) { Thread.Sleep(100); }
+        }
     }
     public void Restore(string folder)
     {
