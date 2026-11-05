@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -90,6 +91,16 @@ static class UiTests
         if (!ReferenceEquals(tabs.SelectedItem, window.FindName("EditMode")))
             throw new Exception("No se pudo activar la pestaña Editar");
         var list = (ListBox)window.FindName("ObjectsList");
+        var boldToggle = (ToggleButton)window.FindName("BoldChoice");
+        var italicToggle = (ToggleButton)window.FindName("ItalicChoice");
+        if (!Equals(boldToggle.Content, "B") || !Equals(italicToggle.Content, "I"))
+            throw new Exception("Negrita y cursiva deben mostrarse como botones de icono");
+        boldToggle.IsChecked = true;
+        italicToggle.IsChecked = true;
+        if (!boldToggle.IsChecked.GetValueOrDefault() || !italicToggle.IsChecked.GetValueOrDefault())
+            throw new Exception("Negrita y cursiva no se pueden activar");
+        Capture("estilo-botones-activos", 1280, 780);
+        boldToggle.IsChecked = italicToggle.IsChecked = false;
         list.SelectedIndex = 1;
         Capture("editar-1280", 1280, 780);
         ((TextBox)window.FindName("TextValue")).Text = "Edicion visual comprobada";

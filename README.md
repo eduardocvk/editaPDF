@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.7.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.7.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.7.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.7.0/EditorPDF-0.7.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.7.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.7.1/EditorPDF-0.7.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -13,6 +13,8 @@ Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecut
 Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el runtime .NET, PDFium, diez familias de fuentes y las licencias. No requiere instalación de .NET, conexión ni descargas al iniciar. Compilación x64 sin firma Authenticode.
 
 **Abrir** crea pestañas de documentos independientes en la parte superior; **Unir** incorpora páginas al documento activo. Cada pestaña mantiene sus cambios, deshacer/rehacer, página, zoom y borradores. Las acciones de organización están junto a las miniaturas de la izquierda; el panel derecho contiene solo edición. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena con las flechas o arrastrando las miniaturas, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, impresión, deshacer/rehacer y recuperación local.
+
+Los botones **B** e **I** del panel derecho activan o desactivan negrita y cursiva; su estado resaltado refleja la selección actual.
 
 - **Reordenar:** arrastra una miniatura y suéltala antes o después de otra. Una línea indica la inserción y la lista se desplaza al acercarse a sus extremos.
 - **Navegar:** usa la rueda sobre el documento. Al llegar al final o al principio de una página, el siguiente giro pasa a la página contigua.

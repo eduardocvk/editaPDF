@@ -26,3 +26,5 @@ En 0.6.1, abrir y cerrar el editor de texto original sin cambios no invoca PDFiu
 En 0.6.2, «Editar párrafo» selecciona por recuadro los fragmentos de texto horizontal dentro del área marcada, los reúne por línea y los muestra para revisión. Al aplicar, se refluye el grupo en una transacción. Los estilos mixtos se unifican en la fuente incluida elegida; el diálogo lo indica. El original permanece intacto y la copia se verifica al guardar.
 
 En 0.7.0, arrastrar desde una zona vacía muestra un recuadro y una acción contextual para editar la selección, que puede incluir varios párrafos. Los saltos simples del texto extraído son flexibles para el reflujo; una línea vacía separa párrafos. El ancho del diálogo se limita a la extensión lateral del bloque seleccionado. Las acciones de página se trasladan junto a las miniaturas y la rueda permite avanzar al llegar al borde del documento.
+
+En 0.7.1, los controles de negrita y cursiva del panel derecho son botones de alternancia B e I con el estado activo resaltado. Comparten los mismos valores con la barra contextual.

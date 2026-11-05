@@ -1,4 +1,4 @@
-# Privacidad de Editor PDF 0.7.0
+# Privacidad de Editor PDF 0.7.1
 
 El motor y la interfaz procesan los PDF en el equipo. No se implementan conexiones, servicios remotos, telemetría, analítica, actualizaciones, descargas de fuentes ni envío automático de errores. No se ejecutan JavaScript, enlaces o acciones de los documentos. PDFium se incluye sin V8 ni XFA. La app no carga páginas web.
 

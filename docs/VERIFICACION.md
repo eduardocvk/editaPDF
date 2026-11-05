@@ -1,6 +1,10 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.7.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.7.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Controles de estilo 0.7.1
+
+Negrita y cursiva aparecen como botones B e I con estado activo, accesibles por teclado y con nombres de automatización. La suite WPF comprueba su activación y el render del panel derecho.
 
 ## Interfaz y reflujo 0.7.0
 
