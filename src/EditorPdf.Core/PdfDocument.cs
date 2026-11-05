@@ -208,9 +208,10 @@ public sealed class PdfDocument : IDisposable
             {
                 Index = i
             };
-            if (check.Info(i) != expected || check.Text(i) != origin.Text(index) ||
-                !SHA256.HashData(check.Render(i, 600).Pixels).SequenceEqual(SHA256.HashData(origin.Render(index, 600).Pixels)))
-                throw new InvalidDataException("No se pudo conservar una página al unir los PDF. La sesión no se ha cambiado.");
+            string? difference = check.Info(i) != expected ? "tamaño, rotación o anotaciones" : check.Text(i) != origin.Text(index) ? "texto" :
+                !SHA256.HashData(check.Render(i, 600).Pixels).SequenceEqual(SHA256.HashData(origin.Render(index, 600).Pixels)) ? "apariencia" : null;
+            if (difference != null)
+                throw new InvalidDataException($"No se pudo conservar la página {index + 1} del {(imported ? "PDF añadido" : "documento actual")}: {difference}. La sesión no se ha cambiado.");
         }
         ReplaceBytes(bytes);
     }
@@ -264,12 +265,24 @@ public sealed class PdfDocument : IDisposable
         if (string.IsNullOrEmpty(text) || text.Any(c => char.IsControl(c) || char.IsSurrogate(c) || c >= 0x0590 && c <= 0x109F))
             throw new ArgumentException("Esta versión edita texto en una sola línea, sin escritura compleja ni caracteres fuera del plano básico Unicode.");
     }
-    IntPtr NewText(string text, float size)
+    public static readonly string[] IncludedFontFamilies = ["Noto Sans", "Liberation Sans", "Liberation Serif", "Liberation Mono", "Liberation Sans Narrow", "Carlito"];
+    static string FontFile(string family, bool bold, bool italic)
+    {
+        if (!IncludedFontFamilies.Contains(family)) throw new ArgumentException("Selecciona una fuente incluida.");
+        if (family == "Noto Sans")
+        {
+            if (bold || italic) throw new InvalidOperationException("Noto Sans solo incluye estilo normal; elige otra fuente para negrita o cursiva.");
+            return "NotoSans-Regular.ttf";
+        }
+        var stem = family.Replace(" ", "");
+        return Path.Combine("fonts", stem + "-" + (bold && italic ? "BoldItalic" : bold ? "Bold" : italic ? "Italic" : "Regular") + ".ttf");
+    }
+    IntPtr NewText(string text, float size, string family = "Noto Sans", bool bold = false, bool italic = false)
     {
         CheckText(text);
         if (string.IsNullOrWhiteSpace(text) || text.Length > 10000 || size < 1 || size > 500)
             throw new ArgumentException("Texto o tamaño no válido.");
-        var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "assets", "NotoSans-Regular.ttf"));
+        var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "assets", FontFile(family, bold, italic)));
         var f = N.FPDFText_LoadFont(handle, bytes, (uint)bytes.Length, 2, 1);
         if (f == IntPtr.Zero)
             throw new InvalidOperationException("No se pudo cargar la fuente incluida.");
@@ -289,16 +302,24 @@ public sealed class PdfDocument : IDisposable
         }
         return o;
     }
-    public void AddText(int page, string text, float size, float x, float y)
+    public void AddText(int page, string text, float size, float x, float y, int orientation = 0, string family = "Noto Sans", bool bold = false, bool italic = false)
     {
         Mutating();
         using var p = Open(page);
-        var o = NewText(text, size);
-        N.FPDFPageObj_Transform(o, 1, 0, 0, 1, x, y);
+        var o = NewText(text, size, family, bold, italic);
+        var matrix = orientation switch
+        {
+            0 => new Matrix(1, 0, 0, 1, x, y),
+            1 => new Matrix(0, 1, -1, 0, x, y),
+            2 => new Matrix(-1, 0, 0, -1, x, y),
+            3 => new Matrix(0, -1, 1, 0, x, y),
+            _ => throw new ArgumentOutOfRangeException(nameof(orientation))
+        };
+        N.FPDFPageObj_SetMatrix(o, ref matrix);
         N.FPDFPage_InsertObject(p.H, o);
         Generate(p.H);
     }
-    public void ReplaceText(int page, int index, string text, bool substitute = false)
+    public void ReplaceText(int page, int index, string text, bool substitute = false, string family = "Noto Sans", bool bold = false, bool italic = false)
     {
         Mutating();
         CheckText(text);
@@ -314,7 +335,7 @@ public sealed class PdfDocument : IDisposable
         {
             N.FPDFPageObj_GetMatrix(o, out var m);
             N.FPDFTextObj_GetFontSize(o, out var size);
-            var replacement = NewText(text, size);
+            var replacement = NewText(text, size, family, bold, italic);
             N.FPDFPageObj_SetMatrix(replacement, ref m);
             if (N.FPDFPageObj_GetFillColor(o, out var r, out var g, out var b, out var a) != 0)
                 N.FPDFPageObj_SetFillColor(replacement, r, g, b, a);
@@ -375,6 +396,41 @@ public sealed class PdfDocument : IDisposable
         N.FPDFPageObj_Transform(o, sx, 0, 0, sy, dx + l * (1 - sx), dy + b * (1 - sy));
         Generate(p.H);
     }
+    // Paint order, including intervening paths/forms; this does not create PDF optional-content layers.
+    public int OrderObject(int page, int index, int direction, bool extreme = false)
+    {
+        Editable();
+        // PDFium generates each existing content stream separately. Consolidate the
+        // streams first so changing the object list also changes the saved paint order.
+        var consolidated = PdfStructure.ConsolidatePageContent(SaveBytes(), page);
+        using (var check = new PdfDocument(consolidated))
+            if (check.Info(page) != Info(page) || check.Text(page) != Text(page) || check.Objects(page).Count != Objects(page).Count ||
+                !SHA256.HashData(check.Render(page, 600).Pixels).SequenceEqual(SHA256.HashData(Render(page, 600).Pixels)))
+                throw new InvalidOperationException("Este PDF no permite cambiar el orden sin alterar su contenido.");
+        ReplaceBytes(consolidated);
+        Mutating();
+        using var p = Open(page);
+        int count = N.FPDFPage_CountObjects(p.H);
+        if (index < 0 || index >= count || direction is not (-1 or 1))
+            throw new ArgumentOutOfRangeException(nameof(index));
+        var obj = N.FPDFPage_GetObject(p.H, index);
+        if (N.FPDFPageObj_GetType(obj) is not (1 or 3))
+            throw new InvalidOperationException("Selecciona texto o imagen.");
+        int target = extreme ? direction > 0 ? count - 1 : 0 : Math.Clamp(index + direction, 0, count - 1);
+        if (target == index)
+            return index;
+        Check(N.FPDFPage_RemoveObject(p.H, obj), "No se pudo cambiar el orden del objeto.");
+        if (N.FPDFPage_InsertObjectAtIndex(p.H, obj, (nuint)target) == 0)
+        {
+            // The page no longer owns this object after removal.
+            N.FPDFPageObj_Destroy(obj);
+            throw new InvalidOperationException("PDFium no pudo colocar el objeto en ese orden.");
+        }
+        for (int n = 0; n < count; n++)
+            N.FPDFPageObj_Transform(N.FPDFPage_GetObject(p.H, n), 1, 0, 0, 1, 0, 0);
+        Generate(p.H);
+        return target;
+    }
     public void AddImage(int page, int width, int height, int stride, byte[] bgra, float x, float y, float w, float h)
     {
         Mutating();
@@ -429,6 +485,9 @@ public sealed class PdfDocument : IDisposable
         }
         finally { N.FPDFBitmap_Destroy(b); }
     }
+    // For disposable preview documents only. Rendering may generate annotation
+    // appearances; a preview must never be used as the committed session document.
+    public Raster RenderPreview(int page, int width) => RenderNative(page, width);
     public (double X, double Y) ToPage(int i, int width, int height, int x, int y)
     {
         using var p = Open(i);

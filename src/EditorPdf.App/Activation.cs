@@ -56,7 +56,7 @@ public sealed class Activation : IDisposable
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or JsonException) { return IntPtr.Zero; }
     }
-    public static bool Send(ActivationRequest request)
+    public static bool Send(ActivationRequest request, IntPtr? targetWindow = null)
     {
         bool sent = false;
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
@@ -68,6 +68,8 @@ public sealed class Activation : IDisposable
             var data = new Copy { Tag = new IntPtr(0x45504446), Length = bytes.Length, Data = pin.AddrOfPinnedObject() };
             EnumWindows((hwnd, _) =>
             {
+                if (targetWindow != null && hwnd != targetWindow.Value)
+                    return true;
                 if (GetProp(hwnd, Property) == IntPtr.Zero)
                     return true;
                 if (SendMessageTimeout(hwnd, CopyData, IntPtr.Zero, ref data, 2, 2000, out var result) != IntPtr.Zero && result == new IntPtr(1))

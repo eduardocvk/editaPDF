@@ -24,6 +24,11 @@ internal static class PdfStructure
     }
 
     internal static byte[] Move(byte[] bytes, int from, int to) => Rewrite(bytes, document => document.MovePage(from + 1, to > from ? to + 2 : to + 1));
+    internal static byte[] ConsolidatePageContent(byte[] bytes, int page) => Rewrite(bytes, document =>
+    {
+        var target = document.GetPage(page + 1);
+        target.GetPdfObject().Put(PdfName.Contents, new PdfStream(target.GetContentBytes()));
+    });
 
     internal static byte[] Import(byte[] destination, byte[] source, int[] pages, int at) => Rewrite(destination, document =>
     {

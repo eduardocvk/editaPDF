@@ -33,7 +33,7 @@ static class ShellChecks
         using (var source = new HwndSource(new HwndSourceParameters("EditorPDF activation test") { Width = 1, Height = 1, WindowStyle = 0 }))
         using (var activation = new Activation(source.Handle, r => received = r))
         {
-            if (!Activation.Send(new ActivationRequest(true, [fixture, fixture])))
+            if (!Activation.Send(new ActivationRequest(true, [fixture, fixture]), source.Handle))
                 throw new Exception("No se entregó WM_COPYDATA");
             Pump();
             if (received is not { Merge: true, Paths.Length: 2 })

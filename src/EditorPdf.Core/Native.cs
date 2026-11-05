@@ -49,6 +49,7 @@ internal static class N
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_SetMatrix(IntPtr o, ref Matrix m);
     [DllImport(D, CallingConvention = C)] internal static extern void FPDFPageObj_Transform(IntPtr o, double a, double b, double c, double d, double e, double f);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPage_RemoveObject(IntPtr p, IntPtr o);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPage_InsertObjectAtIndex(IntPtr p, IntPtr o, nuint index);
     [DllImport(D, CallingConvention = C)] internal static extern void FPDFPageObj_Destroy(IntPtr o);
     [DllImport(D, CallingConvention = C)] internal static extern void FPDFPage_InsertObject(IntPtr p, IntPtr o);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPage_GenerateContent(IntPtr p);

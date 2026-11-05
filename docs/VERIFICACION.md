@@ -1,6 +1,26 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.3.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.5.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Cambios y comprobaciones de 0.5.0
+
+Doble clic permite editar un objeto de texto compatible en la página; la selección y las esquinas se redibujan tras soltar. Menú contextual con iconos, seis familias de fuentes incluidas y variantes reales de negrita/cursiva, cuadro estándar de impresión de Windows y menú Configuración. La prueba WPF comprueba la edición original y la reapertura con las seis fuentes. Suite completa: artifacts/test-0.5-final.log (sin intentos de API de red). El diálogo de impresión se compila pero no se enviaron trabajos reales a una impresora.
+
+## Cambios y comprobaciones de 0.4.0
+
+Texto nuevo directamente sobre la página con un TextBox WPF temporal: visible mientras se escribe, confirmado con Intro o al cambiar de foco, cancelable con Esc. La confirmación añade un objeto PDF real con Noto Sans, sin rectángulos de ocultación. El borrador se recupera con la sesión; el texto nuevo se orienta horizontalmente también con las cuatro rotaciones de página. La edición del texto original permanece en el panel contextual.
+
+Movimiento de texto/imágenes y redimensionado por cuatro esquinas con vista previa PDFium sobre una copia desechable en memoria. El render transitorio puede generar apariencias en esa copia, que nunca se incorpora a la sesión. Se aplica una sola operación al soltar; Esc cancela sin cambiar el PDF. Esquinas proporcionales por defecto y proporción libre con Mayús. Se compara el bitmap de la vista previa con el original para comprobar que hay movimiento visible, y se comprueba que el PDF de la sesión sigue intacto antes de soltar.
+
+Menú contextual en página y lista de objetos: insertar, propiedades, eliminar, deseleccionar, deshacer/rehacer y orden de pintado. Para persistir el cambio de orden, primero se consolidan los flujos de contenido de la página y se comprueba que eso conserva texto, objetos, geometría, anotaciones y render. Después se cambia el orden y se regeneran los objetos con PDFium. La regresión de imágenes solapadas y pypdf verifican el orden guardado; no son capas OCG.
+
+Insertar, Extraer y Dividir usan un selector con miniaturas, casillas, vista previa, Todas/Ninguna, posición de inserción y número de páginas por archivo. El campo de rangos anterior queda oculto, conservado únicamente para compatibilidad del estado de sesión. Se prueban selección, extracción guardada e inserción de las páginas elegidas. Capturas WPF: `texto-en-pagina`, `movimiento-en-vivo`, `esquinas-redimensionar` y `selector-paginas`.
+
+Se comprobó localmente la combinación exacta indicada por el usuario, en ambos órdenes, desde recuperación, después de editar y desde WPF. La copia unida de 76 páginas pasó guardado/reapertura, texto, geometría, anotaciones y render PDFium, además de verificación independiente con pypdf de texto y anotaciones de todas las páginas; originales intactos por SHA-256. El aviso original no se ha reproducido con los archivos actuales. Se conserva el rechazo si no se puede conservar una página y ahora se identifica página de origen y característica (tamaño/rotación/anotaciones, texto o apariencia); no se ha relajado ni eliminado la comprobación. Los documentos del usuario y sus copias de diagnóstico son locales, excluidos de Git y de la distribución.
+
+La suite se registra en `artifacts/test-0.4.0.log`. La prueba de activación está dirigida exclusivamente a su ventana de prueba: se corrigió el envío no acotado que había abierto una pestaña sintética en la app del usuario; el usuario confirmó que la cerró. No se modificaron sus originales.
+
+Se revisaron capturas WPF y el árbol accesible de la ventana de prueba. La automatización física no es evidencia fiable en este equipo: devolvió `coordinate input geometry is unavailable` y la captura incluía otra ventana superpuesta; se detuvo tras reintentar. Los gestos se verifican mediante los controles/modelo del lienzo y sus renders, no se afirma una sesión manual completa con el ratón.
 
 ## Cambios y comprobaciones de 0.3.0
 

@@ -11,6 +11,21 @@ static class UiTests
     [STAThread]
     static void Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--diagnose-ui-import")
+        {
+            var diagnosticApp = new Application();
+            diagnosticApp.Resources = (ResourceDictionary)Application.LoadComponent(new Uri("/EditorPDF;component/Theme.xaml", UriKind.Relative));
+            var diagnosticWindow = new MainWindow(args[3], false, _ => { }, ex => throw ex);
+            try
+            {
+                diagnosticWindow.OpenDocuments([args[1]]);
+                diagnosticWindow.AppendPaths([args[2]]);
+                Console.WriteLine("PASS unión con render y flujo WPF");
+            }
+            catch (Exception ex) { Console.WriteLine(ex.Message); Environment.ExitCode = 1; }
+            typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(diagnosticWindow, null);
+            return;
+        }
         if (args.Length == 0)
             args = ["--interactive", Path.Combine(AppContext.BaseDirectory, "preview-recovery"), Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "structure-probe-02", "fixtures", "anotaciones.pdf"))];
         if (args.FirstOrDefault() == "--interactive")
@@ -171,6 +186,7 @@ static class UiTests
         if (docTabs.Items.Count != oldTabs + 1 || ((WorkspaceDocument)docTabs.SelectedItem).Session.Document.Count != 4)
             throw new Exception("La unión del Explorador debe abrir una pestaña nueva con todos los PDF");
         Console.WriteLine("CHECK integracion del Explorador");
+        CanvasChecks.Run(window, folder, Path.GetFullPath(args[1]), Capture);
         ShellChecks.Run(Path.GetFullPath(args[1]), folder);
         Console.WriteLine("PASS documentos en pestañas: sesiones e historial independientes, orden por insercion, borradores, recuperacion completa y cierre");
         typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);

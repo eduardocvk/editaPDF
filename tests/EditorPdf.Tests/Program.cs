@@ -2,6 +2,50 @@ using EditorPdf.Core;
 using System.Security.Cryptography;
 using System.Diagnostics.Tracing;
 using System.Text;
+if (args.FirstOrDefault() == "--diagnose-import")
+{
+    using var first = new PdfDocument(LocalFiles.Read(args[1]));
+    using var second = new PdfDocument(LocalFiles.Read(args[2]));
+    try
+    {
+        first.Import(second, Enumerable.Range(0, second.Count).ToArray(), first.Count);
+        if (args.Length > 3)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(args[3])!);
+            first.SaveNew(args[3]);
+        }
+        Console.WriteLine("PASS union de los documentos indicados");
+    }
+    catch (Exception ex) { Console.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
+if (args.FirstOrDefault() == "--diagnose-recovery")
+{
+    using var restored = new Session();
+    restored.Restore(args[1]);
+    using var second = new PdfDocument(LocalFiles.Read(args[2]));
+    try
+    {
+        restored.Document.Import(second, Enumerable.Range(0, second.Count).ToArray(), restored.Document.Count);
+        Console.WriteLine("PASS union desde copia de recuperación en memoria");
+    }
+    catch (Exception ex) { Console.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
+if (args.FirstOrDefault() == "--diagnose-edited")
+{
+    using var restored = new Session();
+    restored.Open(args[1]);
+    restored.Execute(d => d.AddText(0, "Prueba local sin datos", 14, 50, 50));
+    restored.Document.Render(0, 1200);
+    try
+    {
+        restored.Import(args[2], null, restored.Document.Count);
+        Console.WriteLine("PASS union tras edición, render y deshacer/rehacer en memoria");
+    }
+    catch (Exception ex) { Console.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
 using var network = new NetworkAudit();
 var output = Path.GetFullPath(args.FirstOrDefault() ?? "artifacts/tests");
 Directory.CreateDirectory(output);
@@ -9,6 +53,36 @@ void Assert(bool b, string message) { if (!b) throw new Exception(message); Cons
 using (var seed = new PdfDocument()) { seed.Blank(0); seed.AddText(0, "Texto original editable 123", 18, 60, 750); seed.AddText(0, "Contenido conservado", 12, 60, 700); seed.SaveNew(Path.Combine(output, "original.pdf")); }
 var original = File.ReadAllBytes(Path.Combine(output, "original.pdf"));
 var hash = SHA256.HashData(original);
+using (var layers = new Session())
+{
+    layers.Execute(d =>
+    {
+        d.Blank(0);
+        d.AddImage(0, 4, 4, 16, Enumerable.Range(0, 64).Select(i => (byte)(i % 4 is 2 or 3 ? 255 : 0)).ToArray(), 100, 100, 80, 60);
+        d.AddImage(0, 4, 4, 16, Enumerable.Range(0, 64).Select(i => (byte)(i % 4 is 0 or 3 ? 255 : 0)).ToArray(), 100, 100, 80, 60);
+    });
+    var front = SHA256.HashData(layers.Document.Render(0, 600).Pixels);
+    layers.Execute(d => d.OrderObject(0, 1, -1, true));
+    Assert(!front.SequenceEqual(SHA256.HashData(layers.Document.Render(0, 600).Pixels)) && layers.Document.Objects(0).Count == 2, "orden de objetos cambia solapamiento sin perder imágenes");
+    layers.SaveNew(Path.Combine(output, "orden-imagenes.pdf"));
+    layers.Undo();
+    Assert(front.SequenceEqual(SHA256.HashData(layers.Document.Render(0, 600).Pixels)), "deshacer orden restaura imagen visible");
+    layers.Redo();
+    layers.Execute(d => d.OrderObject(0, 0, 1, true));
+    Assert(front.SequenceEqual(SHA256.HashData(layers.Document.Render(0, 600).Pixels)), "traer al frente conserva objetos y posición");
+}
+foreach (int rotation in Enumerable.Range(0, 4))
+{
+    using var rotatedText = new PdfDocument();
+    rotatedText.Blank(0);
+    for (int n = 0; n < rotation; n++)
+        rotatedText.Rotate(0);
+    rotatedText.AddText(0, "Texto horizontal", 14, 200, 300, rotation);
+    var obj = rotatedText.Objects(0).Single();
+    var a = rotatedText.ToDevice(0, 600, 600, obj.Left, obj.Bottom);
+    var b = rotatedText.ToDevice(0, 600, 600, obj.Right, obj.Top);
+    Assert(Math.Abs(a.X - b.X) > Math.Abs(a.Y - b.Y), "texto de página horizontal con rotación " + rotation);
+}
 using (var pdf = new PdfDocument(original))
 {
     var objects = pdf.Objects(0);

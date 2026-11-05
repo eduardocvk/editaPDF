@@ -1,10 +1,12 @@
-# Privacidad de Editor PDF 0.3.0
+# Privacidad de Editor PDF 0.5.0
 
 El motor y la interfaz procesan los PDF en el equipo. No se implementan conexiones, servicios remotos, telemetría, analítica, actualizaciones, descargas de fuentes ni envío automático de errores. No se ejecutan JavaScript, enlaces o acciones de los documentos. PDFium se incluye sin V8 ni XFA. La app no carga páginas web.
 
-La compilación autónoma incluye runtime, motor y Noto Sans. El SDK de desarrollo y los scripts de adquisición de dependencias son herramientas separadas; no se ejecutan al usar la aplicación. Los scripts de compilación desactivan la telemetría del SDK.
+La compilación autónoma incluye runtime, motor y las seis familias de fuentes incluidas. El SDK de desarrollo y los scripts de adquisición de dependencias son herramientas separadas; no se ejecutan al usar la aplicación. Los scripts de compilación desactivan la telemetría del SDK.
 
 ## Datos locales
+
+El texto nuevo pendiente de confirmar también se conserva como borrador local de la pestaña. Durante un arrastre/redimensionado se usa una copia transitoria en memoria; no se guardan estados intermedios en el PDF ni se envía el contenido a ningún servicio. Cancelar descarta esa copia. El selector visual representa las páginas con el PDFium incluido y no descarga miniaturas.
 
 PDF originales: solo lectura. Exportaciones: archivos nuevos elegidos por el usuario; no reemplazan existentes. El guardado utiliza un temporal en la misma carpeta y un movimiento sin reemplazo, después de comprobar la copia.
 
@@ -20,7 +22,7 @@ La creación de una copia editable de un PDF protegido requiere confirmación. S
 
 La integración opcional del Explorador registra únicamente claves del usuario actual y un acceso directo en su carpeta Enviar a; se puede retirar desde Opciones. No cambia la asociación predeterminada. El acceso directo contiene la ruta de la app y --merge; Windows entrega los archivos seleccionados como argumentos. Si hay una instancia abierta, usa WM_COPYDATA. No hay sockets, servicios residentes, servidores COM propios, archivos de intercambio con rutas ni conexiones remotas. Las rutas se usan para la apertura/unión solicitada y se aplican las comprobaciones de unidades locales.
 
-La impresión solo se inicia por una acción explícita y se entrega al sistema de impresión de Windows. El selector enumera únicamente colas locales y acepta puertos USB, LPT, COM, FILE, XPSPort o PORTPROMPT (como Microsoft Print to PDF). No ofrece colas remotas ni puertos TCP/IP o WSD. El controlador, la cola y los diálogos de destino pertenecen a Windows; la app no controla su comportamiento interno. No se han impreso documentos durante las pruebas.
+La impresión solo se inicia por una acción explícita y se entrega al sistema de impresión de Windows. El diálogo estándar de Windows muestra las impresoras disponibles. Si se elige una cola cuyo puerto no es USB, LPT, COM, FILE, XPSPort o PORTPROMPT, la aplicación advierte que puede enviar el PDF por la red y pide confirmación antes de imprimir. El controlador, la cola y los diálogos de destino pertenecen a Windows; la app no controla su comportamiento interno. No se han impreso documentos durante las pruebas.
 
 FirmaPDF no está integrada. El pequeño banner solo abre `https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ` en el navegador del usuario al pulsarlo. La ficha oficial fue proporcionada por el usuario y comprobada en Microsoft Store. El enlace es fijo y no incluye parámetros de seguimiento, documentos, rutas, búsquedas ni datos de sesión. No se consulta la ficha al iniciar ni al abrir o editar documentos. La navegación posterior pertenece al navegador y a Microsoft Store.
 

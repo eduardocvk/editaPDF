@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.3.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.5.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.3.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.3.0/EditorPDF-0.3.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.5.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.5.0/EditorPDF-0.5.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -15,10 +15,18 @@ Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el ru
 **Abrir** crea pestañas de documentos independientes en la parte superior; **Unir / añadir** incorpora páginas al documento activo. Cada pestaña mantiene sus cambios, deshacer/rehacer, página, zoom y borradores. Las pestañas **Organizar** y **Editar** están encima del panel derecho y sus herramientas tienen iconos. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena mediante Subir/Bajar o arrastrando las miniaturas, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, preparación de impresión, deshacer/rehacer y recuperación local.
 
 - **Reordenar:** arrastra una miniatura y suéltala antes o después de otra. Una línea indica la inserción y la lista se desplaza al acercarse a sus extremos.
-- **Rangos:** `1-3,5`. Para dividir en varios archivos: `1-3;4-6;7`. Insertar PDF pregunta las páginas del archivo de origen.
+- **Páginas:** Extraer e Insertar PDF abren miniaturas con casillas y una vista previa. Elige Todas/Ninguna o páginas individuales. Al insertar, escoge antes/después de la página actual o al final. Dividir permite elegir visualmente las páginas y cuántas habrá por archivo.
 - **Guardar copia:** exige un nombre que todavía no exista. Nunca reemplaza el original ni otro archivo. Antes de publicar la copia comprueba reapertura, texto, geometría, rotación, número de anotaciones, presencia de marcadores, adjuntos, etiquetas, destinos con nombre y representación de cada página a 600 px.
 - **Teclado:** Tab/Mayús+Tab, Alt+A para abrir, Ctrl+O, Ctrl+S o Ctrl+Mayús+S, Ctrl+F, Ctrl+P, Ctrl+Z/Ctrl+Y; Ctrl+Tab/Ctrl+Mayús+Tab cambia de documento y Ctrl+W cierra la pestaña activa; RePág/AvPág cambia de página fuera de campos de texto. En un campo, Ctrl+Z conserva el deshacer propio del campo.
 - La selección azul del editor es una capa WPF de selección; **no se guarda como rectángulo en el PDF**.
+
+## Edición sobre la página
+
+**Añadir texto** activa el cursor: pulsa en la página y escribe. El texto aparece mientras escribes; Intro o cambiar el foco lo aplica al PDF, Esc cancela el borrador. Se conserva un borrador local para recuperación. Esta versión añade una línea por objeto; la edición de texto original sigue disponible en Propiedades.
+
+Arrastra texto o imágenes para ver el movimiento en tiempo real. Al soltar se aplica una sola operación de deshacer; Esc cancela. Las imágenes seleccionadas muestran cuatro esquinas: arrástralas para escalar proporcionalmente; Mayús permite proporción libre. A zoom alto la vista previa puede tener menor resolución mientras arrastras; al terminar vuelve la calidad completa.
+
+Botón derecho sobre la página o la lista de objetos: añadir texto/imagen, propiedades, eliminar, deseleccionar, deshacer/rehacer y cambiar el orden (traer al frente, adelantar, atrasar o enviar al fondo). Es el orden de pintado de los objetos de la página; no crea capas opcionales OCG del estándar PDF.
 
 ## PDF firmados o protegidos
 
@@ -92,3 +100,7 @@ iText, Commons y su adaptador Bouncy Castle tienen avisos en `licenses/itext` y 
 El [logo](assets/logo.png), su [prompt de creación](assets/LOGO.md) y el icono ICO se incluyen en el proyecto.
 
 El repositorio público es [eduardocvk/editaPDF](https://github.com/eduardocvk/editaPDF). Los scripts no dependen de `firmar_certificado`. La descarga portable acompaña la compilación con `Source.zip`, scripts, dependencias fijadas y avisos; el código también está disponible en este repositorio.
+
+## Novedades 0.5.0
+
+El recuadro de selección se conserva tras pulsar y soltar. Doble clic en texto compatible para editarlo sobre la página; el menú contextual incorpora iconos. En el panel derecho puedes elegir seis familias tipográficas incluidas y aplicar negrita o cursiva a texto nuevo o sustituido. Imprimir abre el cuadro estándar de Windows, con impresoras y rango de páginas; se confirma el envío a posibles impresoras de red. El menú Opciones se llama Configuración.

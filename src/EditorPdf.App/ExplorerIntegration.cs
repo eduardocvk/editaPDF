@@ -46,7 +46,11 @@ public static class ExplorerIntegration
         string link = Path.Combine(SendTo(sendTo), ShortcutName);
         for (int attempt = 0; File.Exists(link); attempt++)
         {
-            try { File.Delete(link); break; }
+            try
+            {
+                File.Delete(link);
+                break;
+            }
             catch (IOException) when (attempt < 5) { Thread.Sleep(80); }
         }
         Notify();

@@ -34,7 +34,8 @@ public partial class MainWindow
             Object = Selected?.Value.Index,
             Draft = [TextValue.Text, XValue.Text, YValue.Text, WValue.Text, HValue.Text],
             Substitute = SubstituteFont.IsChecked == true,
-            StyleDraft = [FontSizeValue.Text, ColorValue.Text]
+            StyleDraft = [FontSizeValue.Text, ColorValue.Text],
+            Inline = inlineDraft
         };
     }
     void UpdateTabHeaders()
@@ -46,7 +47,11 @@ public partial class MainWindow
     {
         if (ReferenceEquals(target, activeDocument))
             return;
+        FinishInlineText();
+        CancelCanvasGesture(false);
         StoreView();
+        addTextArmed = false;
+        PageImage.Cursor = Cursors.Arrow;
         switchingDocuments = true;
         try
         {
@@ -62,9 +67,16 @@ public partial class MainWindow
             searchPage = -1;
             searchOffset = 0;
             lastQuery = "";
-            dragStart = null;
+            CancelCanvasGesture(false);
             DocumentTabs.SelectedItem = target;
             Refresh();
+            if (target.View.Inline is { } draft)
+            {
+                page = Math.Clamp(draft.Page, 0, Math.Max(0, Pdf.Count - 1));
+                var position = Device(draft.X, draft.Y);
+                BeginInlineText(new System.Windows.Point(position.X, position.Y - draft.Size * PageImage.Width / Pdf.Info(page).Width * 1.15), draft.Text);
+                inlineDraft = draft;
+            }
             if (target.View.Object is { } index)
             {
                 ObjectsList.SelectedItem = ObjectsList.Items.Cast<ObjectRow>().FirstOrDefault(r => r.Value.Index == index);
@@ -95,6 +107,8 @@ public partial class MainWindow
     }
     public void OpenDocuments(string[] paths)
     {
+        FinishInlineText();
+        CancelCanvasGesture(false);
         var created = new List<WorkspaceDocument>();
         try
         {
@@ -157,6 +171,8 @@ public partial class MainWindow
     }
     public void AppendPaths(string[] paths)
     {
+        FinishInlineText();
+        CancelCanvasGesture(false);
         if (paths.Length == 0)
             return;
         int first = Pdf.Count;
@@ -182,6 +198,8 @@ public partial class MainWindow
     void CloseDocument(WorkspaceDocument document)
     {
         SwitchDocument(document);
+        FinishInlineText();
+        CancelCanvasGesture(false);
         if (HasUnappliedProperties() && MessageBox.Show(this, "Hay cambios en las propiedades que aún no has aplicado al PDF. ¿Descartar ese borrador y cerrar la pestaña?", "Borrador sin aplicar", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
             return;
         if (!LeaveCurrent())
@@ -293,11 +311,14 @@ public partial class MainWindow
     }
     void DisposeWorkspace()
     {
+        DisposeCanvas();
         foreach (var document in documents)
             document.Dispose();
     }
     bool CanCloseWorkspace()
     {
+        FinishInlineText();
+        CancelCanvasGesture(false);
         foreach (var document in documents.Where(d => d.Session.Dirty).ToArray())
         {
             SwitchDocument(document);

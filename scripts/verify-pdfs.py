@@ -90,3 +90,6 @@ assert any(op==b'rg' and all(abs(float(a)-b/255)<.0001 for a,b in zip(args,[0xB4
 assert 'Texto original compatible 123' in style.pages[0].extract_text()
 assert 'Contenido independiente que debe conservarse.' in style.pages[0].extract_text()
 print('PASS pypdf copias sin cifrado ni campos de firma, referencias conservadas; tamaño y color en operadores PDF reales')
+layered=PdfReader(p/'orden-imagenes.pdf');page=layered.pages[0];names=[args[0] for args,op in page.get_contents().operations if op==b'Do']
+assert len(names)==2 and page['/Resources']['/XObject'][names[-1]].get_object().get_data()[:3]==bytes([255,0,0])
+print('PASS pypdf orden de imágenes persistido: la imagen roja se pinta después de la azul')

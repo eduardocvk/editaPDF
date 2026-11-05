@@ -25,6 +25,13 @@ public sealed class ToolButton : Button
         ["Check"] = "M3,10 L8,15 17,5",
         ["Position"] = "M10,1 V19 M1,10 H19 M7,4 L10,1 13,4 M7,16 L10,19 13,16 M4,7 L1,10 4,13 M16,7 L19,10 16,13"
     };
+    public static Viewbox MakeIcon(string icon)
+    {
+        var path = new System.Windows.Shapes.Path { Data = Geometry.Parse(Shapes.GetValueOrDefault(icon, Shapes["Check"])), Stroke = Brushes.RoyalBlue, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round };
+        var canvas = new Canvas { Width = 20, Height = 20 };
+        canvas.Children.Add(path);
+        return new Viewbox { Width = 16, Height = 16, Child = canvas };
+    }
     protected override void OnInitialized(EventArgs e)
     {
         base.OnInitialized(e);

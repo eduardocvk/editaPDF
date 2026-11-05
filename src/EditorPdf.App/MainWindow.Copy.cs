@@ -14,6 +14,8 @@ public partial class MainWindow
     }
     public void MergeDocuments(string[] paths)
     {
+        FinishInlineText();
+        CancelCanvasGesture(false);
         CheckDocumentCapacity();
         var next = new Session();
         try
