@@ -125,6 +125,16 @@ static class CanvasChecks
         window.FinishInlineText();
         if (!session.Document.Objects(0).Any(o => o.Text == editableText.Text + " editado"))
             throw new Exception("La edición directa del texto original no se guarda: " + string.Join(" | ", session.Document.Objects(0).Where(o => o.Type == 1).Select(o => o.Text)));
+        var chosen = objects.Items.Cast<MainWindow.ObjectRow>().First(o => o.Value.Text == editableText.Text + " editado");
+        objects.SelectedItem = chosen;
+        var fonts = (ComboBox)window.FindName("FontChoice");
+        if (fonts.SelectedIndex != 0 || (string)fonts.SelectedItem != "Conservar original")
+            throw new Exception("La fuente original debe mantenerse al seleccionar texto");
+        fonts.SelectedItem = "Liberation Sans";
+        ((TextBox)window.FindName("TextValue")).Text = "Numero 12345";
+        typeof(MainWindow).GetMethod("ApplyTextClick", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [window, new RoutedEventArgs()]);
+        if (!session.Document.Objects(0).Any(o => o.Text == "Numero 12345" && o.Font.Contains("Liberation", StringComparison.OrdinalIgnoreCase)))
+            throw new Exception("La fuente elegida no sustituye la original ni conserva el número");
         using (var fontDocument = new PdfDocument(File.ReadAllBytes(fixture)))
         {
             int n = 0;

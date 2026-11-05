@@ -33,7 +33,8 @@ public partial class MainWindow
             Ranges = RangeBox.Text,
             Object = Selected?.Value.Index,
             Draft = [TextValue.Text, XValue.Text, YValue.Text, WValue.Text, HValue.Text],
-            Substitute = SubstituteFont.IsChecked == true,
+            Substitute = FontChoice.SelectedIndex > 0,
+            FontChoiceName = FontChoice.SelectedIndex > 0 ? FontChoice.SelectedItem as string : null,
             StyleDraft = [FontSizeValue.Text, ColorValue.Text],
             Inline = inlineDraft
         };
@@ -87,7 +88,7 @@ public partial class MainWindow
                     YValue.Text = target.View.Draft[2];
                     WValue.Text = target.View.Draft[3];
                     HValue.Text = target.View.Draft[4];
-                    SubstituteFont.IsChecked = target.View.Substitute;
+                    FontChoice.SelectedItem = target.View.FontChoiceName ?? (target.View.Substitute ? "Noto Sans" : "Conservar original");
                     if (target.View.StyleDraft.Length == 2)
                     {
                         FontSizeValue.Text = target.View.StyleDraft[0];
@@ -229,7 +230,7 @@ public partial class MainWindow
             return false;
         var value = row.Value;
         var culture = System.Globalization.CultureInfo.CurrentCulture;
-        return TextValue.Text != value.Text || SubstituteFont.IsChecked == true || XValue.Text != value.Left.ToString("0.##", culture) || YValue.Text != value.Bottom.ToString("0.##", culture) || WValue.Text != (value.Right - value.Left).ToString("0.##", culture) || HValue.Text != (value.Top - value.Bottom).ToString("0.##", culture) || value.Type == 1 && (FontSizeValue.Text != value.Size.ToString("0.##", culture) || !string.Equals(ColorValue.Text, $"#{value.FillRgb:X6}", StringComparison.OrdinalIgnoreCase));
+        return TextValue.Text != value.Text || FontChoice.SelectedIndex > 0 || XValue.Text != value.Left.ToString("0.##", culture) || YValue.Text != value.Bottom.ToString("0.##", culture) || WValue.Text != (value.Right - value.Left).ToString("0.##", culture) || HValue.Text != (value.Top - value.Bottom).ToString("0.##", culture) || value.Type == 1 && (FontSizeValue.Text != value.Size.ToString("0.##", culture) || !string.Equals(ColorValue.Text, $"#{value.FillRgb:X6}", StringComparison.OrdinalIgnoreCase));
     }
     string DocumentRecoveryFolder(string id)
     {

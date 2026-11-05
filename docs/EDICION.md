@@ -16,3 +16,5 @@ Criterio de aceptación de cada incremento: guardar/reabrir, independencia del c
 Se mantienen fuera OCR, censura segura y reconstrucción universal de documentos como Word. La retirada de firmas se hace en una copia distinta, con advertencia y sin modificar la firma del original; no es validación de confianza del certificado ni borrado forense.
 
 En 0.5.0, doble clic en texto compatible abre la edición en la página. La fuente original se conserva por defecto; la sustitución se elige entre seis familias incluidas. Negrita y cursiva usan archivos de fuente propios cuando existen. La impresión usa el cuadro de Windows y pide confirmación antes de enviar a una impresora que puede estar en red.
+
+En 0.5.1, seleccionar un objeto deja «Conservar original» como valor inicial. Elegir una familia incluida sustituye la fuente al aplicar. Si la codificación de la fuente original no admite algún carácter, incluso un número, se mantiene la sesión sin cambios y se indica elegir una fuente incluida.

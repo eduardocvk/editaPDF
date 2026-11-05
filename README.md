@@ -1,10 +1,10 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.5.0**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.5.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
 
 ## Descargar para Windows 11 (x64)
 
-[Descargar Editor PDF 0.5.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.5.0/EditorPDF-0.5.0-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+[Descargar Editor PDF 0.5.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.5.1/EditorPDF-0.5.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
 
 Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
 
@@ -101,6 +101,6 @@ El [logo](assets/logo.png), su [prompt de creación](assets/LOGO.md) y el icono 
 
 El repositorio público es [eduardocvk/editaPDF](https://github.com/eduardocvk/editaPDF). Los scripts no dependen de `firmar_certificado`. La descarga portable acompaña la compilación con `Source.zip`, scripts, dependencias fijadas y avisos; el código también está disponible en este repositorio.
 
-## Novedades 0.5.0
+## Novedades 0.5.1
 
 El recuadro de selección se conserva tras pulsar y soltar. Doble clic en texto compatible para editarlo sobre la página; el menú contextual incorpora iconos. En el panel derecho puedes elegir seis familias tipográficas incluidas y aplicar negrita o cursiva a texto nuevo o sustituido. Imprimir abre el cuadro estándar de Windows, con impresoras y rango de páginas; se confirma el envío a posibles impresoras de red. El menú Opciones se llama Configuración.

@@ -1,6 +1,10 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.5.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.5.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Corrección 0.5.1
+
+Se eliminó la casilla de sustitución. El texto original seleccionado mantiene por defecto su fuente y elegir una familia en el desplegable sustituye la fuente del objeto. Si la original no puede representar el texto, la transacción conserva el PDF y el aviso indica elegir una fuente. La prueba WPF introduce 12345, sustituye por Liberation Sans y comprueba el texto y la fuente del PDF. Se conserva la lectura de sesiones previas con el antiguo campo Substitute.
 
 ## Cambios y comprobaciones de 0.5.0
 

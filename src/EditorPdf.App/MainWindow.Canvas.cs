@@ -236,8 +236,9 @@ public partial class MainWindow
     {
         RequireObjectEditing();
         FinishInlineText();
-        string family = FontChoice.SelectedItem as string ?? "Noto Sans";
-        bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true, substitute = SubstituteFont.IsChecked == true;
+        bool substitute = originalIndex != null && FontChoice.SelectedIndex > 0;
+        string family = FontChoice.SelectedIndex > 0 ? (string)FontChoice.SelectedItem : "Noto Sans";
+        bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true;
         addTextArmed = false;
         PageImage.Cursor = Cursors.Arrow;
         ObjectsList.SelectedItem = null;

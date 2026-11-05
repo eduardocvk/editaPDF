@@ -25,8 +25,8 @@ public partial class MainWindow : Window
         reportError = errorReporter;
         openExternal = externalLinkOpener ?? (uri => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true }));
         InitializeComponent();
-        FontChoice.ItemsSource = PdfDocument.IncludedFontFamilies;
-        FontChoice.SelectedIndex = 0;
+        FontChoice.ItemsSource = new[] { "Conservar original" }.Concat(PdfDocument.IncludedFontFamilies).ToArray();
+        FontChoice.SelectedIndex = 1;
         InitializeWorkspace();
         InitializeCanvas();
         Icon = BitmapFrame.Create(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "EditorPDF.ico")));
@@ -215,8 +215,7 @@ public partial class MainWindow : Window
             FontSizeValue.Clear();
             ColorValue.Clear();
             FontSizeValue.IsEnabled = ColorValue.IsEnabled = false;
-            SubstituteFont.IsChecked = false;
-            SubstituteFont.IsEnabled = false;
+            FontChoice.SelectedIndex = 1;
             foreach (var field in new[] { XValue, YValue, WValue, HValue })
             {
                 field.Clear();
@@ -227,8 +226,7 @@ public partial class MainWindow : Window
         var o = row.Value;
         TextValue.Text = o.Text;
         TextValue.IsEnabled = o.Type == 1;
-        SubstituteFont.IsChecked = false;
-        SubstituteFont.IsEnabled = o.Type == 1;
+        FontChoice.SelectedIndex = 0;
         XValue.IsEnabled = YValue.IsEnabled = true;
         WValue.IsEnabled = HValue.IsEnabled = o.Type == 3;
         FontLabel.Text = o.Type == 1 ? o.Font : "";
@@ -243,12 +241,7 @@ public partial class MainWindow : Window
     }
     void Mark(PdfObject o) => DrawObjectSelection(o);
     void AddTextClick(object sender, RoutedEventArgs e) => Run(ArmTextInsertion);
-    void FontChoiceChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (SubstituteFont != null && Selected?.Value.Type == 1 && FontChoice.SelectedIndex > 0)
-            SubstituteFont.IsChecked = true;
-    }
-    void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException("Selecciona un objeto de texto."); var text = TextValue.Text; var substitute = SubstituteFont.IsChecked == true; string family = FontChoice.SelectedItem as string ?? "Noto Sans"; bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true; if (substitute && MessageBox.Show(this, $"Se sustituirá la fuente de este objeto por {family}. Puede cambiar su aspecto. ¿Continuar?", "Sustituir fuente", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute, family, bold, italic)); });
+    void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException("Selecciona un objeto de texto."); var text = TextValue.Text; bool substitute = FontChoice.SelectedIndex > 0; string family = substitute ? (string)FontChoice.SelectedItem : "Noto Sans"; bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute, family, bold, italic)); });
     void ApplyStyleClick(object sender, RoutedEventArgs e) => Run(() =>
     {
         if (Selected is not { } row || row.Value.Type != 1)

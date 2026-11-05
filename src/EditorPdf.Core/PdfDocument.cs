@@ -345,7 +345,7 @@ public sealed class PdfDocument : IDisposable
         }
         else
         {
-            Check(N.FPDFText_SetText(o, text), "La fuente original no permite este texto. Puedes elegir sustituir por Noto Sans.");
+            Check(N.FPDFText_SetText(o, text), "La fuente original no permite este texto. Elige una fuente en el desplegable para sustituirla en este objeto.");
         }
         Generate(p.H);
         var t = N.FPDFText_LoadPage(p.H);
@@ -353,7 +353,7 @@ public sealed class PdfDocument : IDisposable
         {
             var obj = substitute ? N.FPDFPage_GetObject(p.H, N.FPDFPage_CountObjects(p.H) - 1) : o;
             if (ObjectText(obj, t) != text)
-                throw new InvalidOperationException("La fuente original no conserva todos los caracteres. Deshaz esta operación o elige sustituir por Noto Sans.");
+                throw new InvalidOperationException("La fuente original no conserva todos los caracteres. Elige una fuente en el desplegable para sustituirla en este objeto. El PDF no se ha cambiado.");
         }
         finally { N.FPDFText_ClosePage(t); }
     }

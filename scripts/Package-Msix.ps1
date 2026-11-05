@@ -11,7 +11,7 @@ $template=$template.Replace('__IDENTITY__',[System.Security.SecurityElement]::Es
 Set-Content -LiteralPath (Join-Path $stage 'AppxManifest.xml') -Value $template -Encoding utf8
 New-Item -ItemType Directory (Join-Path $stage 'Assets') -Force | Out-Null
 foreach($name in @('StoreLogo.png','Square44x44Logo.png','Square150x150Logo.png')){Copy-Item -LiteralPath (Join-Path $root ('assets/'+$name)) -Destination (Join-Path $stage ('Assets/'+$name))}
-$output=Join-Path $root ('artifacts/EditorPDF-0.5.0-'+[guid]::NewGuid().ToString('N').Substring(0,8)+'.msix')
+$output=Join-Path $root ('artifacts/EditorPDF-0.5.1-'+[guid]::NewGuid().ToString('N').Substring(0,8)+'.msix')
 & $MakeAppxPath pack /d $stage /p $output
 if($LASTEXITCODE -ne 0){throw 'MakeAppx ha fallado.'}
 Write-Output "MSIX sin firmar: $output. No se ha instalado ni publicado."
