@@ -14,7 +14,7 @@ public partial class MainWindow
     void InitializeWorkspace()
     {
         switchingDocuments = true;
-        activeDocument = new WorkspaceDocument(session, "Sin título");
+        activeDocument = new WorkspaceDocument(session, Ui.T("Sin título"));
         documents.Add(activeDocument);
         DocumentTabs.ItemsSource = documents;
         DocumentTabs.SelectedItem = activeDocument;
@@ -66,16 +66,16 @@ public partial class MainWindow
             SearchBox.Text = target.View.Search;
             RangeBox.Text = target.View.Ranges;
             ModeTabs.SelectedIndex = 0;
-            searchPage = -1;
-            searchOffset = 0;
-            lastQuery = "";
+            matchQuery = "";
+            matchIndex = -1;
+            SearchCount.Text = "";
             CancelCanvasGesture(false);
             DocumentTabs.SelectedItem = target;
             Refresh();
             if (target.View.Inline is { } draft)
             {
                 page = Math.Clamp(draft.Page, 0, Math.Max(0, Pdf.Count - 1));
-                FontChoice.SelectedItem = draft.OriginalIndex == null || draft.Substitute ? draft.Family : "Conservar original";
+                FontChoice.SelectedItem = draft.OriginalIndex == null || draft.Substitute ? draft.Family : Ui.T("Conservar original");
                 BoldChoice.IsChecked = draft.Bold;
                 ItalicChoice.IsChecked = draft.Italic;
                 var position = Device(draft.X, draft.Y);
@@ -92,7 +92,7 @@ public partial class MainWindow
                     YValue.Text = target.View.Draft[2];
                     WValue.Text = target.View.Draft[3];
                     HValue.Text = target.View.Draft[4];
-                    FontChoice.SelectedItem = target.View.FontChoiceName ?? (target.View.Substitute ? "Noto Sans" : "Conservar original");
+                    FontChoice.SelectedItem = target.View.FontChoiceName ?? (target.View.Substitute ? "Noto Sans" : Ui.T("Conservar original"));
                     if (target.View.StyleDraft.Length == 2)
                     {
                         FontSizeValue.Text = target.View.StyleDraft[0];
@@ -127,7 +127,7 @@ public partial class MainWindow
                     continue;
                 }
                 if (documents.Count + created.Count >= 32)
-                    throw new InvalidOperationException("Límite de esta versión: 32 documentos abiertos.");
+                    throw new InvalidOperationException(Ui.T("Límite de esta versión: 32 documentos abiertos."));
                 var next = new Session();
                 try
                 {
@@ -205,7 +205,7 @@ public partial class MainWindow
         SwitchDocument(document);
         FinishInlineText();
         CancelCanvasGesture(false);
-        if (HasUnappliedProperties() && MessageBox.Show(this, "Hay cambios en las propiedades que aún no has aplicado al PDF. ¿Descartar ese borrador y cerrar la pestaña?", "Borrador sin aplicar", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        if (HasUnappliedProperties() && MessageBox.Show(this, Ui.T("Hay cambios en las propiedades que aún no has aplicado al PDF. ¿Descartar ese borrador y cerrar la pestaña?"), Ui.T("Borrador sin aplicar"), MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
             return;
         if (!LeaveCurrent())
             return;
@@ -216,17 +216,10 @@ public partial class MainWindow
         activeDocument = null;
         documents.Remove(document);
         if (documents.Count == 0)
-            documents.Add(new WorkspaceDocument(new Session(), "Sin título"));
+            documents.Add(new WorkspaceDocument(new Session(), Ui.T("Sin título")));
         switchingDocuments = false;
         SwitchDocument(documents[Math.Clamp(index, 0, documents.Count - 1)]);
-        bool saved = Recover();
         document.Dispose();
-        if (saved)
-        {
-            string folder = DocumentRecoveryFolder(document.Id);
-            if (Directory.Exists(folder))
-                Directory.Delete(folder, true);
-        }
     }
     bool HasUnappliedProperties()
     {
@@ -235,84 +228,6 @@ public partial class MainWindow
         var value = row.Value;
         var culture = System.Globalization.CultureInfo.CurrentCulture;
         return TextValue.Text != value.Text || FontChoice.SelectedIndex > 0 || XValue.Text != value.Left.ToString("0.##", culture) || YValue.Text != value.Bottom.ToString("0.##", culture) || WValue.Text != (value.Right - value.Left).ToString("0.##", culture) || HValue.Text != (value.Top - value.Bottom).ToString("0.##", culture) || value.Type == 1 && (FontSizeValue.Text != value.Size.ToString("0.##", culture) || !string.Equals(ColorValue.Text, $"#{value.FillRgb:X6}", StringComparison.OrdinalIgnoreCase));
-    }
-    string DocumentRecoveryFolder(string id)
-    {
-        if (!Guid.TryParseExact(id, "N", out _))
-            throw new InvalidDataException("Identificador de sesión no válido.");
-        return LocalFiles.Validate(Path.Combine(recoveryFolder, id));
-    }
-    sealed record SavedTab(string Id, string Title, string? SourcePath, DocumentView View);
-    sealed record SavedWorkspace(int Version, string Active, SavedTab[] Tabs);
-    bool HasRecovery()
-    {
-        string path = Path.Combine(recoveryFolder, "workspace.json");
-        if (!File.Exists(path))
-            return File.Exists(Path.Combine(recoveryFolder, "session.json"));
-        try
-        {
-            return new FileInfo(path).Length > 2 * 1024 * 1024 || JsonSerializer.Deserialize<SavedWorkspace>(File.ReadAllBytes(path))?.Tabs.Length > 0;
-        }
-        catch { return true; }
-    }
-    void SaveWorkspace()
-    {
-        StoreView();
-        Directory.CreateDirectory(LocalFiles.Validate(recoveryFolder));
-        foreach (var document in documents)
-            document.Session.SaveRecovery(DocumentRecoveryFolder(document.Id));
-        var record = new SavedWorkspace(1, activeDocument!.Id, documents.Where(d => d.Session.Document.Count > 0).Select(d => new SavedTab(d.Id, d.Title, d.SourcePath, d.View)).ToArray());
-        var data = JsonSerializer.SerializeToUtf8Bytes(record);
-        string temp = Path.Combine(recoveryFolder, "workspace.new"), target = Path.Combine(recoveryFolder, "workspace.json");
-        using (var file = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
-        {
-            file.Write(data);
-            file.Flush(true);
-        }
-        File.Move(temp, target, true);
-    }
-    void RestoreWorkspace()
-    {
-        string path = Path.Combine(recoveryFolder, "workspace.json");
-        if (!File.Exists(path))
-        {
-            session.Restore(recoveryFolder);
-            activeDocument!.Title = session.Originals.Count > 0 ? Path.GetFileName(session.Originals[0]) : "Recuperado";
-            Refresh();
-            return;
-        }
-        if (new FileInfo(path).Length > 2 * 1024 * 1024)
-            throw new InvalidDataException("La sesión no tiene un tamaño válido.");
-        var record = JsonSerializer.Deserialize<SavedWorkspace>(File.ReadAllBytes(path)) ?? throw new InvalidDataException("Sesión ilegible.");
-        if (record.Version != 1 || record.Tabs.Length > 32)
-            throw new InvalidDataException("Versión de sesión no compatible.");
-        var restored = new List<WorkspaceDocument>();
-        try
-        {
-            foreach (var saved in record.Tabs)
-            {
-                var next = new Session();
-                try
-                {
-                    next.Restore(DocumentRecoveryFolder(saved.Id));
-                    restored.Add(new WorkspaceDocument(next, saved.Title) { Id = saved.Id, SourcePath = saved.SourcePath, View = saved.View });
-                }
-                catch { next.Dispose(); throw; }
-            }
-            if (restored.Count == 0)
-                return;
-            switchingDocuments = true;
-            foreach (var old in documents)
-                old.Dispose();
-            documents.Clear();
-            activeDocument = null;
-            foreach (var document in restored)
-                documents.Add(document);
-            switchingDocuments = false;
-            SwitchDocument(restored.FirstOrDefault(d => d.Id == record.Active) ?? restored[0]);
-            restored.Clear();
-        }
-        finally { switchingDocuments = false; foreach (var document in restored) if (!documents.Contains(document)) document.Dispose(); }
     }
     void DisposeWorkspace()
     {

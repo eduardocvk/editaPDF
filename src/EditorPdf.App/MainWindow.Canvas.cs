@@ -63,7 +63,7 @@ public partial class MainWindow
         {
             foreach (string corner in new[] { "NW", "NE", "SW", "SE" })
             {
-                var handle = new ResizeThumb { Width = 11, Height = 11, Background = Brushes.White, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1.5), Cursor = corner is "NW" or "SE" ? Cursors.SizeNWSE : Cursors.SizeNESW, Tag = corner, Focusable = true, ToolTip = "Arrastra para redimensionar · Mayús: proporción libre" };
+                var handle = new ResizeThumb { Width = 11, Height = 11, Background = Brushes.White, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1.5), Cursor = corner is "NW" or "SE" ? Cursors.SizeNWSE : Cursors.SizeNESW, Tag = corner, Focusable = true, ToolTip = Ui.T("Arrastra para redimensionar · Mayús: proporción libre") };
                 System.Windows.Automation.AutomationProperties.SetName(handle, "Redimensionar imagen " + corner);
                 handle.DragStarted += (_, _) => Run(() => BeginObjectGesture(obj, Mouse.GetPosition(PageImage), corner));
                 handle.DragDelta += (_, _) => Run(() => UpdateObjectGesture(Mouse.GetPosition(PageImage), Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)));
@@ -74,15 +74,16 @@ public partial class MainWindow
         }
         if (obj.Type == 1 && EditMode.IsSelected && Pdf.ObjectEditBlock == null)
             BuildTextToolbar(obj);
+        if (obj.Type == 3 && Pdf.ObjectEditBlock == null) BuildImageToolbar(obj);
         PositionSelection(DeviceBounds(obj));
     }
     void BuildTextToolbar(PdfObject obj)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        toolbarFont = new ComboBox { Width = 138, ItemsSource = FontChoice.ItemsSource, SelectedIndex = FontChoice.SelectedIndex, ToolTip = "Fuente del texto", Margin = new Thickness(0, 0, 4, 0) };
+        toolbarFont = new ComboBox { Width = 138, ItemsSource = FontChoice.ItemsSource, SelectedIndex = FontChoice.SelectedIndex, ToolTip = Ui.T("Fuente del texto"), Margin = new Thickness(0, 0, 4, 0) };
         toolbarFont.SelectionChanged += (_, _) => { if (toolbarFont.SelectedIndex >= 0) FontChoice.SelectedIndex = toolbarFont.SelectedIndex; };
         row.Children.Add(toolbarFont);
-        toolbarSize = new TextBox { Width = 45, Text = FontSizeValue.Text, Margin = new Thickness(0, 0, 2, 0), Padding = new Thickness(2), ToolTip = "Tamaño en puntos" };
+        toolbarSize = new TextBox { Width = 45, Text = FontSizeValue.Text, Margin = new Thickness(0, 0, 2, 0), Padding = new Thickness(2), ToolTip = Ui.T("Tamaño en puntos") };
         toolbarSize.TextChanged += (_, _) => FontSizeValue.Text = toolbarSize.Text;
         row.Children.Add(toolbarSize);
         Button Small(string label, string tip, Action click)
@@ -93,22 +94,23 @@ public partial class MainWindow
             row.Children.Add(button);
             return button;
         }
-        Small("A", "Reducir tamaño de texto", () => { AdjustFontSize(-1); toolbarSize.Text = FontSizeValue.Text; }).FontSize = 10;
-        Small("A", "Aumentar tamaño de texto", () => { AdjustFontSize(1); toolbarSize.Text = FontSizeValue.Text; }).FontSize = 17;
+        Small("A", Ui.T("Reducir tamaño de texto"), () => { AdjustFontSize(-1); toolbarSize.Text = FontSizeValue.Text; }).FontSize = 10;
+        Small("A", Ui.T("Aumentar tamaño de texto"), () => { AdjustFontSize(1); toolbarSize.Text = FontSizeValue.Text; }).FontSize = 17;
         Button? boldButton = null;
-        boldButton = Small("B", "Negrita", () => { BoldChoice.IsChecked = BoldChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); boldButton!.Background = BoldChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
+        boldButton = Small("B", Ui.T("Negrita"), () => { BoldChoice.IsChecked = BoldChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); boldButton!.Background = BoldChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
         boldButton.FontWeight = FontWeights.Bold;
         boldButton.Background = BoldChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White;
         Button? italicButton = null;
-        italicButton = Small("I", "Cursiva", () => { ItalicChoice.IsChecked = ItalicChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); italicButton!.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
+        italicButton = Small("I", Ui.T("Cursiva"), () => { ItalicChoice.IsChecked = ItalicChoice.IsChecked != true; if (FontChoice.SelectedIndex == 0) ChooseStyleFont(obj); italicButton!.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White; });
         italicButton.FontStyle = FontStyles.Italic;
         italicButton.Background = ItalicChoice.IsChecked == true ? new SolidColorBrush(Color.FromRgb(221, 234, 255)) : Brushes.White;
-        var color = Small("", "Elegir color de texto", () => { PickColorClick(this, new RoutedEventArgs()); });
+        var color = Small("", Ui.T("Elegir color de texto"), () => { PickColorClick(this, new RoutedEventArgs()); });
         toolbarColorSwatch = new Border { Width = 20, Height = 14, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Background = new SolidColorBrush(Color.FromRgb((byte)(obj.FillRgb >> 16), (byte)(obj.FillRgb >> 8), (byte)obj.FillRgb)) };
         color.Content = toolbarColorSwatch;
-        Small("✓", "Aplicar propiedades de texto", () => Run(ApplyContextTextProperties));
+        Small("✓", Ui.T("Aplicar propiedades de texto"), () => Run(ApplyContextTextProperties));
+        Small("×", Ui.T("Eliminar objeto"), () => Run(() => Change(d => d.RemoveObject(page,obj.Index))));
         textToolbar = new Border { Background = Brushes.White, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1), Padding = new Thickness(4), Child = row, Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 5, Opacity = .18 }, LayoutTransform = new ScaleTransform(Math.Clamp(zoom, .35, 1), Math.Clamp(zoom, .35, 1)) };
-        System.Windows.Automation.AutomationProperties.SetName(textToolbar, "Barra contextual de texto");
+        System.Windows.Automation.AutomationProperties.SetName(textToolbar, Ui.T("Barra contextual de texto"));
         Canvas.SetZIndex(textToolbar, 10);
         Overlay.Children.Add(textToolbar);
     }
@@ -120,11 +122,21 @@ public partial class MainWindow
         string family = PdfDocument.IncludedFontFamilies.FirstOrDefault(f => f != "Noto Sans" && f.Replace(" ", "").Equals(name, StringComparison.OrdinalIgnoreCase)) ?? "Liberation Sans";
         FontChoice.SelectedItem = family;
         if (toolbarFont != null) toolbarFont.SelectedItem = family;
-        Status.Text = $"Se usará {family} para el estilo elegido.";
+        Status.Text = (Ui.Current.Language=="en" ? $"{family} will be used for this style." : $"Se usará {family} para el estilo elegido.");
+    }
+    void BuildImageToolbar(PdfObject obj)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        void Add(string label,string icon,Action action) { var button=new ToolButton { Content=label,Icon=icon,IconOnly=true,ToolTip=label,Padding=new Thickness(5),MinHeight=28 }; button.Click+=(_,_)=>Run(action); row.Children.Add(button); }
+        Add(Ui.T("Duplicar imagen"),"Duplicate",()=>{ Change(d=>d.DuplicateImage(page,obj.Index)); SelectObject(Pdf.Objects(page).Last().Index); });
+        Add(Ui.T("Adelantar"),"Up",()=>OrderSelectedObject(1)); Add(Ui.T("Atrasar"),"Down",()=>OrderSelectedObject(-1));
+        Add(Ui.T("Eliminar objeto"),"Delete",()=>Change(d=>d.RemoveObject(page,obj.Index)));
+        textToolbar=new Border { Background=Brushes.White,BorderBrush=Brushes.RoyalBlue,BorderThickness=new Thickness(1),Child=row };
+        Overlay.Children.Add(textToolbar);
     }
     void ApplyContextTextProperties()
     {
-        if (Selected is not { } selection || selection.Value.Type != 1) throw new InvalidOperationException("Selecciona texto.");
+        if (Selected is not { } selection || selection.Value.Type != 1) throw new InvalidOperationException(Ui.T("Selecciona texto."));
         var original = selection.Value;
         string value = TextValue.Text;
         bool requestedBold = BoldChoice.IsChecked == true, requestedItalic = ItalicChoice.IsChecked == true;
@@ -134,7 +146,7 @@ public partial class MainWindow
         float size = Number(FontSizeValue.Text);
         string colorText = ColorValue.Text.Trim();
         if (colorText.Length != 7 || colorText[0] != '#' || !uint.TryParse(colorText.AsSpan(1), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint rgb))
-            throw new ArgumentException("Selecciona un color válido.");
+            throw new ArgumentException(Ui.T("Selecciona un color válido."));
         bool textChange = substitute || value != original.Text;
         bool styleChange = Math.Abs(size - original.Size) > .001 || rgb != original.FillRgb;
         if (!textChange && !styleChange) return;
@@ -184,7 +196,7 @@ public partial class MainWindow
         FinishInlineText();
         CancelCanvasGesture(false);
         if (corner != null && (obj.Right <= obj.Left || obj.Top <= obj.Bottom))
-            throw new InvalidOperationException("Esta imagen no tiene un recuadro redimensionable.");
+            throw new InvalidOperationException(Ui.T("Esta imagen no tiene un recuadro redimensionable."));
         gesturePreview = new PdfDocument(Pdf.SaveBytes());
         gestureObject = obj;
         resizeCorner = corner;
@@ -320,16 +332,16 @@ public partial class MainWindow
         EditMode.IsSelected = true;
         addTextArmed = true;
         PageImage.Cursor = Cursors.IBeam;
-        Status.Text = "Haz clic en la página para escribir.";
+        Status.Text = Ui.T("Haz clic en la página para escribir.");
     }
     public void BeginInlineText(Point point, string initial = "", int? originalIndex = null, Point? caretPoint = null)
     {
         RequireObjectEditing();
         FinishInlineText();
         var originalObject = originalIndex is int selectedIndex ? Pdf.Objects(page).FirstOrDefault(o => o.Index == selectedIndex && o.Type == 1) : null;
-        if (originalIndex != null && originalObject == null) throw new InvalidOperationException("El texto original ya no está disponible.");
+        if (originalIndex != null && originalObject == null) throw new InvalidOperationException(Ui.T("El texto original ya no está disponible."));
         if (originalObject != null && (!originalObject.HorizontalText || Pdf.Info(page).Rotation != 0))
-            throw new InvalidOperationException("Este texto girado se edita desde el panel de propiedades.");
+            throw new InvalidOperationException(Ui.T("Este texto girado se edita desde el panel de propiedades."));
         if (originalObject != null) point = DeviceBounds(originalObject).TopLeft;
         bool substitute = originalIndex != null && FontChoice.SelectedIndex > 0;
         string family = FontChoice.SelectedIndex > 0 ? (string)FontChoice.SelectedItem : "Noto Sans";
@@ -362,7 +374,7 @@ public partial class MainWindow
             blanked.RemoveObject(page, originalObject.Index);
             PageImage.Source = Bitmap(blanked.Render(page, (int)PageImage.Width));
         }
-        System.Windows.Automation.AutomationProperties.SetName(inlineText, "Texto sobre la página");
+        System.Windows.Automation.AutomationProperties.SetName(inlineText, Ui.T("Texto sobre la página"));
         Canvas.SetLeft(inlineText, point.X);
         Canvas.SetTop(inlineText, point.Y);
         Overlay.Children.Add(inlineText);
@@ -373,7 +385,7 @@ public partial class MainWindow
         if (caretPoint is { } clicked)
             Dispatcher.BeginInvoke(() => { if (inlineText != null) { inlineText.UpdateLayout(); inlineText.CaretIndex = Math.Max(0, inlineText.GetCharacterIndexFromPoint(new Point(clicked.X - point.X, clicked.Y - point.Y), true)); } });
         else inlineText.CaretIndex = inlineText.Text.Length;
-        Status.Text = "Escribe en la página · Intro para aplicar · Esc para cancelar.";
+        Status.Text = Ui.T("Escribe en la página · Intro para aplicar · Esc para cancelar.");
     }
     public string? InlineTextValue
     {
@@ -477,25 +489,25 @@ public partial class MainWindow
             menu.Items.Add(item);
         }
         bool editable = Pdf.Count > 0 && Pdf.ObjectEditBlock == null;
-        Item("Añadir texto aquí", () => BeginInlineText(contextPoint), editable, "Text");
-        Item("Insertar imagen…", () => AddImageClick(sender, new RoutedEventArgs()), editable, "Image");
+        Item(Ui.T("Añadir texto aquí"), () => BeginInlineText(contextPoint), editable, "Text");
+        Item(Ui.T("Insertar imagen…"), () => AddImageClick(sender, new RoutedEventArgs()), editable, "Image");
         if (Selected is { } row)
         {
             menu.Items.Add(new Separator());
-            if (row.Value.Type == 1) Item("Editar texto", () => BeginInlineText(DeviceBounds(row.Value).TopLeft, row.Value.Text, row.Value.Index), editable, "Text");
-            if (row.Value.Type == 1) Item("Editar párrafo…", ArmParagraphSelection, editable, "Text");
-            Item("Traer al frente", () => OrderSelectedObject(1, true), editable, "Up");
-            Item("Adelantar", () => OrderSelectedObject(1), editable, "Up");
-            Item("Atrasar", () => OrderSelectedObject(-1), editable, "Down");
-            Item("Enviar al fondo", () => OrderSelectedObject(-1, true), editable, "Down");
+            if (row.Value.Type == 1) Item(Ui.T("Editar texto"), () => BeginInlineText(DeviceBounds(row.Value).TopLeft, row.Value.Text, row.Value.Index), editable, "Text");
+            if (row.Value.Type == 1) Item(Ui.T("Editar párrafo…"), ArmParagraphSelection, editable, "Text");
+            Item(Ui.T("Traer al frente"), () => OrderSelectedObject(1, true), editable, "Front");
+            Item(Ui.T("Adelantar"), () => OrderSelectedObject(1), editable, "Up");
+            Item(Ui.T("Atrasar"), () => OrderSelectedObject(-1), editable, "Down");
+            Item(Ui.T("Enviar al fondo"), () => OrderSelectedObject(-1, true), editable, "Back");
             menu.Items.Add(new Separator());
-            Item("Propiedades", () => (row.Value.Type == 1 ? TextValue : XValue).Focus(), true, "Position");
-            Item("Eliminar objeto", () => Change(d => d.RemoveObject(page, row.Value.Index)), editable, "Delete");
-            Item("Deseleccionar", () => ObjectsList.SelectedItem = null, true, "Check");
+            Item(Ui.T("Propiedades"), () => { var field=row.Value.Type == 1 ? TextValue : XValue; field.BringIntoView(); field.Focus(); field.SelectAll(); }, true, "Position");
+            Item(Ui.T("Eliminar objeto"), () => Change(d => d.RemoveObject(page, row.Value.Index)), editable, "Delete");
+            Item(Ui.T("Deseleccionar"), () => ObjectsList.SelectedItem = null, true, "Check");
         }
         menu.Items.Add(new Separator());
-        Item("Deshacer", () => UndoClick(sender, new RoutedEventArgs()), session.CanUndo, "Down");
-        Item("Rehacer", () => RedoClick(sender, new RoutedEventArgs()), session.CanRedo, "Up");
+        Item(Ui.T("Deshacer"), () => UndoClick(sender, new RoutedEventArgs()), session.CanUndo, "Undo");
+        Item(Ui.T("Rehacer"), () => RedoClick(sender, new RoutedEventArgs()), session.CanRedo, "Redo");
     }
     public void OrderSelectedObject(int direction, bool extreme = false)
     {

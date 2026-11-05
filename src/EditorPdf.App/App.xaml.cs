@@ -47,7 +47,7 @@ public partial class App : Application
                         Thread.Sleep(75);
                 }
                 if (!sent)
-                    throw new IOException("No se pudo entregar la selección a Editor PDF. Vuelve a intentarlo cuando termine de abrirse.");
+                    throw new IOException(Ui.T("No se pudo entregar la selección a Editor PDF. Vuelve a intentarlo cuando termine de abrirse."));
                 Shutdown();
                 return;
             }

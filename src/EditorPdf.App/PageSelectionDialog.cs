@@ -31,7 +31,7 @@ public sealed class PageSelectionDialog : Window
     readonly ListBox pages;
     readonly Image preview = new() { Stretch = Stretch.Uniform, Margin = new Thickness(12) };
     readonly TextBlock count = new();
-    readonly Button accept = new() { Content = "Continuar", IsDefault = true };
+    readonly Button accept = new() { Content = Ui.T("Continuar"), IsDefault = true };
     readonly ComboBox position = new() { MinWidth = 210, Margin = new Thickness(8, 0, 0, 0) };
     readonly TextBox blockSize = new() { Text = "1", Width = 60, Margin = new Thickness(8, 0, 0, 0) };
     readonly int destinationCount, currentPage;
@@ -42,7 +42,7 @@ public sealed class PageSelectionDialog : Window
     }
     public int[] SelectedPages => Choices.Where(c => c.Chosen).Select(c => c.Index).ToArray();
     public int InsertionIndex => position.SelectedIndex switch { 0 => Math.Clamp(currentPage, 0, destinationCount), 1 => Math.Min(currentPage + 1, destinationCount), _ => destinationCount };
-    public int PagesPerFile => int.TryParse(blockSize.Text, out int size) && size > 0 && size <= 10000 ? size : throw new ArgumentException("Usa entre 1 y 10000 páginas por archivo.");
+    public int PagesPerFile => int.TryParse(blockSize.Text, out int size) && size > 0 && size <= 10000 ? size : throw new ArgumentException(Ui.T("Usa entre 1 y 10000 páginas por archivo."));
     public PageSelectionDialog(PdfDocument pdf, string title, int selectedPage = -1, int? insertIntoCount = null, int currentPage = 0, bool split = false)
     {
         this.pdf = pdf;
@@ -63,8 +63,8 @@ public sealed class PageSelectionDialog : Window
         root.Children.Add(top);
         var select = new StackPanel { Orientation = Orientation.Horizontal };
         top.Children.Add(select);
-        var all = new Button { Content = "Todas" };
-        var none = new Button { Content = "Ninguna" };
+        var all = new Button { Content = Ui.T("Todas") };
+        var none = new Button { Content = Ui.T("Ninguna") };
         all.Click += (_, _) => SetSelection(true);
         none.Click += (_, _) => SetSelection(false);
         select.Children.Add(all);
@@ -73,7 +73,7 @@ public sealed class PageSelectionDialog : Window
         var bottom = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0) };
         DockPanel.SetDock(bottom, Dock.Bottom);
         root.Children.Add(bottom);
-        var cancel = new Button { Content = "Cancelar", IsCancel = true };
+        var cancel = new Button { Content = Ui.T("Cancelar"), IsCancel = true };
         bottom.Children.Add(cancel);
         bottom.Children.Add(accept);
         if (insertIntoCount != null)
@@ -81,10 +81,10 @@ public sealed class PageSelectionDialog : Window
             var placement = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
             DockPanel.SetDock(placement, Dock.Top);
             root.Children.Add(placement);
-            placement.Children.Add(new TextBlock { Text = "Insertar" });
-            position.Items.Add("Antes de la página " + (currentPage + 1));
-            position.Items.Add("Después de la página " + (currentPage + 1));
-            position.Items.Add("Al final");
+            placement.Children.Add(new TextBlock { Text = Ui.T("Insertar") });
+            position.Items.Add((Ui.Current.Language=="en" ? "Before page " : "Antes de la página ") + (currentPage + 1));
+            position.Items.Add((Ui.Current.Language=="en" ? "After page " : "Después de la página ") + (currentPage + 1));
+            position.Items.Add(Ui.T("Al final"));
             position.SelectedIndex = destinationCount == 0 ? 2 : 1;
             placement.Children.Add(position);
         }
@@ -93,7 +93,7 @@ public sealed class PageSelectionDialog : Window
             var grouping = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
             DockPanel.SetDock(grouping, Dock.Top);
             root.Children.Add(grouping);
-            grouping.Children.Add(new TextBlock { Text = "Páginas por archivo" });
+            grouping.Children.Add(new TextBlock { Text = Ui.T("Páginas por archivo") });
             grouping.Children.Add(blockSize);
         }
         var grid = new Grid();
@@ -125,7 +125,7 @@ public sealed class PageSelectionDialog : Window
         pages.PreviewKeyDown += (_, e) => { if (e.Key == Key.Space && Keyboard.FocusedElement is not CheckBox && pages.SelectedItem is Choice c) { c.Chosen = !c.Chosen; e.Handled = true; } };
         foreach (var choice in Choices)
             choice.PropertyChanged += (sender, _) => { if (!selectingAll) { UpdateCount(); pages.SelectedItem = sender; } };
-        accept.Click += (_, _) => { if (SelectedPages.Length == 0) return; if (split && (!int.TryParse(blockSize.Text, out int n) || n < 1 || n > 10000)) { MessageBox.Show(this, "Indica un número entre 1 y 10000.", "Dividir PDF"); return; } DialogResult = true; };
+        accept.Click += (_, _) => { if (SelectedPages.Length == 0) return; if (split && (!int.TryParse(blockSize.Text, out int n) || n < 1 || n > 10000)) { MessageBox.Show(this, Ui.T("Indica un número entre 1 y 10000."), Ui.T("Dividir PDF")); return; } DialogResult = true; };
         UpdateCount();
         pages.SelectedIndex = Math.Clamp(selectedPage, 0, Math.Max(0, pdf.Count - 1));
         Closed += (_, _) => { pages.ItemsSource = null; preview.Source = null; };
@@ -139,7 +139,7 @@ public sealed class PageSelectionDialog : Window
     }
     void UpdateCount()
     {
-        count.Text = $"  {Choices.Count(c => c.Chosen)} de {Choices.Count}";
+        count.Text = $"  {Choices.Count(c => c.Chosen)} / {Choices.Count}";
         accept.IsEnabled = Choices.Any(c => c.Chosen);
     }
     public void SetSelection(bool selected)

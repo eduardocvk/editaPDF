@@ -13,9 +13,10 @@ namespace EditorPdf.App;
 public partial class MainWindow : Window
 {
     readonly Action<Uri> openExternal;
+    readonly bool useFirmaBridge;
     readonly Action<Exception>? reportError;
     public static Uri FirmaPdfStoreUri { get; } = new("https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ");
-    readonly string recoveryFolder; readonly bool restoreOnLoad; Session session = new(); int page; double zoom = 1; bool refreshing; int searchPage = -1, searchOffset; string lastQuery = "";
+    readonly string recoveryFolder; readonly bool restoreOnLoad; Session session = new(); int page; double zoom = 1; bool refreshing;
     public static string RecoveryFolder => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EditorPDF", "Recovery");
     PdfDocument Pdf => session.Document; ObjectRow? Selected => ObjectsList.SelectedItem as ObjectRow;
     public MainWindow(string? localRecovery = null, bool restore = true, Action<Uri>? externalLinkOpener = null, Action<Exception>? errorReporter = null)
@@ -23,16 +24,38 @@ public partial class MainWindow : Window
         recoveryFolder = localRecovery ?? RecoveryFolder;
         restoreOnLoad = restore;
         reportError = errorReporter;
+        useFirmaBridge = externalLinkOpener == null;
         openExternal = externalLinkOpener ?? (uri => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true }));
         InitializeComponent();
-        FontChoice.ItemsSource = new[] { "Conservar original" }.Concat(PdfDocument.IncludedFontFamilies).ToArray();
+        if(useFirmaBridge && FirmaPdfBridge.FindExecutable()!=null && FirmaPdfBanner.Content is StackPanel banner)
+        {
+            banner.Children.OfType<TextBlock>().First().Text=Ui.T("Firma con tu certificado digital");
+            banner.Children.OfType<TextBlock>().Last().Text=Ui.T("Firma este PDF ↗");
+            FirmaPdfBanner.ToolTip=Ui.T("Guardar una copia y abrirla en FirmaPDF");
+        }
+        FontChoice.ItemsSource = new[] { Ui.T("Conservar original") }.Concat(PdfDocument.IncludedFontFamilies).ToArray();
         FontChoice.SelectedIndex = 1;
         InitializeWorkspace();
         InitializeCanvas();
         Icon = BitmapFrame.Create(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "EditorPDF.ico")));
         HeaderLogo.Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")));
         FontFamily = new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/#Noto Sans");
-        Loaded += (_, _) => { if (restoreOnLoad && HasRecovery() && MessageBox.Show(this, "Hay documentos de una sesión local anterior. ¿Recuperarlos?", "Recuperar sesión", MessageBoxButton.YesNo) == MessageBoxResult.Yes) Run(RestoreWorkspace, "Sesión recuperada."); else Refresh(); };
+        Loaded += (_, _) => Refresh();
+    }
+    void ChangeLanguage(object sender, RoutedEventArgs e)
+    {
+        if(sender is not MenuItem { Tag: string language }) return;
+        Run(() => SetInterfaceLanguage(language));
+    }
+    public void SetInterfaceLanguage(string language, bool persist = true)
+    {
+        FinishInlineText();
+        Ui.Current.SetLanguage(language,persist);
+        int selected=FontChoice.SelectedIndex;
+        FontChoice.ItemsSource=new[] { Ui.T("Conservar original") }.Concat(PdfDocument.IncludedFontFamilies).ToArray();
+        FontChoice.SelectedIndex=selected;
+        Status.Text=Ui.T("Selecciona el texto dibujando un rectángulo alrededor.");
+        if(Selected is { } row) DrawObjectSelection(row.Value);
     }
     void Run(Action work, string? success = null)
     {
@@ -43,23 +66,15 @@ public partial class MainWindow : Window
             if (success != null)
                 Status.Text = success;
         }
-        catch (Exception ex) when (ex is not OutOfMemoryException) { Status.Text = ex.Message; if (reportError != null) reportError(ex); else MessageBox.Show(this, ex.Message, "Editor PDF", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { Status.Text = Ui.T(ex.Message); if (reportError != null) reportError(ex); else MessageBox.Show(this, Ui.T(ex.Message), "Editor PDF", MessageBoxButton.OK, MessageBoxImage.Warning); }
         finally { Mouse.OverrideCursor = null; }
     }
     void RequireDocument()
     {
         if (Pdf.Count == 0)
-            throw new InvalidOperationException("Abre un PDF primero.");
+            throw new InvalidOperationException(Ui.T("Abre un PDF primero."));
     }
-    bool Recover()
-    {
-        try
-        {
-            SaveWorkspace();
-            return true;
-        }
-        catch (Exception ex) { Status.Text = "Los cambios siguen en memoria; no se pudo guardar la recuperación local: " + ex.Message; if (reportError != null) reportError(ex); else MessageBox.Show(this, Status.Text, "Recuperación local", MessageBoxButton.OK, MessageBoxImage.Warning); return false; }
-    }
+    bool Recover() => true;
     void Change(Action<PdfDocument> mutation, int? selectedPage = null)
     {
         FinishInlineText();
@@ -68,7 +83,7 @@ public partial class MainWindow : Window
         if (selectedPage.HasValue)
             page = selectedPage.Value;
         Refresh();
-        Status.Text = "Cambios sin guardar";
+        Status.Text = Ui.T("Cambios sin guardar");
         Recover();
     }
     static BitmapSource Bitmap(Raster r)
@@ -85,7 +100,7 @@ public partial class MainWindow : Window
     }
     public sealed record ObjectRow(PdfObject Value)
     {
-        public string Label => Value.Type == 3 ? "Imagen" : string.IsNullOrWhiteSpace(Value.Text) ? "Texto (sin mapa Unicode)" : Value.Text.Replace("\r", " ").Replace("\n", " ");
+        public string Label => Value.Type == 3 ? Ui.T("Imagen") : string.IsNullOrWhiteSpace(Value.Text) ? "Texto (sin mapa Unicode)" : Value.Text.Replace("\r", " ").Replace("\n", " ");
     }
     void Refresh()
     {
@@ -130,7 +145,7 @@ public partial class MainWindow : Window
         Paper.Height = raster.Height;
         ObjectsList.ItemsSource = Pdf.Objects(page).Select(x => new ObjectRow(x)).ToArray();
         ZoomLabel.Text = $"{zoom * 100:0} %";
-        Status.Text = $"Página {page + 1} de {Pdf.Count}" + (Pdf.EditBlock != null ? " · Solo lectura" : "") + (session.Dirty ? " · Cambios sin guardar" : "");
+        Status.Text = (Ui.Current.Language=="en" ? $"Page {page+1} of {Pdf.Count}" : $"Página {page+1} de {Pdf.Count}") + (Pdf.EditBlock != null ? (Ui.Current.Language=="en" ? " · Read only" : " · Solo lectura") : "") + (session.Dirty ? (Ui.Current.Language=="en" ? " · Unsaved changes" : " · Cambios sin guardar") : "");
         if (Pdf.EditBlock != null)
             Status.ToolTip = Pdf.EditBlock;
         else
@@ -140,7 +155,7 @@ public partial class MainWindow : Window
     {
         if (!session.Dirty)
             return true;
-        var result = MessageBox.Show(this, "¿Guardar una copia de los cambios antes de continuar?", "Cambios sin guardar", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+        var result = MessageBox.Show(this, Ui.T("¿Guardar una copia de los cambios antes de continuar?"), Ui.T("Cambios sin guardar"), MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
         if (result == MessageBoxResult.Cancel)
             return false;
         if (result == MessageBoxResult.No)
@@ -170,7 +185,7 @@ public partial class MainWindow : Window
         session.SaveNew(d.FileName);
         Refresh();
         Recover();
-        Status.Text = "Copia guardada y comprobada.";
+        Status.Text = Ui.T("Copia guardada y comprobada.");
         return true;
     }
     void SaveClick(object sender, RoutedEventArgs e) => Run(() => SaveCopy());
@@ -280,11 +295,11 @@ public partial class MainWindow : Window
     }
     void Mark(PdfObject o) => DrawObjectSelection(o);
     void AddTextClick(object sender, RoutedEventArgs e) => Run(ArmTextInsertion);
-    void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException("Selecciona un objeto de texto."); var text = TextValue.Text; bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true; bool originalBold = o.Value.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase), originalItalic = o.Value.Font.Contains("Italic", StringComparison.OrdinalIgnoreCase) || o.Value.Font.Contains("Oblique", StringComparison.OrdinalIgnoreCase); if (FontChoice.SelectedIndex == 0 && (bold != originalBold || italic != originalItalic)) ChooseStyleFont(o.Value); bool substitute = FontChoice.SelectedIndex > 0; if (!substitute && text == o.Value.Text) return; string family = substitute ? (string)FontChoice.SelectedItem : "Noto Sans"; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute, family, bold, italic)); });
+    void ApplyTextClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o || o.Value.Type != 1) throw new InvalidOperationException(Ui.T("Selecciona un objeto de texto.")); var text = TextValue.Text; bool bold = BoldChoice.IsChecked == true, italic = ItalicChoice.IsChecked == true; bool originalBold = o.Value.Font.Contains("Bold", StringComparison.OrdinalIgnoreCase), originalItalic = o.Value.Font.Contains("Italic", StringComparison.OrdinalIgnoreCase) || o.Value.Font.Contains("Oblique", StringComparison.OrdinalIgnoreCase); if (FontChoice.SelectedIndex == 0 && (bold != originalBold || italic != originalItalic)) ChooseStyleFont(o.Value); bool substitute = FontChoice.SelectedIndex > 0; if (!substitute && text == o.Value.Text) return; string family = substitute ? (string)FontChoice.SelectedItem : "Noto Sans"; Change(d => d.ReplaceText(page, o.Value.Index, text, substitute, family, bold, italic)); });
     void ApplyStyleClick(object sender, RoutedEventArgs e) => Run(() =>
     {
         if (Selected is not { } row || row.Value.Type != 1)
-            throw new InvalidOperationException("Selecciona un objeto de texto.");
+            throw new InvalidOperationException(Ui.T("Selecciona un objeto de texto."));
         string color = ColorValue.Text.Trim();
         if (color.Length != 7 || color[0] != '#' || !uint.TryParse(color.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
             throw new ArgumentException("Usa un color #RRGGBB, por ejemplo #235EBC.");
@@ -308,15 +323,15 @@ public partial class MainWindow : Window
         float current = float.TryParse(FontSizeValue.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out var value) ? value : 14;
         FontSizeValue.Text = Math.Clamp(current + delta, 1, 512).ToString("0.##", CultureInfo.CurrentCulture);
     }
-    void DeleteObjectClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o) throw new InvalidOperationException("Selecciona texto o imagen."); Change(d => d.RemoveObject(page, o.Value.Index)); });
+    void DeleteObjectClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } o) throw new InvalidOperationException(Ui.T("Selecciona texto o imagen.")); Change(d => d.RemoveObject(page, o.Value.Index)); });
     static float Number(string text)
     {
         if (!float.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out var n) || !float.IsFinite(n))
-            throw new ArgumentException("Introduce una medida válida.");
+            throw new ArgumentException(Ui.T("Introduce una medida válida."));
         return n;
     }
-    void ApplyPositionClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } row) throw new InvalidOperationException("Selecciona texto o imagen."); var o = row.Value; float x = Number(XValue.Text), y = Number(YValue.Text), w = Number(WValue.Text), h = Number(HValue.Text); if (w <= 0 || h <= 0 || o.Right <= o.Left || o.Top <= o.Bottom) throw new ArgumentException("Ancho y alto deben ser mayores que cero."); if (o.Type == 1 && (Math.Abs(w - (o.Right - o.Left)) > 0.05 || Math.Abs(h - (o.Top - o.Bottom)) > 0.05)) throw new InvalidOperationException("El cambio de tamaño mediante ancho y alto está disponible para imágenes. El texto puede moverse."); Change(d => d.Transform(page, o.Index, x - o.Left, y - o.Bottom, o.Type == 3 ? w / (o.Right - o.Left) : 1, o.Type == 3 ? h / (o.Top - o.Bottom) : 1)); });
-    void AddImageClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); var dialog = new OpenFileDialog { Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp" }; if (dialog.ShowDialog(this) != true) return; BitmapSource image; using (var file = File.OpenRead(LocalFiles.Validate(dialog.FileName))) { var decoder = BitmapDecoder.Create(file, BitmapCreateOptions.IgnoreImageCache, BitmapCacheOption.OnLoad); image = new FormatConvertedBitmap(decoder.Frames[0], PixelFormats.Bgra32, null, 0); } if ((long)image.PixelWidth * image.PixelHeight > 25_000_000) throw new InvalidOperationException("La imagen supera 25 megapíxeles."); int stride = image.PixelWidth * 4; var pixels = new byte[stride * image.PixelHeight]; image.CopyPixels(pixels, stride, 0); FinishInlineText(); float width = Math.Min(240, Pdf.Info(page).Width - 80), height = width * image.PixelHeight / image.PixelWidth; Change(d => d.AddImage(page, image.PixelWidth, image.PixelHeight, stride, pixels, 40, Math.Max(20, Pdf.Info(page).Height - height - 60), width, height)); ObjectsList.SelectedItem = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(); });
+    void ApplyPositionClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } row) throw new InvalidOperationException(Ui.T("Selecciona texto o imagen.")); var o = row.Value; float x = Number(XValue.Text), y = Number(YValue.Text), w = Number(WValue.Text), h = Number(HValue.Text); if (w <= 0 || h <= 0 || o.Right <= o.Left || o.Top <= o.Bottom) throw new ArgumentException("Ancho y alto deben ser mayores que cero."); if (o.Type == 1 && (Math.Abs(w - (o.Right - o.Left)) > 0.05 || Math.Abs(h - (o.Top - o.Bottom)) > 0.05)) throw new InvalidOperationException(Ui.T("El cambio de tamaño mediante ancho y alto está disponible para imágenes. El texto puede moverse.")); Change(d => d.Transform(page, o.Index, x - o.Left, y - o.Bottom, o.Type == 3 ? w / (o.Right - o.Left) : 1, o.Type == 3 ? h / (o.Top - o.Bottom) : 1)); });
+    void AddImageClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); var dialog = new OpenFileDialog { Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp" }; if (dialog.ShowDialog(this) != true) return; BitmapSource image; using (var file = File.OpenRead(LocalFiles.Validate(dialog.FileName))) { var decoder = BitmapDecoder.Create(file, BitmapCreateOptions.IgnoreImageCache, BitmapCacheOption.OnLoad); image = new FormatConvertedBitmap(decoder.Frames[0], PixelFormats.Bgra32, null, 0); } if ((long)image.PixelWidth * image.PixelHeight > 25_000_000) throw new InvalidOperationException(Ui.T("La imagen supera 25 megapíxeles.")); int stride = image.PixelWidth * 4; var pixels = new byte[stride * image.PixelHeight]; image.CopyPixels(pixels, stride, 0); FinishInlineText(); float width = Math.Min(240, Pdf.Info(page).Width - 80), height = width * image.PixelHeight / image.PixelWidth; Change(d => d.AddImage(page, image.PixelWidth, image.PixelHeight, stride, pixels, 40, Math.Max(20, Pdf.Info(page).Height - height - 60), width, height)); ObjectsList.SelectedItem = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(); });
     void PageMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (EditMode.IsSelected != true || Pdf.Count == 0)
@@ -372,7 +387,30 @@ public partial class MainWindow : Window
             ShowPage();
     }
     void ZoomOut(object sender, RoutedEventArgs e) => Run(() => SetZoom(zoom / 1.2)); void ZoomIn(object sender, RoutedEventArgs e) => Run(() => SetZoom(zoom * 1.2)); void FitClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); SetZoom((DocumentScroll.ViewportWidth - 65) / Pdf.Info(page).Width); });
-    void SearchClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); string q = SearchBox.Text; if (string.IsNullOrWhiteSpace(q)) return; if (q != lastQuery) { searchPage = page; searchOffset = 0; lastQuery = q; } for (int k = 0; k <= Pdf.Count; k++) { int i = (Math.Max(0, searchPage) + k) % Pdf.Count; var text = Pdf.Text(i); int at = text.IndexOf(q, k == 0 ? Math.Min(searchOffset, text.Length) : 0, StringComparison.OrdinalIgnoreCase); if (at < 0) continue; page = i; searchPage = i; searchOffset = at + q.Length; refreshing = true; PagesList.SelectedIndex = page; refreshing = false; ShowPage(); var row = ObjectsList.Items.Cast<ObjectRow>().FirstOrDefault(x => x.Value.Text.Contains(q, StringComparison.OrdinalIgnoreCase)); if (row != null) ObjectsList.SelectedItem = row; Status.Text = $"Encontrado en página {i + 1}."; return; } Status.Text = "No se encontró el texto."; searchPage = page; searchOffset = 0; });
+    int matchIndex = -1;
+    string matchQuery = "";
+    void SearchPrevious(object sender, RoutedEventArgs e) => Run(() => FindMatch(-1));
+    void SearchClick(object sender, RoutedEventArgs e) => Run(() => FindMatch(1));
+    void FindMatch(int direction)
+    {
+        RequireDocument(); string query=SearchBox.Text;
+        if(string.IsNullOrWhiteSpace(query)) { SearchCount.Text=""; return; }
+        var matches=new List<(int Page,int Offset)>();
+        for(int i=0;i<Pdf.Count;i++) { string text=Pdf.Text(i); int at=0; while(at<text.Length) { int found=text.IndexOf(query,at,StringComparison.OrdinalIgnoreCase); if(found<0) break; matches.Add((i,found)); at=found+query.Length; } }
+        if(query!=matchQuery) { matchQuery=query; matchIndex=-1; }
+        if(matches.Count==0) { SearchCount.Text="0"; Status.Text=Ui.T("No se encontró el texto."); return; }
+        matchIndex=matchIndex<0 ? (direction<0 ? matches.Count-1 : 0) : (matchIndex+direction+matches.Count)%matches.Count;
+        page=matches[matchIndex].Page; refreshing=true; PagesList.SelectedIndex=page; refreshing=false; ShowPage(); SearchCount.Text=$"{matchIndex+1}/{matches.Count}";
+        int occurrence=matches.Take(matchIndex).Count(m=>m.Page==page);
+        var candidates=new List<ObjectRow>();
+        foreach(var item in ObjectsList.Items.Cast<ObjectRow>())
+        {
+            int offset=0;
+            while(offset<item.Value.Text.Length) { int found=item.Value.Text.IndexOf(query,offset,StringComparison.OrdinalIgnoreCase); if(found<0) break; candidates.Add(item); offset=found+query.Length; }
+        }
+        var row=candidates.ElementAtOrDefault(occurrence) ?? candidates.FirstOrDefault();
+        if(row!=null) { ObjectsList.SelectedItem=row; var bounds=DeviceBounds(row.Value); DocumentScroll.ScrollToVerticalOffset(Math.Max(0,bounds.Top-80)); }
+    }
     void SearchKeys(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
@@ -381,9 +419,20 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
     }
-    void PrintClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); if (LocalPrinting.Print(this, Pdf)) Status.Text = "Documento enviado a la impresora local seleccionada."; });
-    void FirmaPdfClick(object sender, RoutedEventArgs e) => Run(() => openExternal(FirmaPdfStoreUri));
-    void PrivacyClick(object sender, RoutedEventArgs e) => MessageBox.Show(this, "Procesamiento local. Sin telemetría, descargas, JavaScript PDF ni servicios remotos.\n\nLa recuperación guarda una copia del PDF en tu perfil local. No se guardan contraseñas. La impresión solo admite puertos locales compatibles.\n\nEl banner FirmaPDF solo abre su ficha en el navegador al pulsarlo, sin documentos, rutas ni datos de sesión.\n\nAGPL-3.0-or-later. Licencias y fuentes incluidas.", "Privacidad", MessageBoxButton.OK, MessageBoxImage.Information);
+    void PrintClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); if (LocalPrinting.Print(this, Pdf)) Status.Text = Ui.T("Documento enviado a la impresora local seleccionada."); });
+    void FirmaPdfClick(object sender, RoutedEventArgs e) => Run(() =>
+    {
+        var executable=useFirmaBridge ? FirmaPdfBridge.FindExecutable() : null;
+        if(executable==null) { openExternal(FirmaPdfStoreUri); return; }
+        FinishInlineText(); RequireDocument();
+        var save=new SaveFileDialog { Filter="PDF (*.pdf)|*.pdf",FileName="documento_para_firmar.pdf",Title=Ui.T("Guardar copia para FirmaPDF") };
+        if(save.ShowDialog(this)!=true) return;
+        Pdf.SaveNew(save.FileName);
+        FirmaPdfBridge.Open(executable,save.FileName);
+    });
+    void PrivacyClick(object sender, RoutedEventArgs e) => MessageBox.Show(this,
+        Ui.Current.Language=="en" ? "PDF files are processed locally. No telemetry, remote processing or automatic session recovery. Documents are saved only when you choose to save them. Printing uses Windows. The FirmaPDF button saves a copy you select and opens the installed app, or opens its Store page if it is unavailable. AGPL-3.0-or-later; source code and licenses included."
+        : "Los PDF se procesan localmente. Sin telemetría, procesamiento remoto ni recuperación automática de sesión. Los documentos solo se guardan cuando lo solicitas. La impresión utiliza Windows. El botón FirmaPDF guarda una copia elegida por ti y abre la aplicación instalada, o su ficha de Store si no está disponible. AGPL-3.0-or-later; código y licencias incluidos.", Ui.T("Privacidad"),MessageBoxButton.OK,MessageBoxImage.Information);
     void KeysPressed(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape && (inlineText != null || addTextArmed || gestureObject != null || paragraphArmed || areaSelection != null))
@@ -491,8 +540,8 @@ public partial class MainWindow : Window
         panel.Children.Add(new Label { Content = label, Target = input });
         panel.Children.Add(input);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var cancel = new Button { Content = "Cancelar", IsCancel = true };
-        var accept = new Button { Content = "Aceptar", IsDefault = true };
+        var cancel = new Button { Content = Ui.T("Cancelar"), IsCancel = true };
+        var accept = new Button { Content = Ui.T("Aceptar"), IsDefault = true };
         accept.Click += (_, _) => dialog.DialogResult = true;
         buttons.Children.Add(cancel);
         buttons.Children.Add(accept);

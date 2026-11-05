@@ -21,13 +21,6 @@ static class CanvasChecks
         if (!((Canvas)window.FindName("Overlay")).Children.OfType<TextBox>().Any(t => t.Text.Contains("Texto escrito")))
             throw new Exception("El texto no está visible en el lienzo mientras se escribe");
         capture("texto-en-pagina", 1280, 780, 1);
-        typeof(MainWindow).GetMethod("SaveWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
-        var recovery = (string)typeof(MainWindow).GetField("recoveryFolder", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(window)!;
-        var recovered = new MainWindow(recovery, false, _ => { }, e => throw e);
-        typeof(MainWindow).GetMethod("RestoreWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recovered, null);
-        if (recovered.InlineTextValue != "Texto escrito sobre la pagina")
-            throw new Exception("No se recupera el borrador en página");
-        typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recovered, null);
         window.FinishInlineText();
         if (!session.Document.Text(0).Contains("Texto escrito sobre la pagina"))
             throw new Exception("No se confirma texto sobre el PDF");
@@ -192,6 +185,11 @@ static class CanvasChecks
         if (paragraphDialog.ParagraphText != "Una línea\nOtra línea" || paragraphDialog.FontChoice != null || paragraphDialog.ParagraphWidth != 240)
             throw new Exception("El editor de párrafos no presenta el texto y la fuente original");
         CaptureDialog(paragraphDialog, Path.Combine(folder, "editor-parrafo.png"), 650, 480);
+        CaptureDialog(new PrintPreviewDialog(window,session.Document),Path.Combine(folder,"vista-previa-impresion.png"),880,760);
+        window.SetInterfaceLanguage("en",false);
+        capture("english-interface",1280,780,1);
+        if(Ui.T("Añadir texto")!="Add text") throw new Exception("No se traduce la interfaz al inglés");
+        window.SetInterfaceLanguage("es",false);
         var textForArea = session.Document.Objects(0).First(o => o.Type == 1 && !string.IsNullOrWhiteSpace(o.Text) && o.HorizontalText);
         var cornerA = session.Document.ToDevice(0, (int)image.Width, (int)image.Height, textForArea.Left, textForArea.Top);
         var cornerB = session.Document.ToDevice(0, (int)image.Width, (int)image.Height, textForArea.Right, textForArea.Bottom);
@@ -211,7 +209,7 @@ static class CanvasChecks
         if (!overlay.Children.OfType<ToolButton>().Any(b => Equals(b.ToolTip, "Editar texto seleccionado")))
             throw new Exception("La selección de texto por arrastre no ofrece el botón contextual de edición");
         typeof(MainWindow).GetMethod("CancelParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
-        Console.WriteLine("PASS lienzo: texto visible, recuperación de borrador, movimiento con vista previa, cancelación, esquinas, menú contextual y selección visual de páginas");
+        Console.WriteLine("PASS lienzo: texto visible, movimiento con vista previa, cancelación, esquinas, menú contextual y selección visual de páginas");
     }
     static void CapturePicker(PageSelectionDialog picker, string path)
     {

@@ -12,6 +12,12 @@ public sealed class ToolButton : Button
     public bool IconOnly { get; set; }
     static readonly Dictionary<string, string> Shapes = new()
     {
+        ["Undo"] = "M8,3 L3,8 8,13 M3,8 H12 A5,5 0 0 1 12,18",
+        ["Redo"] = "M12,3 L17,8 12,13 M17,8 H8 A5,5 0 0 0 8,18",
+        ["Front"] = "M3,2 H17 M10,18 V6 M5,11 L10,6 15,11",
+        ["Back"] = "M3,18 H17 M10,2 V14 M5,9 L10,14 15,9",
+        ["Style"] = "M3,16 L6,7 H14 L17,16 M5,12 H15 M3,19 H17 M15,2 L17,4 19,2",
+        ["PositionCheck"] = "M8,1 V13 M2,7 H14 M5,4 L8,1 11,4 M3,16 L7,19 17,10",
         ["PagePlus"] = "M3,2 L11,2 16,7 16,18 3,18 Z M11,2 V7 H16 M9,9 V15 M6,12 H12",
         ["Duplicate"] = "M7,6 H17 V18 H7 Z M3,14 V2 H13",
         ["Rotate"] = "M4,7 A7,7 0 1 1 4,15 M4,2 V7 H9",
@@ -45,7 +51,7 @@ public sealed class ToolButton : Button
         canvas.Children.Add(path);
         var panel = new StackPanel { Orientation = Orientation.Horizontal };
         panel.Children.Add(new Viewbox { Width = 16, Height = 16, Child = canvas, Margin = IconOnly ? new Thickness(0) : new Thickness(0, 0, 6, 0) });
-        if (!IconOnly) panel.Children.Add(new AccessText { Text = label, VerticalAlignment = VerticalAlignment.Center });
+        if (!IconOnly) { var text=new AccessText { VerticalAlignment=VerticalAlignment.Center }; text.SetBinding(AccessText.TextProperty,new Binding("["+label+"]") { Source=Ui.Current }); panel.Children.Add(text); }
         AutomationProperties.SetName(this, label.Replace("_", ""));
         Content = panel;
     }

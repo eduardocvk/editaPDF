@@ -14,7 +14,7 @@ public sealed class ColorPickerDialog : Window
     public ColorPickerDialog(Window owner, uint original)
     {
         if (owner.IsVisible) Owner = owner;
-        Title = "Elegir color";
+        Title = Ui.T("Elegir color");
         Width = 475;
         Height = 440;
         MinWidth = 410;
@@ -23,8 +23,8 @@ public sealed class ColorPickerDialog : Window
         sample.Background = Brush(original);
         var root = new DockPanel { Margin = new Thickness(18), Background = Brushes.White };
         var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var cancel = new Button { Content = "Cancelar", IsCancel = true };
-        var accept = new Button { Content = "Elegir color", IsDefault = true };
+        var cancel = new Button { Content = Ui.T("Cancelar"), IsCancel = true };
+        var accept = new Button { Content = Ui.T("Elegir color"), IsDefault = true };
         accept.Click += (_, _) => DialogResult = true;
         footer.Children.Add(cancel);
         footer.Children.Add(accept);
@@ -35,7 +35,7 @@ public sealed class ColorPickerDialog : Window
         DockPanel.SetDock(brightness, Dock.Bottom);
         root.Children.Add(brightness);
         var area = new StackPanel();
-        area.Children.Add(new TextBlock { Text = "Color", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8) });
+        area.Children.Add(new TextBlock { Text = Ui.T("Color"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8) });
         area.Children.Add(palette);
         root.Children.Add(area);
         Content = root;

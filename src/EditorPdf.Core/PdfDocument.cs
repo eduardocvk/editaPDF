@@ -369,9 +369,10 @@ public sealed class PdfDocument : IDisposable
         finally { N.FPDFText_ClosePage(t); }
     }
     // Rebuilds a simple horizontal paragraph as real text objects, inside Session.Execute's transaction.
-    public void ReplaceParagraph(int page, int[] indices, string text, float width, string? family = null, bool bold = false, bool italic = false)
+    public void ReplaceParagraph(int page, int[] indices, string text, float width, string? family = null, bool bold = false, bool italic = false, int alignment = 0)
     {
         Mutating();
+        if (alignment < 0 || alignment > 3) throw new ArgumentOutOfRangeException(nameof(alignment));
         if (indices.Length == 0 || indices.Distinct().Count() != indices.Length || !float.IsFinite(width) || width < 30 || width > 2000)
             throw new ArgumentException("Selecciona líneas de texto y un ancho válido.");
         var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
@@ -451,8 +452,21 @@ public sealed class PdfDocument : IDisposable
             for (int i = 0; i < lines.Count; i++)
             {
                 if (lines[i] is not { } line) continue;
-                var obj = Create(line, startX, startY - i * spacing);
-                prepared.Add((obj, line));
+                float Measure(string value) { var probe=Create(value,startX,startY); N.FPDFPageObj_GetBounds(probe,out float ml,out _,out float mr,out _); N.FPDFPageObj_Destroy(probe); return mr-ml; }
+                float lineWidth=Measure(line);
+                var parts=new List<(string Text,float X)>();
+                var words=line.Split(' ');
+                if(alignment==3 && words.Length>1 && i+1<lines.Count && lines[i+1]!=null)
+                {
+                    float gap=Math.Max(0,(width-words.Sum(Measure))/(words.Length-1));
+                    float offset=0;
+                    foreach(var word in words) { parts.Add((word,startX+offset)); offset+=Measure(word)+gap; }
+                }
+                else parts.Add((line,startX+(alignment==1 ? width-lineWidth : alignment==2 ? (width-lineWidth)/2 : 0)));
+                foreach(var part in parts)
+                {
+                var obj = Create(part.Text, part.X, startY - i * spacing);
+                prepared.Add((obj, part.Text));
                 N.FPDFPageObj_GetBounds(obj, out float l, out float b, out float r, out float t);
                 if (l < 0 || b < 0 || r > Info(page).Width + 1 || t > Info(page).Height + 1 || r - l > width + 2)
                     throw new InvalidOperationException("El párrafo no cabe en la página o en el ancho elegido.");
@@ -465,6 +479,7 @@ public sealed class PdfDocument : IDisposable
                     if (Math.Min(r, oright) - Math.Max(l, ol) > 2 && Math.Min(t, ot) - Math.Max(b, ob) > 2)
                         throw new InvalidOperationException("El párrafo ampliado se solaparía con otro objeto. Reduce el texto o cambia el ancho.");
                 }
+            }
             }
             foreach (int index in indices.OrderDescending())
             {
@@ -484,7 +499,7 @@ public sealed class PdfDocument : IDisposable
             try
             {
                 foreach (var item in prepared)
-                    if (ObjectText(item.Object, textPage) != item.Text)
+                    if (ObjectText(item.Object, textPage).Trim() != item.Text)
                         throw new InvalidOperationException("La fuente no conserva todos los caracteres del párrafo. Elige otra fuente incluida.");
             }
             finally { N.FPDFText_ClosePage(textPage); }
@@ -567,6 +582,17 @@ public sealed class PdfDocument : IDisposable
             N.FPDFPageObj_Transform(N.FPDFPage_GetObject(p.H, n), 1, 0, 0, 1, 0, 0);
         Generate(p.H);
         return target;
+    }
+    public void DuplicateImage(int page, int index)
+    {
+        Mutating(); using var p = Open(page);
+        var original = N.FPDFPage_GetObject(p.H,index);
+        if (N.FPDFPageObj_GetType(original) != 3) throw new InvalidOperationException("Selecciona una imagen.");
+        var bitmap = N.FPDFImageObj_GetBitmap(original);
+        if (bitmap == IntPtr.Zero) throw new InvalidOperationException("Esta imagen no se puede duplicar.");
+        IntPtr copy = IntPtr.Zero;
+        try { copy=N.FPDFPageObj_NewImageObj(handle); Check(N.FPDFImageObj_SetBitmap(IntPtr.Zero,0,copy,bitmap),"No se pudo duplicar la imagen."); N.FPDFPageObj_GetMatrix(original,out var matrix); matrix.E+=12; matrix.F-=12; Check(N.FPDFPageObj_SetMatrix(copy,ref matrix),"No se pudo colocar la imagen."); N.FPDFPage_InsertObject(p.H,copy); copy=IntPtr.Zero; Generate(p.H); }
+        finally { if(copy!=IntPtr.Zero) N.FPDFPageObj_Destroy(copy); N.FPDFBitmap_Destroy(bitmap); }
     }
     public void AddImage(int page, int width, int height, int stride, byte[] bgra, float x, float y, float w, float h)
     {

@@ -1,6 +1,14 @@
 # Verificación local — 5 de noviembre de 2026
 
-Versión actual 0.7.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.8.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Cambios 0.8.0
+
+Motor: regresiones de las cuatro alineaciones con márgenes, guardado/reapertura y duplicación/eliminación de imágenes en `artifacts/test-0.8.0-final.log`. Interfaz: vista previa de impresión, captura en inglés, cambios de paneles y ausencia de recuperación persistente en `artifacts/test-0.8.0-visual.log`. Las pruebas no imprimen en una impresora física ni firman documentos.
+
+FirmaPDF: se confirmó una instalación portable y el contrato local `--open` leyendo sus fuentes, sin modificarlas. La transferencia se realiza solo por pulsación y tras guardar una copia elegida por el usuario. La activación real de FirmaPDF y la variante instalada mediante MSIX siguen pendientes de prueba de extremo a extremo. La interfaz ofrece la ficha de Store si no se detecta la instalación compatible.
+
+Las secciones siguientes conservan evidencia histórica de versiones anteriores; las funciones de recuperación descritas en ellas se han retirado de la interfaz actual.
 
 ## Controles de estilo 0.7.1
 

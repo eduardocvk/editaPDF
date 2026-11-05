@@ -21,7 +21,7 @@ public partial class MainWindow
         try
         {
             next.OpenMany(paths);
-            var document = new WorkspaceDocument(next, "Unión de PDF");
+            var document = new WorkspaceDocument(next, Ui.T("Unión de PDF"));
             documents.Add(document);
             SwitchDocument(document);
             next = null!;
@@ -30,21 +30,21 @@ public partial class MainWindow
         finally { next?.Dispose(); }
     }
     bool ConfirmEditableCopy() => MessageBox.Show(this,
-        "Se abrirá una copia sin cifrado ni restricciones. Se eliminarán las firmas digitales, sus campos y su apariencia visible; la copia ya no acreditará la firma del original.\n\nEl original no se modificará. La copia y su recuperación se almacenarán sin contraseña solo en este equipo. ¿Continuar?",
-        "Crear copia editable", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        Ui.Current.Language=="en" ? "An editable copy without encryption or restrictions will open. Digital signatures, their fields and visible appearances will be removed. The copy will no longer authenticate the original signature. The original will remain unchanged. The unencrypted copy is saved only when you request it. Continue?" : "Se abrirá una copia sin cifrado ni restricciones. Se eliminarán las firmas digitales, sus campos y su apariencia visible; la copia ya no acreditará la firma del original.\n\nEl original no se modificará. La copia se guardará sin contraseña solo cuando lo solicites. ¿Continuar?",
+        Ui.T("Crear copia editable"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     string? AskPassword()
     {
         var input = new PasswordBox { Margin = new Thickness(0, 10, 0, 12), MinWidth = 320 };
         var panel = new StackPanel { Margin = new Thickness(20) };
-        panel.Children.Add(new TextBlock { Text = "Contraseña para abrir el PDF" });
+        panel.Children.Add(new TextBlock { Text = Ui.T("Contraseña para abrir el PDF") });
         panel.Children.Add(input);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var accept = new Button { Content = "Continuar", IsDefault = true };
-        var cancel = new Button { Content = "Cancelar", IsCancel = true };
+        var accept = new Button { Content = Ui.T("Continuar"), IsDefault = true };
+        var cancel = new Button { Content = Ui.T("Cancelar"), IsCancel = true };
         buttons.Children.Add(accept);
         buttons.Children.Add(cancel);
         panel.Children.Add(buttons);
-        var dialog = new Window { Owner = this, Title = "PDF protegido", Content = panel, SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var dialog = new Window { Owner = this, Title = Ui.T("PDF protegido"), Content = panel, SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         accept.Click += (_, _) => dialog.DialogResult = true;
         dialog.Loaded += (_, _) => input.Focus();
         bool ok = dialog.ShowDialog() == true;
@@ -69,7 +69,7 @@ public partial class MainWindow
                 catch (PdfPasswordException)
                 {
                     if (password != null)
-                        MessageBox.Show(this, "La contraseña no es válida.", "PDF protegido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(this, Ui.T("La contraseña no es válida."), Ui.T("PDF protegido"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     password = AskPassword();
                     if (password == null)
                     {
@@ -113,12 +113,12 @@ public partial class MainWindow
     void CheckDocumentCapacity()
     {
         if (documents.Count >= 32)
-            throw new InvalidOperationException("Límite de esta versión: 32 documentos abiertos.");
+            throw new InvalidOperationException(Ui.T("Límite de esta versión: 32 documentos abiertos."));
     }
     void RegisterExplorerClick(object sender, RoutedEventArgs e) => Run(() =>
     {
         ExplorerIntegration.Install(Environment.ProcessPath!);
-        MessageBox.Show(this, "Menú activado para tu usuario. En Mostrar más opciones encontrarás Abrir con Editor PDF y Enviar a → Unir PDF con Editor PDF. Conserva la carpeta de esta aplicación en su ubicación.", "Explorador de Windows");
+        MessageBox.Show(this, Ui.T("Menú activado para tu usuario. En Mostrar más opciones encontrarás Abrir con Editor PDF y Enviar a → Unir PDF con Editor PDF. Conserva la carpeta de esta aplicación en su ubicación."), Ui.T("Explorador de Windows"));
     });
-    void UnregisterExplorerClick(object sender, RoutedEventArgs e) => Run(() => { ExplorerIntegration.Uninstall(); Status.Text = "Opciones de Editor PDF eliminadas del Explorador."; });
+    void UnregisterExplorerClick(object sender, RoutedEventArgs e) => Run(() => { ExplorerIntegration.Uninstall(); Status.Text = Ui.T("Opciones de Editor PDF eliminadas del Explorador."); });
 }

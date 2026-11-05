@@ -419,6 +419,24 @@ using (var flowing = new PdfDocument())
     flowing.ReplaceParagraph(0, selected.Select(o => o.Index).ToArray(), "Uno dos\ntres cuatro cinco\n\nOtro bloque ampliado", 150);
     Assert(flowing.Text(0).Contains("cinco") && flowing.Text(0).Contains("ampliado") && flowing.Objects(0).Where(o => o.Type == 1).All(o => o.Right <= 192), "reflujo dentro del ancho con separación entre párrafos");
 }
+for(int alignment=0;alignment<4;alignment++)
+{
+    using var aligned=new PdfDocument(); aligned.Blank(0);
+    aligned.AddText(0,"Texto inicial del bloque",14,40,700);
+    aligned.ReplaceParagraph(0,[0],"Una frase con suficientes palabras para varias líneas y probar el ajuste del texto al ancho elegido",180,alignment:alignment);
+    var objects=aligned.Objects(0).Where(o=>o.Type==1).ToArray();
+    Assert(objects.All(o=>o.Left>=39 && o.Right<=222),$"alineación {alignment}: conserva márgenes");
+    string path=Path.Combine(output,$"alineacion-{alignment}.pdf"); aligned.SaveNew(path);
+    using var reopened=new PdfDocument(File.ReadAllBytes(path));
+    Assert(reopened.Text(0).Contains("elegido"),$"alineación {alignment}: guardado y reapertura");
+}
+using(var duplicate=new PdfDocument())
+{
+    duplicate.Blank(0); duplicate.AddImage(0,2,2,8,Enumerable.Repeat((byte)255,16).ToArray(),40,500,60,60);
+    duplicate.DuplicateImage(0,0);
+    Assert(duplicate.Objects(0).Count(o=>o.Type==3)==2,"duplicar imagen crea objeto independiente");
+    duplicate.RemoveObject(0,1); Assert(duplicate.Objects(0).Count(o=>o.Type==3)==1,"borrar copia conserva imagen original");
+}
 File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: PDFium original text edit, same font, save/reopen, preserve independent text, move/remove, pages, images, no overwrite.\n");
 sealed class NetworkAudit : EventListener
 {

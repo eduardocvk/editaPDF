@@ -27,7 +27,7 @@ public partial class MainWindow
         paragraphArmed = true;
         paragraphPassive = false;
         PageImage.Cursor = Cursors.Cross;
-        Status.Text = "Arrastra un recuadro alrededor de todo el párrafo · Esc cancela.";
+        Status.Text = Ui.T("Arrastra un recuadro alrededor de todo el párrafo · Esc cancela.");
     }
 
     void CancelParagraphSelection()
@@ -78,9 +78,9 @@ public partial class MainWindow
         var area = new Rect(start, point);
         bool passive = paragraphPassive;
         CancelParagraphSelection();
-        if (area.Width < 8 || area.Height < 8) { Status.Text = "Arrastra alrededor de las líneas del párrafo."; return; }
+        if (area.Width < 8 || area.Height < 8) { Status.Text = Ui.T("Selecciona el texto dibujando un rectángulo alrededor."); return; }
         var group = ParagraphObjectsIn(area);
-        if (group.Length == 0) { Status.Text = "No hay texto compatible dentro del recuadro."; return; }
+        if (group.Length == 0) { Status.Text = Ui.T("No hay texto compatible dentro del recuadro."); return; }
         if (passive)
         {
             areaSelection = group;
@@ -88,12 +88,12 @@ public partial class MainWindow
             Canvas.SetLeft(paragraphOutline, area.Left);
             Canvas.SetTop(paragraphOutline, area.Top);
             Overlay.Children.Add(paragraphOutline);
-            var edit = new ToolButton { Content = "Editar texto seleccionado", Icon = "Paragraph", IconOnly = true, ToolTip = "Editar texto seleccionado", Padding = new Thickness(5), MinWidth = 29, MinHeight = 29 };
+            var edit = new ToolButton { Content = Ui.T("Editar texto seleccionado"), Icon = "Paragraph", IconOnly = true, ToolTip = Ui.T("Editar texto seleccionado"), Padding = new Thickness(5), MinWidth = 29, MinHeight = 29 };
             edit.Click += (_, _) => Run(EditAreaSelection);
             Canvas.SetLeft(edit, Math.Min(area.Right + 5, Overlay.Width - 34));
             Canvas.SetTop(edit, Math.Clamp(area.Top, 0, Overlay.Height - 34));
             Overlay.Children.Add(edit);
-            Status.Text = $"{group.Length} fragmentos seleccionados. Pulsa el botón junto al recuadro para editarlos.";
+            Status.Text = (Ui.Current.Language=="en" ? $"{group.Length} selected fragments. Use the button next to the rectangle to edit." : $"{group.Length} fragmentos seleccionados. Pulsa el botón junto al recuadro para editarlos.");
             return;
         }
         EditParagraphObjects(group);
@@ -115,7 +115,7 @@ public partial class MainWindow
         Mouse.OverrideCursor = null;
         if (dialog.ShowDialog() != true) return;
         var indices = group.Select(o => o.Index).ToArray();
-        Change(d => d.ReplaceParagraph(page, indices, dialog.ParagraphText, dialog.ParagraphWidth, dialog.FontChoice));
+        Change(d => d.ReplaceParagraph(page, indices, dialog.ParagraphText, dialog.ParagraphWidth, dialog.FontChoice, alignment: dialog.Alignment));
         SelectObject(indices.Min());
     }
 }

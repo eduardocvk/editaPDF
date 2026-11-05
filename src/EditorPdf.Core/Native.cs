@@ -70,6 +70,7 @@ internal static class N
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetFillColor(IntPtr o, out uint r, out uint g, out uint b, out uint a);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_SetFillColor(IntPtr o, uint r, uint g, uint b, uint a);
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFPageObj_NewImageObj(IntPtr d);
+    [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFImageObj_GetBitmap(IntPtr o);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFImageObj_SetBitmap(IntPtr pages, int count, IntPtr o, IntPtr bitmap);
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFBitmap_Create(int w, int h, int alpha);
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFBitmap_GetBuffer(IntPtr b);

@@ -13,9 +13,9 @@ public sealed record ActivationRequest(bool Merge, string[] Paths)
         bool merge = args.FirstOrDefault() == "--merge";
         var paths = args.FirstOrDefault() is "--merge" or "--open" ? args.Skip(1).ToArray() : args;
         if (paths.Length > 1000 || paths.Any(p => string.IsNullOrWhiteSpace(p) || p.StartsWith("--", StringComparison.Ordinal)))
-            throw new ArgumentException("Selección de PDF no válida.");
+            throw new ArgumentException(Ui.T("Selección de PDF no válida."));
         if (merge && paths.Any(p => !Path.GetExtension(p).Equals(".pdf", StringComparison.OrdinalIgnoreCase)))
-            throw new ArgumentException("Selecciona únicamente archivos PDF para unir.");
+            throw new ArgumentException(Ui.T("Selecciona únicamente archivos PDF para unir."));
         return new(merge, paths.Select(p => LocalFiles.Validate(p)).ToArray());
     }
 }
@@ -61,7 +61,7 @@ public sealed class Activation : IDisposable
         bool sent = false;
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
         if (bytes.Length > 1024 * 1024)
-            throw new ArgumentException("La selección es demasiado grande.");
+            throw new ArgumentException(Ui.T("La selección es demasiado grande."));
         var pin = GCHandle.Alloc(bytes, GCHandleType.Pinned);
         try
         {

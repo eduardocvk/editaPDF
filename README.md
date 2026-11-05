@@ -1,120 +1,41 @@
 # Editor PDF para Windows 11
 
-Aplicación WPF independiente, C#/.NET 10, PDFium e iText Community para las operaciones de estructura. Vista previa **0.7.1**, licencia **AGPL-3.0-or-later**. No modifica ni utiliza FirmaPDF. No publicada en Microsoft Store.
+Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Vista previa **0.8.0**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
 
-## Descargar para Windows 11 (x64)
+[Descargar 0.8.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.8.0/EditorPDF-0.8.0-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
 
-[Descargar Editor PDF 0.7.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.7.1/EditorPDF-0.7.1-win-x64.zip) · [Versiones y notas](https://github.com/eduardocvk/editaPDF/releases)
+Extrae todo el ZIP y abre `EditorPDF.exe`. Incluye runtime, fuentes, motores, licencias y `Source.zip`. No necesita descargar .NET. La distribución portable no tiene firma Authenticode.
 
-Extrae **todo el ZIP** en una carpeta local y abre `EditorPDF.exe`. No lo ejecutes dentro del ZIP. No necesita instalador ni descargar .NET. La carpeta incluye `Source.zip` con el código y sus dependencias. Es una vista previa sin firma Authenticode; consulta los límites y las comprobaciones pendientes antes de usarla con documentos importantes.
+## Uso
 
-## Ejecutar
+- Abre documentos en pestañas. La rueda pasa a la página contigua cuando llegas al borde de la actual.
+- Las acciones de organización están junto a las miniaturas: insertar, extraer, dividir, duplicar, girar, eliminar y reordenar. Insertar permite elegir páginas de los otros documentos abiertos o abrir otro PDF.
+- Añade texto o imágenes desde el panel derecho. Aplica el texto desde el botón dentro de su cuadro. La barra contextual permite editar estilos y eliminar; las imágenes también permiten duplicar y cambiar su orden de pintado.
+- Doble clic para editar texto original compatible. Arrastra desde una zona vacía para seleccionar varios fragmentos y pulsa el botón de edición junto al recuadro. Los párrafos pueden alinearse a izquierda, derecha, centro o justificarse dentro del ancho original.
+- La búsqueda muestra el número de coincidencias y permite recorrerlas con flechas. Imprimir muestra una vista previa antes del diálogo de impresora de Windows.
+- Configuración permite elegir español o inglés. Solo se guarda la preferencia de idioma: no se guarda ni restaura automáticamente una sesión entre ejecuciones. Guarda una copia antes de cerrar si quieres conservar tus cambios.
+- El botón FirmaPDF detecta la instalación portable compatible en su ubicación de usuario. Si está disponible, solicita guardar una copia y la abre con `--open`. Si no, abre su ficha de Store. La detección y activación de la edición MSIX de FirmaPDF aún no están verificadas.
 
-Abre **`artifacts/app/EditorPDF.exe`**. Conserva toda esa carpeta: incluye el runtime .NET, PDFium, diez familias de fuentes y las licencias. No requiere instalación de .NET, conexión ni descargas al iniciar. Compilación x64 sin firma Authenticode.
+## Texto, seguridad y privacidad
 
-**Abrir** crea pestañas de documentos independientes en la parte superior; **Unir** incorpora páginas al documento activo. Cada pestaña mantiene sus cambios, deshacer/rehacer, página, zoom y borradores. Las acciones de organización están junto a las miniaturas de la izquierda; el panel derecho contiene solo edición. La aplicación abre PDF, une varios, inserta páginas seleccionadas o en blanco, elimina, duplica, gira, reordena con las flechas o arrastrando las miniaturas, extrae y divide por rangos. En Editar permite añadir texto, seleccionar objetos originales compatibles para modificar/mover/eliminar, insertar imágenes y moverlas por arrastre o posición, y cambiar su tamaño desde propiedades. Incluye búsqueda, zoom, impresión, deshacer/rehacer y recuperación local.
+Guardar exige un nombre nuevo: no reemplaza originales ni otros archivos. El resultado se reabre y se comprueba antes de publicarlo. Deshacer/rehacer conserva el historial en memoria mientras el documento está abierto.
 
-Los botones **B** e **I** del panel derecho activan o desactivan negrita y cursiva; su estado resaltado refleja la selección actual.
+La edición real depende de la estructura y las fuentes del PDF. Se conserva la fuente original cuando admite los caracteres. Los estilos mixtos de una selección pueden unificarse mediante una fuente incluida, con aviso. No se ofrece edición universal, OCR, censura segura ni reconstrucción de documentos como Word. Texto anidado en Form/XObjects, escrituras complejas y algunos modos especiales permanecen limitados. El reflujo rechaza desbordamientos y solapamientos con objetos no seleccionados.
 
-- **Reordenar:** arrastra una miniatura y suéltala antes o después de otra. Una línea indica la inserción y la lista se desplaza al acercarse a sus extremos.
-- **Navegar:** usa la rueda sobre el documento. Al llegar al final o al principio de una página, el siguiente giro pasa a la página contigua.
-- **Páginas:** la barra sobre las miniaturas añade una página en blanco, inserta desde otro PDF, extrae o divide. Cada miniatura tiene controles para subir, bajar, duplicar, girar y eliminar; sus nombres aparecen al pasar el puntero y son accesibles por teclado.
-- **Páginas:** Extraer e Insertar PDF abren miniaturas con casillas y una vista previa. Elige Todas/Ninguna o páginas individuales. Al insertar, escoge antes/después de la página actual o al final. Dividir permite elegir visualmente las páginas y cuántas habrá por archivo.
-- **Guardar copia:** exige un nombre que todavía no exista. Nunca reemplaza el original ni otro archivo. Antes de publicar la copia comprueba reapertura, texto, geometría, rotación, número de anotaciones, presencia de marcadores, adjuntos, etiquetas, destinos con nombre y representación de cada página a 600 px.
-- **Teclado:** Tab/Mayús+Tab, Alt+A para abrir, Ctrl+O, Ctrl+S o Ctrl+Mayús+S, Ctrl+F, Ctrl+P, Ctrl+Z/Ctrl+Y; Ctrl+Tab/Ctrl+Mayús+Tab cambia de documento y Ctrl+W cierra la pestaña activa; RePág/AvPág cambia de página fuera de campos de texto. En un campo, Ctrl+Z conserva el deshacer propio del campo.
-- La selección azul del editor es una capa WPF de selección; **no se guarda como rectángulo en el PDF**.
+Los PDF firmados o protegidos ofrecen crear una copia editable, con confirmación de la retirada de firmas, apariencias y cifrado. No se averiguan contraseñas ni se valida la confianza de certificados. XFA no se convierte.
 
-## Edición sobre la página
+El procesamiento es local, sin telemetría, descargas de recursos ni envío automático de errores. La impresión de red y la apertura de otra aplicación solo ocurren por acción del usuario. Consulta [Privacidad](docs/PRIVACIDAD.md) y [Verificación](docs/VERIFICACION.md). Las recuperaciones antiguas no se abren ni se borran automáticamente.
 
-**Añadir texto** activa el cursor: pulsa en la página y escribe. El texto aparece mientras escribes; Intro o cambiar el foco lo aplica al PDF, Esc cancela el borrador. Se conserva un borrador local para recuperación. Esta versión añade una línea por objeto; la edición de texto original sigue disponible en Propiedades.
+## Teclado
 
-Arrastra texto o imágenes para ver el movimiento en tiempo real. Al soltar se aplica una sola operación de deshacer; Esc cancela. Las imágenes seleccionadas muestran cuatro esquinas: arrástralas para escalar proporcionalmente; Mayús permite proporción libre. A zoom alto la vista previa puede tener menor resolución mientras arrastras; al terminar vuelve la calidad completa.
+Ctrl+O abre; Ctrl+S guarda copia; Ctrl+P imprime; Ctrl+F busca; Ctrl+Z/Ctrl+Y deshace/rehace. Ctrl+Tab cambia de documento y Ctrl+W cierra su pestaña. Intro confirma la edición directa y Esc cancela el borrador o selección. Tab y Mayús+Tab recorren controles con nombres accesibles.
 
-Botón derecho sobre la página o la lista de objetos: añadir texto/imagen, propiedades, eliminar, deseleccionar, deshacer/rehacer y cambiar el orden (traer al frente, adelantar, atrasar o enviar al fondo). Es el orden de pintado de los objetos de la página; no crea capas opcionales OCG del estándar PDF.
+## Compilar y verificar
 
-## PDF firmados o protegidos
+`scripts/Build.ps1 -DotnetPath <dotnet.exe> -Offline` genera `artifacts/app`. `scripts/Test.ps1 -DotnetPath <dotnet.exe> -PythonPath <python.exe>` ejecuta regresiones, verificación independiente y WPF bajo guardia de red. `scripts/Package-Portable.ps1` crea el ZIP y SHA-256.
 
-El original se abre en solo lectura y ofrece **Quitar firmas (copia)** o **Crear copia editable** en el panel derecho. Se crea otra pestaña y el original permanece intacto. La conversión elimina las firmas digitales, sus campos/sellos visibles y el cifrado o restricciones; la copia pierde el valor de autenticación del original. Requiere confirmación y el guardado siempre usa un nombre nuevo.
+El manifiesto MSIX y `scripts/Package-Msix.ps1` requieren los datos reales de Partner Center y MakeAppx del Windows SDK. Faltan instalación/desinstalación MSIX, revisión de integración con el Explorador, WACK y certificación Store. El paquete declara full trust; la ausencia de una capacidad de Internet no constituye un cortafuegos.
 
-Si hace falta contraseña para abrir el PDF, se solicita en un campo oculto; una contraseña incorrecta no altera la sesión. No se averiguan contraseñas. La copia editable y su recuperación local quedan **sin cifrado**. No se guardan contraseñas. XFA sigue excluido y los límites de edición de formularios y etiquetas permanecen. Retirar firmas no ofrece borrado forense ni valida la confianza de los certificados.
+## Licencias
 
-## Explorador de Windows
-
-En **Opciones → Activar menú del Explorador** registra para tu usuario, sin permisos de administrador:
-
-- **Abrir con Editor PDF**: abre los PDF seleccionados en pestañas.
-- **Enviar a → Unir PDF con Editor PDF**: abre una nueva pestaña con todos, en el orden entregado por Windows. Revisa el orden con las miniaturas antes de guardar.
-
-En Windows 11 están en **Mostrar más opciones**. No cambia el lector PDF predeterminado. También registra la app en «Abrir con». Conserva la carpeta portable en su ubicación; si la mueves, vuelve a activar el menú desde la nueva carpeta. **Opciones → Quitar menú del Explorador** retira solo las entradas de Editor PDF. Alternativa de consola: `EditorPDF.exe --register-explorer` / `--unregister-explorer`. `--open` y `--merge` admiten rutas como argumentos.
-
-La unión utiliza un acceso directo nativo en la carpeta Enviar a del usuario. Windows entrega los archivos como argumentos; no hay extensión cargada en Explorer, servidor COM propio ni archivo de intercambio con rutas. Si la app ya está abierta, la selección se entrega mediante mensajes locales de ventana. La entrada directa de unión y la integración moderna del menú principal, junto con su declaración MSIX, quedan para la fase de empaquetado.
-
-El panel Editar permite cambiar **tamaño y color** del texto original compatible conservando su fuente y transparencia. El [desarrollo de la siguiente fase](docs/EDICION.md) recoge este incremento y los próximos criterios para selección múltiple y edición directa.
-
-## Texto y límites de esta versión
-
-La prueba de viabilidad se ejecutó **antes de implementar la interfaz**: abrir un PDF, modificar el objeto de texto existente con `FPDFText_SetText`, regenerar contenido, guardar y reabrir. Se comprobó la conservación de fuente y la ausencia del texto anterior y de objetos de ocultación. Después se verificó también con PDF externos de ReportLab/Helvetica y un lector independiente.
-
-El texto PDF puede estar dividido en muchos objetos. Para editar un párrafo, pulsa el icono de párrafo y arrastra un recuadro que abarque sus fragmentos. También puedes comenzar el arrastre en una zona vacía de la página, abarcar varios párrafos y pulsar el botón contextual de edición. Revisa el contenido reunido antes de aplicarlo. Las líneas se redistribuyen dentro del ancho original; una línea vacía separa párrafos. Si los fragmentos tienen estilos distintos, el diálogo elige una fuente incluida y avisa de que se unificarán. La fuente original se conserva cuando es uniforme y admite los caracteres nuevos. No se reconstruye el diseño como Word. No se edita texto dentro de XObjects/Form anidados, trazados, contornos o máscaras de texto. No se ofrece OCR, censura segura ni edición universal. Escrituras complejas y caracteres fuera del plano básico Unicode se rechazan en esta versión.
-
-PDF firmados, cifrados/protegidos y formularios XFA no se modifican. No se valida criptográficamente una firma. La unión y reordenación admiten ahora anotaciones, enlaces internos, marcadores, destinos con nombre, adjuntos, formularios AcroForm y etiquetas de accesibilidad, conservando los casos verificados. Los nombres repetidos de destinos, adjuntos y campos se distinguen para no sobrescribir datos. La edición de objetos en PDF con formularios o etiquetas sigue limitada; algunas otras operaciones de páginas también tienen límites. No se garantiza conservar todas las extensiones del estándar en cualquier PDF. Antes de aceptar una unión o movimiento se compara el texto, la geometría, el número de anotaciones y la representación de cada página; un fallo revierte la operación de la sesión.
-
-Límite inicial: 256 MiB por PDF; historial en memoria de hasta 30 operaciones/128 MiB. Hasta 32 documentos abiertos. La recuperación conserva las pestañas de la última sesión y los borradores del panel, no todo su historial de deshacer. Las operaciones pesadas y la comprobación al guardar son síncronas; pueden tardar en documentos grandes.
-
-## Privacidad
-
-Consulta [PRIVACIDAD.md](docs/PRIVACIDAD.md). No hay cliente HTTP, actualizador, analítica, SDK de errores ni ejecución de JavaScript PDF. El pequeño banner [FirmaPDF](https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ) solo abre su ficha oficial en el navegador al pulsarlo. No añade documentos, rutas, consultas ni datos de sesión al enlace.
-
-## Compilar y probar
-
-Requiere Windows x64 y SDK **.NET 10.0.402**. En un equipo nuevo, el SDK puede restaurar los paquetes de runtime de Microsoft **durante el desarrollo**. La aplicación distribuida incluye las dependencias y no restaura ni descarga nada.
-
-```powershell
-.\scripts\Build.ps1
-# O indicar un SDK instalado fuera del PATH:
-.\scripts\Build.ps1 -DotnetPath 'C:\ruta\dotnet.exe'
-# Con los paquetes de runtime ya presentes en la caché:
-.\scripts\Build.ps1 -Offline
-# Crear el ZIP portable y su comprobante SHA-256:
-.\scripts\Package-Portable.ps1
-```
-
-Las pruebas adicionales necesitan Python con `reportlab` y `pypdf`, solo en desarrollo:
-
-```powershell
-.\scripts\Test.ps1 -DotnetPath dotnet -PythonPath python
-```
-
-Las pruebas generan documentos sintéticos, prueban el motor y los controles WPF, producen capturas y ejecutan ambos procesos bajo una guardia nativa que interrumpe antes de crear sockets o invocar las APIs de red vigiladas. Un control positivo demuestra que la guardia intercepta un intento de crear socket antes de conectar. No se envían documentos a servicios externos ni se imprimen páginas reales en las pruebas. Alcance y resultados: [VERIFICACION.md](docs/VERIFICACION.md).
-
-## MSIX y distribución futura
-
-Hay un manifiesto parametrizado para Windows 11 x64, sin capacidades de Internet, y `scripts/Package-Msix.ps1`. Requiere la identidad y el editor reales de Partner Center y MakeAppx del Windows SDK. El script genera un paquete sin firmar; no instala, firma ni publica. El proceso WPF es full trust: la ausencia de `internetClient` **no constituye un cortafuegos**.
-
-Pendientes la identidad oficial, firma del paquete/ejecutable, instalación y desinstalación MSIX, validación WACK y certificación Store. Microsoft documenta el [empaquetado de WPF con MSIX](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/dotnet/package-app). No se ha creado una cuenta, ficha ni envío a Store.
-
-## Código y dependencias
-
-`src/EditorPdf.Core`: ABI nativa, operaciones, transacciones, historial y recuperación. `src/EditorPdf.App`: WPF, documentos en pestañas, arrastre y paginación. `tests`: regresiones, render WPF y guardia de red exclusiva de desarrollo. `vendor/include`: cabeceras de la **misma distribución binaria**. PDFium mantiene el render y la edición de texto original. iText Community 9.8.0 se usa bajo AGPL para unir y mover páginas con sus referencias; no requiere licencia comercial en esta distribución AGPL.
-
-La [API de edición de PDFium](https://pdfium.googlesource.com/pdfium/+/refs/heads/chromium/8138/public/fpdf_edit.h), los binarios y los avisos se fijan en `vendor/dependencies.lock.json`; Build verifica SHA-256 de DLL y fuente. `vendor/args.gn` registra V8/XFA desactivados. La [distribución de binarios](https://github.com/bblanchon/pdfium-binaries) incluye su licencia MIT y las licencias de PDFium y sus componentes; se conservan todas. .NET/WPF: MIT y avisos incluidos. Noto Sans: SIL OFL 1.1. Véase `NOTICE.txt` y `LICENSE.txt`. Se elige la licencia FreeType, incluida en los avisos, para FreeType.
-
-iText, Commons y su adaptador Bouncy Castle tienen avisos en `licenses/itext` y `licenses/managed`, versiones fijadas en `packages.lock.json` y fuente de producción sin modificar en `vendor/sources`. Los PDF manipulados con iText conservan su Producer y la referencia de licencia en los metadatos. Bouncy Castle y dependencias de Microsoft conservan sus licencias incluidas. La consulta de vulnerabilidades de NuGet se realizó durante el desarrollo; no se ejecuta al abrir la aplicación.
-
-El [logo](assets/logo.png), su [prompt de creación](assets/LOGO.md) y el icono ICO se incluyen en el proyecto.
-
-El repositorio público es [eduardocvk/editaPDF](https://github.com/eduardocvk/editaPDF). Los scripts no dependen de `firmar_certificado`. La descarga portable acompaña la compilación con `Source.zip`, scripts, dependencias fijadas y avisos; el código también está disponible en este repositorio.
-
-## Novedades 0.5.0
-
-El recuadro de selección se conserva tras pulsar y soltar. Doble clic en texto compatible para editarlo sobre la página; el menú contextual incorpora iconos. En el panel derecho puedes elegir seis familias tipográficas incluidas y aplicar negrita o cursiva a texto nuevo o sustituido. Imprimir abre el cuadro estándar de Windows, con impresoras y rango de páginas; se confirma el envío a posibles impresoras de red. El menú Opciones se llama Configuración.
-
-## Edición de texto 0.6.1
-
-El doble clic abre el texto compatible en su posición, con tamaño y color tomados del objeto; el cursor se coloca cerca del punto pulsado. El editor oculta temporalmente ese objeto solo en la vista mientras se escribe. La edición de párrafos permite revisar los fragmentos reunidos, cambiar el contenido y redistribuirlo sin rebasar el margen derecho original; las líneas resultantes son objetos de texto PDF reales. Una línea vacía separa párrafos. Si hay estilos distintos, elige la fuente incluida con la que se unificarán. Se rechazan tabulaciones, separaciones vacías repetidas, falta de espacio y solapamientos antes de guardar. Comprueba el texto propuesto en el diálogo: PDF no define párrafos de forma universal.
-
-El color se elige en una paleta visual, y el tamaño tiene controles para subir y bajar. Se incluyen diez familias de fuentes, con DejaVu Sans, Serif, Sans Mono y Sans Condensed añadidas a las anteriores.
-
-## Corrección 0.6.1
-
-Al cerrar la edición directa de un objeto sin cambiar su texto, no se reescribe el PDF ni aparece un aviso de codificación. El botón Aplicar texto también omite operaciones sin cambios. Al seleccionar un texto compatible aparece una barra contextual junto a él con fuente, tamaño, negrita, cursiva, color y Aplicar. Los cambios se confirman en una transacción; las variantes negrita/cursiva usan una fuente incluida cuando la original no ofrece esa variante.
+AGPL-3.0-or-later, con código de la aplicación y dependencias en `Source.zip` y el repositorio. iText Community se distribuye bajo AGPL; PDFium, .NET, bibliotecas y diez familias de fuentes conservan sus avisos. Dependencias fijadas, fuentes de producción y procedencia en `vendor`, `licenses`, `NOTICE.txt` y archivos de bloqueo. El desarrollo no modifica el proyecto independiente FirmaPDF.

@@ -40,6 +40,7 @@ static class UiTests
             return;
         }
         string folder = Path.GetFullPath(args[0]);
+        Ui.Current.SetLanguage("es", false);
         Directory.CreateDirectory(folder);
         var app = new Application();
         app.Resources = (ResourceDictionary)Application.LoadComponent(new Uri("/EditorPDF;component/Theme.xaml", UriKind.Relative));
@@ -173,15 +174,7 @@ static class UiTests
             throw new Exception("La pestaña pierde posicion o borrador");
         Capture("documentos-1280", 1280, 780);
         second.Session.SaveNew(Path.Combine(folder, "ui-reordenado.pdf"));
-        Console.WriteLine("CHECK guardar recuperación multipestaña");
-        typeof(MainWindow).GetMethod("SaveWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
-        Console.WriteLine("CHECK construir ventana recuperada");
-        var recovered = new MainWindow(Path.Combine(folder, "recovery"), false, _ => { });
-        Console.WriteLine("CHECK restaurar ventana recuperada");
-        typeof(MainWindow).GetMethod("RestoreWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recovered, null);
-        if (((TabControl)recovered.FindName("DocumentTabs")).Items.Count != 3 || ((TextBox)recovered.FindName("TextValue")).Text != "Borrador sin aplicar")
-            throw new Exception("Recuperar la sesión no recupera todas las pestañas y borradores");
-        typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recovered, null);
+        if(Directory.Exists(Path.Combine(folder,"recovery"))) throw new Exception("La interfaz no debe guardar recuperación de sesión");
         Console.WriteLine("CHECK cerrar tercera pestaña sin cambios");
         typeof(MainWindow).GetMethod("SwitchDocument", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [docTabs.Items[2]]);
         if ((bool)typeof(MainWindow).GetMethod("HasUnappliedProperties", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null)! || ((WorkspaceDocument)docTabs.Items[2]).Session.Dirty)
@@ -217,7 +210,7 @@ static class UiTests
         Console.WriteLine("CHECK integracion del Explorador");
         CanvasChecks.Run(window, folder, Path.GetFullPath(args[1]), Capture);
         ShellChecks.Run(Path.GetFullPath(args[1]), folder);
-        Console.WriteLine("PASS documentos en pestañas: sesiones e historial independientes, orden por insercion, borradores, recuperacion completa y cierre");
+        Console.WriteLine("PASS documentos en pestañas: sesiones e historial independientes, orden por insercion, borradores, sin recuperación persistente y cierre");
         typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS UI texto original, deshacer, rehacer y guardado");
     }
