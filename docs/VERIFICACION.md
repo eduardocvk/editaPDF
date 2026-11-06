@@ -1,3 +1,7 @@
+# Corrección 0.9.2
+
+La unión parcial conservaba una validación estricta de anotaciones, pero iText descartaba los enlaces internos con destino fuera de las páginas copiadas. El índice EFE tiene 25 enlaces a páginas posteriores. Ahora se conserva la anotación y su apariencia y se retira únicamente el destino que no se incluye; enlaces externos e internos a páginas seleccionadas se mantienen. El original queda intacto. Prueba con contrato noviembre página 3 y EFE páginas 2 y 3; regresión sintética con destinos omitidos y las existentes con destinos incluidos.
+
 # Correcciones 0.9.1
 
 Unión: convierte automáticamente fuentes firmadas o con restricciones de propietario en copias editables en memoria, reutilizando la conversión validada. No evita contraseñas de apertura ni admite XFA. Compresión: deriva el diccionario de imagen del JPEG generado con iText, elimina longitudes heredadas y marca el flujo modificado. Búsqueda: navegación pequeña visible solo tras buscar y separación del zoom.

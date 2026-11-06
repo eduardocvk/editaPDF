@@ -1,4 +1,4 @@
-# Privacidad de Editor PDF 0.9.1
+# Privacidad de Editor PDF 0.9.2
 
 Los PDF se procesan en el equipo. No se implementan telemetría, analítica, procesamiento remoto, descargas de fuentes ni envío automático de errores. Runtime, motores y fuentes están incluidos. No se ejecuta JavaScript de los PDF.
 

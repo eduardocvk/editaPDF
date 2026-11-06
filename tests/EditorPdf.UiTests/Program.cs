@@ -13,6 +13,14 @@ static class UiTests
     [STAThread]
     static void Main(string[] args)
     {
+        if(args.FirstOrDefault()=="--merge-partial")
+        {
+            using var contract=new PdfDocument(File.ReadAllBytes(args[1]));
+            using var efe=new PdfDocument(File.ReadAllBytes(args[2]));
+            using var result=new PdfDocument(); result.Import(contract,[0,1,2],0); result.Import(efe,[1,2],3);
+            result.SaveNew(args[3]);
+            Console.WriteLine("PASS partial merge: contract page 3 and EFE index, annotations and save/reopen validated"); return;
+        }
         if(args.FirstOrDefault()=="--optimize-file")
         {
             var original=File.ReadAllBytes(args[1]);

@@ -54,11 +54,41 @@ internal static class PdfStructure
             document.SetTagged();
         ResolveNameCollisions(input, document);
         ResolveFormCollisions(input, document);
+        DisableUnselectedLinks(input,pages);
         input.InitializeOutlines();
         var copied = input.CopyPagesTo(pages.Select(i => i + 1).ToList(), document, at + 1, PdfAcroForm.GetAcroForm(input, false)?.GetAllFormFields().Count > 0 ? new PdfPageFormCopier() : null);
         CopyNamedDestinations(input, document, pages, copied);
         CopyAttachments(input, document);
     });
+
+    // Keep link annotations (including appearance) when their target page is omitted.
+    // An inert link is preferable to a dangling destination or losing the annotation.
+    static void DisableUnselectedLinks(Document source,int[] pages)
+    {
+        var selected=pages.Select(i=>source.GetPage(i+1).GetPdfObject()).ToHashSet();
+        var names=source.GetCatalog().GetNameTree(PdfName.Dests).GetNames();
+        foreach(int page in pages)
+        {
+            var annotations=source.GetPage(page+1).GetPdfObject().GetAsArray(PdfName.Annots);
+            if(annotations==null) continue;
+            for(int i=0;i<annotations.Size();i++)
+            {
+                var annotation=annotations.GetAsDictionary(i);
+                if(annotation==null || !PdfName.Link.Equals(annotation.GetAsName(PdfName.Subtype))) continue;
+                var action=annotation.GetAsDictionary(PdfName.A);
+                var destination=annotation.Get(PdfName.Dest) ?? (PdfName.GoTo.Equals(action?.GetAsName(PdfName.S)) ? action.Get(PdfName.D) : null);
+                if(destination==null) continue;
+                if(destination is PdfName name) names.TryGetValue(new PdfString(name.GetValue()),out destination);
+                else if(destination is PdfString text) names.TryGetValue(text,out destination);
+                if(destination is PdfDictionary dictionary) destination=dictionary.Get(PdfName.D);
+                var target=(destination as PdfArray)?.GetAsDictionary(0);
+                if(target!=null && selected.Contains(target)) continue;
+                annotation.Remove(PdfName.Dest);
+                if(PdfName.GoTo.Equals(action?.GetAsName(PdfName.S))) annotation.Remove(PdfName.A);
+                annotation.Put(PdfName.Contents,new PdfString("Destino no incluido en esta copia / Destination not included in this copy"));
+            }
+        }
+    }
 
     static void ResolveFormCollisions(Document source, Document destination)
     {

@@ -37,6 +37,13 @@ static class ReductionChecks
         var masked=File.ReadAllBytes(Path.Combine(fixtures,"mascara-transparente.pdf"));
         var maskResult=PdfImageOptimizer.Optimize(masked,i=>throw new Exception("No se debe recomprimir una máscara ni su imagen"));
         Assert(maskResult.Reduced==0 && maskResult.Bytes.SequenceEqual(masked),"máscaras de transparencia conservan gris y dimensiones");
+        using(var links=new PdfDocument(File.ReadAllBytes(Path.Combine(fixtures,"destinos-enlazados.pdf"))))
+        using(var partial=new PdfDocument())
+        {
+            partial.Import(links,[0],0);
+            Assert(partial.Info(0).Annotations==links.Info(0).Annotations,"importar página con destino omitido conserva anotaciones");
+            partial.SaveNew(Path.Combine(output,"partial-links.pdf"));
+        }
         var noImages=File.ReadAllBytes(Path.Combine(fixtures,"externo.pdf")); var unchanged=PdfImageOptimizer.Optimize(noImages,i=>null); Assert(unchanged.Bytes.SequenceEqual(noImages),"sin imágenes reducibles no aumenta el tamaño");
         bool blocked=false; try { using var signed=new ReduceSizeDialog(new Window(),File.ReadAllBytes(Path.Combine(fixtures,"firma-sintetica.pdf")),"firmado.pdf"); } catch(InvalidOperationException) { blocked=true; } Assert(blocked,"compresión exige copia editable en documentos firmados");
         using(var composer=new MergeComposerDialog(new Window(),Array.Empty<WorkspaceDocument>()))
