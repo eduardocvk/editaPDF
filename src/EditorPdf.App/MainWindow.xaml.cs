@@ -406,12 +406,18 @@ public partial class MainWindow : Window
     void ZoomOut(object sender, RoutedEventArgs e) => Run(() => SetZoom(zoom / 1.2)); void ZoomIn(object sender, RoutedEventArgs e) => Run(() => SetZoom(zoom * 1.2)); void FitClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); SetZoom((DocumentScroll.ViewportWidth - 65) / Pdf.Info(page).Width); });
     int matchIndex = -1;
     string matchQuery = "";
+    void SearchChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if(SearchBack==null || SearchNext==null || SearchCount==null) return;
+        SearchBack.Visibility=SearchNext.Visibility=Visibility.Collapsed; SearchCount.Text=""; matchQuery=""; matchIndex=-1;
+    }
     void SearchPrevious(object sender, RoutedEventArgs e) => Run(() => FindMatch(-1));
     void SearchClick(object sender, RoutedEventArgs e) => Run(() => FindMatch(1));
     void FindMatch(int direction)
     {
         RequireDocument(); string query=SearchBox.Text;
         if(string.IsNullOrWhiteSpace(query)) { SearchCount.Text=""; return; }
+        SearchBack.Visibility=SearchNext.Visibility=Visibility.Visible;
         var matches=new List<(int Page,int Offset)>();
         for(int i=0;i<Pdf.Count;i++) { string text=Pdf.Text(i); int at=0; while(at<text.Length) { int found=text.IndexOf(query,at,StringComparison.OrdinalIgnoreCase); if(found<0) break; matches.Add((i,found)); at=found+query.Length; } }
         if(query!=matchQuery) { matchQuery=query; matchIndex=-1; }

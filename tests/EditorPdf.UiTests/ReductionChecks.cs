@@ -34,8 +34,21 @@ static class ReductionChecks
         var root=(FrameworkElement)dialog.Content; root.Measure(new Size(960,700)); root.Arrange(new Rect(0,0,960,700)); root.UpdateLayout();
         var bitmap=new RenderTargetBitmap(960,700,96,96,PixelFormats.Pbgra32); bitmap.Render(root); var png=new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap)); using(var stream=File.Create(Path.Combine(output,"reducir-tamano.png"))) png.Save(stream);
         using(var cancel=new CancellationTokenSource()) { cancel.Cancel(); bool stopped=false; try { PdfImageOptimizer.Optimize(bytes,i=>ReduceSizeDialog.Encode(i,30),cancel.Token); } catch(OperationCanceledException) { stopped=true; } Assert(stopped,"compresión cancelable"); }
+        var masked=File.ReadAllBytes(Path.Combine(fixtures,"mascara-transparente.pdf"));
+        var maskResult=PdfImageOptimizer.Optimize(masked,i=>throw new Exception("No se debe recomprimir una máscara ni su imagen"));
+        Assert(maskResult.Reduced==0 && maskResult.Bytes.SequenceEqual(masked),"máscaras de transparencia conservan gris y dimensiones");
         var noImages=File.ReadAllBytes(Path.Combine(fixtures,"externo.pdf")); var unchanged=PdfImageOptimizer.Optimize(noImages,i=>null); Assert(unchanged.Bytes.SequenceEqual(noImages),"sin imágenes reducibles no aumenta el tamaño");
         bool blocked=false; try { using var signed=new ReduceSizeDialog(new Window(),File.ReadAllBytes(Path.Combine(fixtures,"firma-sintetica.pdf")),"firmado.pdf"); } catch(InvalidOperationException) { blocked=true; } Assert(blocked,"compresión exige copia editable en documentos firmados");
+        using(var composer=new MergeComposerDialog(new Window(),Array.Empty<WorkspaceDocument>()))
+        {
+            foreach(var name in new[]{"firma-sintetica.pdf","protegido.pdf"})
+            {
+                composer.AddExternal(Path.Combine(fixtures,name)); var index=composer.Sources.Count-1;
+                Assert(composer.Sources[index].BlockReason==null,"unión prepara copia editable automática de "+name);
+                composer.AddPages(index,[0],composer.Entries.Count);
+            }
+            using var merged=composer.CreateDocument(); Assert(merged.Document.Count==2,"unión acepta páginas de las copias automáticas");
+        }
         Assert(File.ReadAllBytes(Path.Combine(fixtures,"escaneo.pdf")).SequenceEqual(bytes),"original de compresión intacto");
     }
 }

@@ -14,6 +14,12 @@ public static class PdfImageOptimizer
         int images=0, reduced=0, skipped=0;
         var result=PdfStructure.Rewrite(bytes, document =>
         {
+            // A soft mask is itself an Image XObject, but must stay grayscale and match its parent.
+            var masks=new HashSet<PdfStream>();
+            for(int index=1;index<document.GetNumberOfPdfObjects();index++)
+                if(document.GetPdfObject(index) is PdfDictionary owner)
+                    foreach(var key in new[]{PdfName.SMask,PdfName.Mask})
+                        if(owner.GetAsStream(key) is {} mask) masks.Add(mask);
             for(int i=1; i<document.GetNumberOfPdfObjects(); i++)
             {
                 cancellation.ThrowIfCancellationRequested();
@@ -24,7 +30,7 @@ public static class PdfImageOptimizer
                 images++;
                 var color=stream.GetAsName(PdfName.ColorSpace);
                 int width=stream.GetAsNumber(PdfName.Width)?.IntValue()??0, height=stream.GetAsNumber(PdfName.Height)?.IntValue()??0;
-                if(width<=0 || height<=0 || (long)width*height>50000000 || stream.GetAsNumber(PdfName.BitsPerComponent)?.IntValue()!=8 ||
+                if(masks.Contains(stream) || width<=0 || height<=0 || (long)width*height>50000000 || stream.GetAsNumber(PdfName.BitsPerComponent)?.IntValue()!=8 ||
                     (!PdfName.DeviceRGB.Equals(color) && !PdfName.DeviceGray.Equals(color)) ||
                     new[]{PdfName.SMask,PdfName.Mask,PdfName.ImageMask,PdfName.Decode}.Any(stream.ContainsKey)) { skipped++; continue; }
                 var original=stream.GetBytes(false);
@@ -34,11 +40,17 @@ public static class PdfImageOptimizer
                 cancellation.ThrowIfCancellationRequested();
                 if(replacement==null) { skipped++; continue; }
                 if(replacement.Jpeg.Length>=original.Length) continue;
+                // Let iText derive the JPEG dictionary from its actual encoded components.
+                var encoded=new PdfImageXObject(iText.IO.Image.ImageDataFactory.Create(replacement.Jpeg)).GetPdfObject();
                 stream.SetData(replacement.Jpeg);
                 stream.SetCompressionLevel(CompressionConstants.NO_COMPRESSION);
-                stream.Put(PdfName.Filter,PdfName.DCTDecode); stream.Remove(PdfName.DecodeParms);
+                foreach(var key in new[]{PdfName.Filter,PdfName.DecodeParms,PdfName.ColorSpace,PdfName.BitsPerComponent,PdfName.Width,PdfName.Height})
+                { stream.Remove(key); if(encoded.ContainsKey(key)) stream.Put(key,encoded.Get(key)); }
+                stream.Remove(PdfName.Length);
+                stream.Remove(new PdfName("DL"));
+                stream.SetModified();
                 stream.Put(PdfName.Width,new PdfNumber(replacement.Width)); stream.Put(PdfName.Height,new PdfNumber(replacement.Height));
-                stream.Put(PdfName.BitsPerComponent,new PdfNumber(8)); stream.Put(PdfName.ColorSpace,PdfName.DeviceRGB);
+
                 reduced++;
             }
         });

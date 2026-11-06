@@ -1,3 +1,9 @@
+# Correcciones 0.9.1
+
+Unión: convierte automáticamente fuentes firmadas o con restricciones de propietario en copias editables en memoria, reutilizando la conversión validada. No evita contraseñas de apertura ni admite XFA. Compresión: deriva el diccionario de imagen del JPEG generado con iText, elimina longitudes heredadas y marca el flujo modificado. Búsqueda: navegación pequeña visible solo tras buscar y separación del zoom.
+
+Pruebas: `artifacts/reduction-0.9.1.log` cubre copia automática firmada/protegida, unión, reducción, reapertura y conservación del original, sin intentos de red. Se reprodujo el defecto en EFE reducido con Poppler: máscaras SMask convertidas a RGB producían Bad image parameters. Se excluyen las máscaras referenciadas antes de recorrer las imágenes. El original de 70 páginas se reduce y reabre; se contrasta con Poppler. La prueba sintética añade transparencia y prohíbe llamar al codificador para su máscara o imagen.
+
 # Verificación local — 6 de noviembre de 2026
 
 Versión actual 0.9.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.

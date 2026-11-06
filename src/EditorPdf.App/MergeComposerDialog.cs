@@ -22,8 +22,16 @@ public sealed class MergeComposerDialog : Window, IDisposable
         public IReadOnlyList<Page> Pages { get; }
         public Source(string title,PdfDocument document,string[] originalPaths,string? blockReason=null)
         {
-            Title=title; Document=document; OriginalPaths=originalPaths; BlockReason=blockReason ?? document.EditBlock;
-            Pages=Enumerable.Range(0,document.Count).Select(i=>new Page(this,i)).ToArray();
+            Title=title; OriginalPaths=originalPaths;
+            if(document.Signed || document.Protected)
+            {
+                try { Document=new PdfDocument(EditableCopy.Create(document.SaveBytes())); }
+                finally { document.Dispose(); }
+                Title=title+" · "+Ui.T("Copia editable");
+            }
+            else Document=document;
+            BlockReason=Document.EditBlock;
+            Pages=Enumerable.Range(0,Document.Count).Select(i=>new Page(this,i)).ToArray();
         }
         public void Dispose() => Document.Dispose();
     }
@@ -155,7 +163,10 @@ public sealed class MergeComposerDialog : Window, IDisposable
     }
     public void AddExternal(string path)
     {
-        var document=new PdfDocument(LocalFiles.Read(path));
+        var bytes=LocalFiles.Read(path);
+        PdfDocument document;
+        try { document=new PdfDocument(bytes); }
+        catch(PdfPasswordException) { document=new PdfDocument(EditableCopy.Create(bytes)); }
         if(document.Count==0) { document.Dispose(); throw new InvalidDataException(Ui.T("El PDF no contiene páginas.")); }
         var source=new Source(Path.GetFileName(path),document,[Path.GetFullPath(path)]);
         sources.Add(source); sourceChoice.SelectedItem=source;

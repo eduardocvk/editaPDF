@@ -76,3 +76,8 @@ b=BytesIO(); c=Canvas(b,pagesize=(595.276,841.89)); c.drawImage(ImageReader(Byte
 c.setFont('Helvetica',12); text=c.beginText(30,30); text.setTextRenderMode(3); text.textLine('Hidden OCR text preserved 123'); c.drawText(text); c.save()
 w=PdfWriter(clone_from=PdfReader(BytesIO(b.getvalue()))); w.add_outline_item('Scan',0); w.add_attachment('scan-note.txt',b'Keep this attachment'); w.add_annotation(0,Link(rect=(20,20,100,40),url='https://example.invalid'))
 w.write(out/'escaneo.pdf')
+
+# Regression: soft masks are image streams too; recompression must never turn them RGB.
+transparent=Image.new('RGBA',(300,100),(40,80,160,120))
+b=BytesIO(); c=Canvas(b); c.drawImage(ImageReader(transparent),40,600,300,100,mask='auto'); c.save()
+(out/'mascara-transparente.pdf').write_bytes(b.getvalue())

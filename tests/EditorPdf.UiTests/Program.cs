@@ -13,6 +13,15 @@ static class UiTests
     [STAThread]
     static void Main(string[] args)
     {
+        if(args.FirstOrDefault()=="--optimize-file")
+        {
+            var original=File.ReadAllBytes(args[1]);
+            using var source=new PdfDocument(original);
+            var result=PdfImageOptimizer.Optimize(original,image=>ReduceSizeDialog.Encode(image,45));
+            using var copy=new PdfDocument(result.Bytes); ReduceSizeDialog.Validate(source,copy); copy.SaveNew(args[2]);
+            Console.WriteLine($"PASS private local document: {source.Count} pages, {result.Reduced}/{result.Images} images reduced; {original.Length} -> {new FileInfo(args[2]).Length} bytes");
+            return;
+        }
         if(args.FirstOrDefault()=="--reduction")
         {
             var reductionApp=new Application();
