@@ -242,18 +242,25 @@ public sealed class PdfDocument : IDisposable
     }
     public void Move(int from, int to)
     {
-        StructureAllowed();
         if (from < 0 || from >= Count || to < 0 || to >= Count)
             throw new ArgumentOutOfRangeException(nameof(to));
         if (from == to)
             return;
-        var bytes = PdfStructure.Move(SaveBytes(), from, to);
-        using var check = new PdfDocument(bytes);
-        if (check.Count != Count || check.Attachments != Attachments || check.Bookmarks != Bookmarks || check.Tagged != Tagged || check.NamedDestinations != NamedDestinations)
-            throw new InvalidDataException("La reorganización no conserva la estructura del PDF.");
         var order = Enumerable.Range(0, Count).ToList();
         order.RemoveAt(from);
         order.Insert(to, from);
+        Reorder(order.ToArray());
+    }
+    public void Reorder(int[] order)
+    {
+        StructureAllowed();
+        if(order.Length != Count || order.Distinct().Count() != Count || order.Any(i => i < 0 || i >= Count))
+            throw new ArgumentException("Rango no válido.");
+        if(order.SequenceEqual(Enumerable.Range(0,Count))) return;
+        var bytes = PdfStructure.Reorder(SaveBytes(), order);
+        using var check = new PdfDocument(bytes);
+        if (check.Count != Count || check.Attachments != Attachments || check.Bookmarks != Bookmarks || check.Tagged != Tagged || check.NamedDestinations != NamedDestinations)
+            throw new InvalidDataException("La reorganización no conserva la estructura del PDF.");
         for (int i = 0; i < Count; i++)
             if (check.Info(i) != (Info(order[i]) with
             {

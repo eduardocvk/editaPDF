@@ -7,7 +7,7 @@ namespace EditorPdf.Core;
 // Never enable unethical reading or open any URL from a document.
 internal static class PdfStructure
 {
-    static byte[] Rewrite(byte[] bytes, Action<Document> operation)
+    internal static byte[] Rewrite(byte[] bytes, Action<Document> operation)
     {
         using var input = new MemoryStream(bytes, false);
         using var output = new MemoryStream();
@@ -24,6 +24,18 @@ internal static class PdfStructure
     }
 
     internal static byte[] Move(byte[] bytes, int from, int to) => Rewrite(bytes, document => document.MovePage(from + 1, to > from ? to + 2 : to + 1));
+    internal static byte[] Reorder(byte[] bytes, int[] order) => Rewrite(bytes, document =>
+    {
+        var current = Enumerable.Range(0, order.Length).ToList();
+        for (int at = 0; at < order.Length; at++)
+        {
+            int from = current.IndexOf(order[at]);
+            if (from == at) continue;
+            document.MovePage(from + 1, at + 1);
+            current.RemoveAt(from);
+            current.Insert(at, order[at]);
+        }
+    });
     internal static byte[] ConsolidatePageContent(byte[] bytes, int page) => Rewrite(bytes, document =>
     {
         var target = document.GetPage(page + 1);

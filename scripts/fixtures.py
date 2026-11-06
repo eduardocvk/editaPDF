@@ -63,3 +63,16 @@ w=PdfWriter(clone_from=PdfReader(BytesIO(base)));w.add_named_destination('destin
 w.add_annotation(0,DictionaryObject({NameObject('/Type'):NameObject('/Annot'),NameObject('/Subtype'):NameObject('/Link'),NameObject('/Rect'):ArrayObject([NumberObject(n) for n in [50,690,400,720]]),NameObject('/A'):DictionaryObject({NameObject('/S'):NameObject('/GoTo'),NameObject('/D'):NameObject('/destino-sintetico')})}))
 outline=w.add_outline_item('Destino con nombre',1);outline.get_object()['/A'][NameObject('/D')]=TextStringObject('destino-sintetico');w.write(out/'destinos-enlazados.pdf')
 print('Fixtures locales generadas')
+
+# High-resolution synthetic scan with OCR text and document structures.
+from PIL import Image, ImageDraw
+from reportlab.lib.utils import ImageReader
+image=Image.new('RGB',(2400,3200),'white'); draw=ImageDraw.Draw(image)
+for y in range(100,3100,35):
+    draw.text((100,y),'Synthetic scanned document: quality preview 0123456789 '*5,fill=(25,30,40))
+    for x in range(100,2300,37): draw.point((x,y+20),fill=(x%255,y%255,100))
+jpeg=BytesIO(); image.save(jpeg,'JPEG',quality=98)
+b=BytesIO(); c=Canvas(b,pagesize=(595.276,841.89)); c.drawImage(ImageReader(BytesIO(jpeg.getvalue())),0,0,595.276,841.89)
+c.setFont('Helvetica',12); text=c.beginText(30,30); text.setTextRenderMode(3); text.textLine('Hidden OCR text preserved 123'); c.drawText(text); c.save()
+w=PdfWriter(clone_from=PdfReader(BytesIO(b.getvalue()))); w.add_outline_item('Scan',0); w.add_attachment('scan-note.txt',b'Keep this attachment'); w.add_annotation(0,Link(rect=(20,20,100,40),url='https://example.invalid'))
+w.write(out/'escaneo.pdf')

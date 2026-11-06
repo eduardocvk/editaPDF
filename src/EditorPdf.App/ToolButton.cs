@@ -12,6 +12,7 @@ public sealed class ToolButton : Button
     public bool IconOnly { get; set; }
     static readonly Dictionary<string, string> Shapes = new()
     {
+        ["Compress"] = "M2,2 L7,7 M2,7 H7 V2 M18,2 L13,7 M13,2 V7 H18 M2,18 L7,13 M2,13 H7 V18 M18,18 L13,13 M13,18 V13 H18",
         ["Undo"] = "M8,3 L3,8 8,13 M3,8 H12 A5,5 0 0 1 12,18",
         ["Redo"] = "M12,3 L17,8 12,13 M17,8 H8 A5,5 0 0 0 8,18",
         ["Front"] = "M3,2 H17 M10,18 V6 M5,11 L10,6 15,11",

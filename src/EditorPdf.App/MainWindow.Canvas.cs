@@ -127,7 +127,7 @@ public partial class MainWindow
     void BuildImageToolbar(PdfObject obj)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal };
-        void Add(string label,string icon,Action action) { var button=new ToolButton { Content=label,Icon=icon,IconOnly=true,ToolTip=label,Padding=new Thickness(5),MinHeight=28 }; button.Click+=(_,_)=>Run(action); row.Children.Add(button); }
+        void Add(string label,string icon,Action action) { var button=new ToolButton { Icon=icon,IconOnly=true,Content=label,ToolTip=label,Padding=new Thickness(5),MinHeight=28 }; button.Click+=(_,_)=>Run(action); row.Children.Add(button); }
         Add(Ui.T("Duplicar imagen"),"Duplicate",()=>{ Change(d=>d.DuplicateImage(page,obj.Index)); SelectObject(Pdf.Objects(page).Last().Index); });
         Add(Ui.T("Adelantar"),"Up",()=>OrderSelectedObject(1)); Add(Ui.T("Atrasar"),"Down",()=>OrderSelectedObject(-1));
         Add(Ui.T("Eliminar objeto"),"Delete",()=>Change(d=>d.RemoveObject(page,obj.Index)));

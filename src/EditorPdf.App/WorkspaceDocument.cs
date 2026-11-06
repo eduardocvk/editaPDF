@@ -21,6 +21,7 @@ public sealed class WorkspaceDocument(Session session, string title) : INotifyPr
 }
 public sealed class DocumentView
 {
+    public int[] SelectedPages { get; set; } = [];
     public int Page
     {
         get; set;

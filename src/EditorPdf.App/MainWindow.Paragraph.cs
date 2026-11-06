@@ -88,7 +88,7 @@ public partial class MainWindow
             Canvas.SetLeft(paragraphOutline, area.Left);
             Canvas.SetTop(paragraphOutline, area.Top);
             Overlay.Children.Add(paragraphOutline);
-            var edit = new ToolButton { Content = Ui.T("Editar texto seleccionado"), Icon = "Paragraph", IconOnly = true, ToolTip = Ui.T("Editar texto seleccionado"), Padding = new Thickness(5), MinWidth = 29, MinHeight = 29 };
+            var edit = new ToolButton { Icon = "Paragraph", IconOnly = true, Content = Ui.T("Editar texto seleccionado"), ToolTip = Ui.T("Editar texto seleccionado"), Padding = new Thickness(5), MinWidth = 29, MinHeight = 29 };
             edit.Click += (_, _) => Run(EditAreaSelection);
             Canvas.SetLeft(edit, Math.Min(area.Right + 5, Overlay.Width - 34));
             Canvas.SetTop(edit, Math.Clamp(area.Top, 0, Overlay.Height - 34));

@@ -1,8 +1,8 @@
-# Privacidad de Editor PDF 0.8.1
+# Privacidad de Editor PDF 0.9.0
 
 Los PDF se procesan en el equipo. No se implementan telemetría, analítica, procesamiento remoto, descargas de fuentes ni envío automático de errores. Runtime, motores y fuentes están incluidos. No se ejecuta JavaScript de los PDF.
 
-No se guarda ni se restaura automáticamente una sesión entre ejecuciones. Los documentos y borradores abiertos permanecen en memoria. Guardar, extraer, dividir o enviar a FirmaPDF crea archivos nuevos en las ubicaciones elegidas por el usuario. La elección de idioma se conserva en `%LOCALAPPDATA%\EditorPDF\language.txt`; ese archivo no contiene datos de documentos.
+No se guarda ni se restaura automáticamente una sesión entre ejecuciones. Los documentos y borradores abiertos permanecen en memoria. El compositor visual mantiene copias transitorias de los PDF de origen en memoria y no modifica sus pestañas; al crearlo, el resultado se abre como otro documento. La transferencia de páginas entre pestañas también conserva el origen. Guardar, extraer, dividir o enviar a FirmaPDF crea archivos nuevos en las ubicaciones elegidas por el usuario. La elección de idioma se conserva en `%LOCALAPPDATA%\EditorPDF\language.txt`; ese archivo no contiene datos de documentos.
 
 Las recuperaciones de versiones anteriores no se abren ni se modifican automáticamente. Si existen, permanecen en la carpeta Recovery de la versión anterior hasta que el usuario las retire.
 

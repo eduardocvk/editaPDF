@@ -1,6 +1,20 @@
 # Verificación local — 6 de noviembre de 2026
 
-Versión actual 0.8.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.9.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Selección y composición de páginas 0.9.0
+
+La selección extendida de miniaturas se conserva por documento. Las pruebas WPF ejercitan el menú contextual de transferencia y el evento de soltar un grupo sobre otra pestaña. La reordenación múltiple y la copia entre pestañas son una sola operación de deshacer. Se comprueba que el origen y sus bytes en disco permanecen intactos, y que una fuente firmada se rechaza sin alterar el destino.
+
+El compositor se prueba con arrastre de origen al resultado, reordenación por arrastre, adición de un PDF externo y creación en otra pestaña. Los PDF de prueba incluyen anotaciones, marcadores y destinos con nombre enlazados. La comprobación independiente de pypdf confirma que el destino y el marcador apuntan a la página correcta tras intercalar los documentos. No se han utilizado documentos personales en estas pruebas ni en las capturas.
+
+Se revisan capturas del compositor y del panel de edición compacto. El nombre propuesto para FirmaPDF conserva el original y añade `_para_firmar`. Las pruebas de gestos usan eventos WPF y selección de controles; no sustituyen una comprobación manual completa con el ratón.
+
+## Reducción de imágenes 0.9.0
+
+El diálogo recomprime imágenes compatibles sin rasterizar las páginas. La barra recalcula el PDF en memoria con cancelación y descarta resultados antiguos. La vista previa se representa desde la copia real, y el tamaño mostrado es una estimación anterior a la serialización final de guardado. La ausencia de ahorro desactiva Guardar. No se sobrescriben archivos existentes.
+
+Las pruebas incluyen un escaneo sintético de alta resolución con OCR invisible, adjunto, marcador y enlace, guardado y reapertura, reducción de peso, dos calidades, cambios rápidos del deslizador, cancelación, bloqueo de firmas y un PDF sin imágenes. La comprobación independiente pypdf revisa texto, adjunto, enlace y destino del marcador. La validación en la aplicación compara páginas, texto, anotaciones y presencia de estructuras; no constituye una validación exhaustiva de toda variante PDF. Transparencias, máscaras, colores especiales e imágenes mayores de 50 megapíxeles no se recomprimen. No se añaden dependencias. Evidencia: `artifacts/test-0.9.0-reduction-recheck.log`, comprobaciones independientes y capturas en `artifacts/tests-20261106-105818-aac8f7/ui-recheck`. La guardia nativa informa de cero intentos de API de red en los flujos comprobados.
 
 ## Impresión integrada 0.8.1 — 6 de noviembre de 2026
 

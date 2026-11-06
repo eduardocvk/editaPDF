@@ -27,6 +27,7 @@ public partial class MainWindow
         activeDocument.View = new DocumentView
         {
             Page = page,
+            SelectedPages = SelectedPageIndices(),
             Zoom = zoom,
             Mode = 1,
             Search = SearchBox.Text,
@@ -72,6 +73,7 @@ public partial class MainWindow
             CancelCanvasGesture(false);
             DocumentTabs.SelectedItem = target;
             Refresh();
+            if(target.View.SelectedPages.Length>0) SetPageSelection(target.View.SelectedPages);
             if (target.View.Inline is { } draft)
             {
                 page = Math.Clamp(draft.Page, 0, Math.Max(0, Pdf.Count - 1));

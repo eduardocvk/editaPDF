@@ -13,6 +13,12 @@ static class UiTests
     [STAThread]
     static void Main(string[] args)
     {
+        if(args.FirstOrDefault()=="--reduction")
+        {
+            var reductionApp=new Application();
+            reductionApp.Resources=(ResourceDictionary)Application.LoadComponent(new Uri("/EditorPDF;component/Theme.xaml",UriKind.Relative));
+            Directory.CreateDirectory(args[1]); ReductionChecks.Run(args[1],args[2]); return;
+        }
         if(args.FirstOrDefault()=="--diagnose-print")
         {
             var printingApp=new Application();
@@ -231,6 +237,8 @@ static class UiTests
         Console.WriteLine("CHECK integracion del Explorador");
         CanvasChecks.Run(window, folder, Path.GetFullPath(args[1]), Capture);
         ShellChecks.Run(Path.GetFullPath(args[1]), folder);
+        PageTransferChecks.Run(folder,fixtures);
+        ReductionChecks.Run(folder,fixtures);
         Console.WriteLine("PASS documentos en pestañas: sesiones e historial independientes, orden por insercion, borradores, sin recuperación persistente y cierre");
         typeof(MainWindow).GetMethod("DisposeWorkspace", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS UI texto original, deshacer, rehacer y guardado");

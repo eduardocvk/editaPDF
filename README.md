@@ -1,20 +1,22 @@
 # Editor PDF para Windows 11
 
-Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Vista previa **0.8.1**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
+Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Vista previa **0.9.0**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
 
-[Descargar 0.8.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.8.1/EditorPDF-0.8.1-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
+[Descargar 0.9.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.9.0/EditorPDF-0.9.0-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
 
 Extrae todo el ZIP y abre `EditorPDF.exe`. Incluye runtime, fuentes, motores, licencias y `Source.zip`. No necesita descargar .NET. La distribución portable no tiene firma Authenticode.
 
 ## Uso
 
 - Abre documentos en pestañas. La rueda pasa a la página contigua cuando llegas al borde de la actual.
+- Ctrl y Mayús permiten seleccionar varias páginas. El botón derecho ofrece añadirlas a otro documento abierto; también puedes arrastrar el grupo a la pestaña de destino. Se copian al final sin retirar las páginas del origen.
+- **Unir**, a la derecha de Imprimir, abre un compositor visual: elige un documento de origen, arrastra sus páginas a la lista del PDF nuevo, reordénalas y añade otros PDF con «Abrir otro PDF». Al crear el resultado se abre una pestaña independiente.
 - Las acciones de organización están junto a las miniaturas: insertar, extraer, dividir, duplicar, girar, eliminar y reordenar. Insertar permite elegir páginas de los otros documentos abiertos o abrir otro PDF.
 - Añade texto o imágenes desde el panel derecho. Aplica el texto desde el botón dentro de su cuadro. La barra contextual permite editar estilos y eliminar; las imágenes también permiten duplicar y cambiar su orden de pintado.
 - Doble clic para editar texto original compatible. Arrastra desde una zona vacía para seleccionar varios fragmentos y pulsa el botón de edición junto al recuadro. Los párrafos pueden alinearse a izquierda, derecha, centro o justificarse dentro del ancho original.
 - La búsqueda muestra el número de coincidencias y permite recorrerlas con flechas. Imprimir abre una única ventana con impresora, orientación, papel, copias, color y páginas. La vista previa se actualiza con esas opciones y solo muestra las páginas seleccionadas, en su orden. El trabajo utiliza el mismo paginador y los márgenes que informa la impresora, sin un segundo diálogo de opciones.
 - Configuración permite elegir español o inglés. Solo se guarda la preferencia de idioma: no se guarda ni restaura automáticamente una sesión entre ejecuciones. Guarda una copia antes de cerrar si quieres conservar tus cambios.
-- El botón FirmaPDF detecta la instalación portable compatible en su ubicación de usuario. Si está disponible, solicita guardar una copia y la abre con `--open`. Si no, abre su ficha de Store. La detección y activación de la edición MSIX de FirmaPDF aún no están verificadas.
+- El botón FirmaPDF detecta la instalación portable compatible en su ubicación de usuario. Si está disponible, solicita guardar una copia con el nombre original más `_para_firmar.pdf` y la abre con `--open`. Si no, abre su ficha de Store. La detección y activación de la edición MSIX de FirmaPDF aún no están verificadas.
 
 ## Texto, seguridad y privacidad
 
@@ -29,6 +31,8 @@ El procesamiento es local, sin telemetría, descargas de recursos ni envío auto
 ## Teclado
 
 Ctrl+O abre; Ctrl+S guarda copia; Ctrl+P imprime; Ctrl+F busca; Ctrl+Z/Ctrl+Y deshace/rehace. Ctrl+Tab cambia de documento y Ctrl+W cierra su pestaña. Intro confirma la edición directa y Esc cancela el borrador o selección. Tab y Mayús+Tab recorren controles con nombres accesibles.
+
+El botón **Reducir tamaño del PDF**, al pie del panel derecho, abre una barra de calidad con vista previa, comparación con el original, zoom y estimación del peso. Guarda una copia `_reducido.pdf`. Recomprime imágenes RGB/grises compatibles y puede reducir su resolución; conserva texto, OCR existente y estructuras. Las imágenes con transparencias, máscaras, espacios de color especiales o más de 50 megapíxeles se dejan intactas. La reducción es con pérdida visual y no todos los PDF permiten ahorrar espacio. Los originales firmados o protegidos requieren primero una copia editable.
 
 ## Compilar y verificar
 

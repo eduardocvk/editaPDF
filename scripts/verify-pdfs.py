@@ -1,6 +1,28 @@
 from pypdf import PdfReader
 from pathlib import Path
 import sys
+if sys.argv[1]=='--reduction':
+    original=PdfReader(sys.argv[2]); reduced=PdfReader(sys.argv[3])
+    assert len(original.pages)==len(reduced.pages)==1
+    assert original.pages[0].extract_text()==reduced.pages[0].extract_text()
+    assert set(original.attachments)==set(reduced.attachments)=={'scan-note.txt'}
+    assert bytes(reduced.attachments['scan-note.txt'][0])==b'Keep this attachment'
+    assert len(reduced.outline)==1 and reduced.get_destination_page_number(reduced.outline[0])==0
+    assert str(reduced.pages[0]['/Annots'][0].get_object()['/A']['/URI'])=='https://example.invalid'
+    assert Path(sys.argv[3]).stat().st_size<Path(sys.argv[2]).stat().st_size*.8
+    print('PASS pypdf: copia reducida menor, OCR, adjunto, marcador y enlace conservados')
+    sys.exit(0)
+if sys.argv[1]=='--composition':
+    result=PdfReader(sys.argv[2])
+    assert len(result.pages)==5
+    destination=result.named_destinations['destino-sintetico']
+    assert result.get_destination_page_number(destination)==4
+    assert any(result.get_destination_page_number(item)==4 for item in result.outline if not isinstance(item,list))
+    links=[ref.get_object() for ref in result.pages[1].get('/Annots',[]) if ref.get_object().get('/Subtype')=='/Link']
+    assert any(str(link.get('/A',{}).get('/D','')).lstrip('/')=='destino-sintetico' for link in links)
+    assert 'C1' in result.pages[2].extract_text()
+    print('PASS pypdf: compositor conserva orden, destino con nombre, marcador y enlace interno hacia la página nueva correcta')
+    sys.exit(0)
 p=Path(sys.argv[1])
 original=PdfReader(p/'fixtures'/'externo.pdf'); edited=PdfReader(p/'externo-editado.pdf')
 assert len(original.pages)==len(edited.pages)==2

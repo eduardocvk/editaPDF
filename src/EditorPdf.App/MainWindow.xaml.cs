@@ -174,7 +174,24 @@ public partial class MainWindow : Window
         if (files.Length > 0)
             OpenPaths(files);
     }
-    void AppendClick(object sender, RoutedEventArgs e) => Run(() => AppendPaths(PickPdfs()));
+    void AppendClick(object sender, RoutedEventArgs e) => Run(() =>
+    {
+        FinishInlineText(); CancelCanvasGesture(false); CheckDocumentCapacity();
+        using var composer=new MergeComposerDialog(this,documents.OrderBy(d=>d==activeDocument ? 0 : 1));
+        Mouse.OverrideCursor=null;
+        if(composer.ShowDialog()!=true) return;
+        OpenComposition(composer);
+    });
+    public WorkspaceDocument OpenComposition(MergeComposerDialog composer)
+    {
+        CheckDocumentCapacity();
+        var next=composer.TakeDocument();
+        var document=new WorkspaceDocument(next,Ui.T("Unión de PDF"));
+        documents.Add(document); SwitchDocument(document);
+        foreach(var empty in documents.Where(d=>d!=document && d.Session.Document.Count==0 && !d.Session.Dirty).ToArray())
+        { documents.Remove(empty); empty.Dispose(); }
+        return document;
+    }
     bool SaveCopy()
     {
         FinishInlineText();
@@ -238,8 +255,8 @@ public partial class MainWindow : Window
     {
         if (refreshing || PagesList.SelectedIndex < 0)
             return;
-        int requestedPage = PagesList.SelectedIndex;
-        Run(() => { FinishInlineText(); CancelCanvasGesture(false); page = requestedPage; refreshing = true; PagesList.SelectedIndex = page; refreshing = false; ShowPage(); });
+        int requestedPage = e.AddedItems.OfType<Thumb>().LastOrDefault()?.Index ?? PagesList.SelectedIndex;
+        Run(() => { FinishInlineText(); CancelCanvasGesture(false); page = requestedPage; ShowPage(); });
     }
     void ModeChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -425,7 +442,7 @@ public partial class MainWindow : Window
         var executable=useFirmaBridge ? FirmaPdfBridge.FindExecutable() : null;
         if(executable==null) { openExternal(FirmaPdfStoreUri); return; }
         FinishInlineText(); RequireDocument();
-        var save=new SaveFileDialog { Filter="PDF (*.pdf)|*.pdf",FileName="documento_para_firmar.pdf",Title=Ui.T("Guardar copia para FirmaPDF") };
+        var save=new SaveFileDialog { Filter="PDF (*.pdf)|*.pdf",FileName=SuggestedSigningFileName(),Title=Ui.T("Guardar copia para FirmaPDF") };
         if(save.ShowDialog(this)!=true) return;
         Pdf.SaveNew(save.FileName);
         FirmaPdfBridge.Open(executable,save.FileName);

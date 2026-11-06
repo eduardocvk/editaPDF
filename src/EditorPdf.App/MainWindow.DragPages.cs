@@ -8,14 +8,17 @@ namespace EditorPdf.App;
 public partial class MainWindow
 {
     const string PageDragFormat = "EditorPDF.Page";
-    sealed record PageDrag(string Document, int Page);
+    sealed record PageDrag(string Document, int[] Pages);
     static PageDrag? ReadPageDrag(IDataObject data)
     {
-        if (data.GetData(PageDragFormat) is not string value)
-            return null;
-        var parts = value.Split(':');
-        return parts.Length == 2 && Guid.TryParseExact(parts[0], "N", out _) && int.TryParse(parts[1], out int page) ? new PageDrag(parts[0], page) : null;
+        if(data.GetData(PageDragFormat) is not string value || value.Length>120000) return null;
+        var parts=value.Split(':');
+        if(parts.Length!=2 || !Guid.TryParseExact(parts[0],"N",out _)) return null;
+        var pages=new List<int>();
+        foreach(var token in parts[1].Split(',')) { if(!int.TryParse(token,out int index) || index<0) return null; pages.Add(index); }
+        return pages.Count is >0 and <=10000 && pages.Distinct().Count()==pages.Count ? new PageDrag(parts[0],pages.ToArray()) : null;
     }
+    bool deferThumbnailSelection;
     Point? thumbnailStart; int thumbnailFrom; long lastDragScroll;
     AdornerLayer? dropLayer; InsertionLine? dropLine;
     static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
@@ -40,6 +43,8 @@ public partial class MainWindow
             thumbnailStart = null;
             return;
         }
+        deferThumbnailSelection = Keyboard.Modifiers == ModifierKeys.None && PagesList.SelectedItems.Count>1 && PagesList.SelectedItems.Contains(thumb);
+        if(deferThumbnailSelection) { e.Handled=true; PagesList.Focus(); }
         thumbnailStart = e.GetPosition(PagesList);
         thumbnailFrom = thumb.Index;
     }
@@ -56,9 +61,13 @@ public partial class MainWindow
         if (Math.Abs(point.X - start.X) < SystemParameters.MinimumHorizontalDragDistance && Math.Abs(point.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance)
             return;
         thumbnailStart = null;
+        deferThumbnailSelection = false;
+        var pages=SelectedPageIndices();
+        if(!pages.Contains(thumbnailFrom)) pages=[thumbnailFrom];
         try
         {
-            DragDrop.DoDragDrop(PagesList, new DataObject(PageDragFormat, activeDocument.Id + ":" + thumbnailFrom.ToString(System.Globalization.CultureInfo.InvariantCulture)), DragDropEffects.Move);
+            FinishInlineText();
+            DragDrop.DoDragDrop(PagesList, new DataObject(PageDragFormat, activeDocument.Id + ":" + string.Join(",",pages)), DragDropEffects.Move | DragDropEffects.Copy);
         }
         finally { ClearInsertionLine(); }
     }
@@ -126,16 +135,26 @@ public partial class MainWindow
         if (activeDocument?.Id != drag.Document)
             return;
         int insertion = InsertionAt(e, false);
-        Run(() => MovePageToInsertion(drag.Page, insertion));
+        Run(() => MovePagesToInsertion(drag.Pages, insertion));
     }
-    public void MovePageToInsertion(int from, int insertion)
+    public void MovePageToInsertion(int from, int insertion) => MovePagesToInsertion([from],insertion);
+    public void MovePagesToInsertion(int[] selected, int insertion)
     {
-        if (from < 0 || from >= Pdf.Count || insertion < 0 || insertion > Pdf.Count)
+        var pages=selected.Distinct().Order().ToArray();
+        if(pages.Length==0 || pages.Any(i=>i<0 || i>=Pdf.Count) || insertion<0 || insertion>Pdf.Count)
             throw new ArgumentOutOfRangeException(nameof(insertion));
-        int to = insertion > from ? insertion - 1 : insertion;
-        if (to == from)
-            return;
-        Change(d => d.Move(from, to), to);
+        var order=Enumerable.Range(0,Pdf.Count).Except(pages).ToList();
+        int first=insertion-pages.Count(i=>i<insertion);
+        order.InsertRange(first,pages);
+        if(order.SequenceEqual(Enumerable.Range(0,Pdf.Count))) return;
+        Change(d=>d.Reorder(order.ToArray()),first);
+        SetPageSelection(Enumerable.Range(first,pages.Length).ToArray());
+    }
+    void ThumbnailMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if(deferThumbnailSelection && thumbnailStart!=null)
+        { PagesList.SelectedItem=PagesList.Items.Cast<Thumb>().FirstOrDefault(t=>t.Index==thumbnailFrom); e.Handled=true; }
+        deferThumbnailSelection=false; thumbnailStart=null;
     }
     void ThumbnailDragLeave(object sender, DragEventArgs e) => ClearInsertionLine();
     void ClearInsertionLine()

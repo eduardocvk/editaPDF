@@ -18,5 +18,7 @@ try{
  & $guard (Join-Path $root 'artifacts/test-engine/EditorPdf.Tests.exe') $run;Check
  & $PythonPath scripts/verify-pdfs.py $run;Check
  & $guard (Join-Path $root 'artifacts/test-ui/EditorPdf.UiTests.exe') (Join-Path $run 'ui') (Join-Path $run 'fixtures/externo.pdf');Check
+ & $PythonPath scripts/verify-pdfs.py --composition (Join-Path $run 'ui/ui-merge-composer.pdf');Check
+ & $PythonPath scripts/verify-pdfs.py --reduction (Join-Path $run 'fixtures/escaneo.pdf') (Join-Path $run 'ui/ui-reduced.pdf');Check
  Write-Output "Pruebas y capturas: $run"
 }finally{Pop-Location}
