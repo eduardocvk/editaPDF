@@ -1,3 +1,7 @@
+# Preparación 1.0.0 para Store
+
+Versión de aplicación 1.0.0 y paquete MSIX 1.0.0.0 x64. Identidad oficial facilitada por el titular: EduardoCallejo.EditaPDF, publisher CN=D317ECBE-86A1-4610-9063-9C16F1256EC9, nombre Eduardo Callejo. Datos reproducibles en packaging/StoreIdentity.json. El empaquetado no publica ni envía a certificación. El contenido incluye runtime, fuentes, licencias y Source.zip. El archivo debe superar la validación de MakeAppx; WACK, instalación MSIX y certificación son comprobaciones distintas que no se presuponen.
+
 # Correcciones 0.9.4
 
 Sobrescritura explícita de copias tras confirmar en el diálogo, conservando el bloqueo de las rutas originales de la sesión. La escritura usa archivo temporal validado y reemplazo al finalizar. El comportamiento por defecto del motor sigue sin sobrescritura. Regresión: guardar una copia, añadir página, sobrescribir con autorización y reabrir con dos páginas.
