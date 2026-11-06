@@ -44,6 +44,25 @@ static class ReductionChecks
             Assert(partial.Info(0).Annotations==links.Info(0).Annotations,"importar página con destino omitido conserva anotaciones");
             partial.SaveNew(Path.Combine(output,"partial-links.pdf"));
         }
+        using(var input=new MemoryStream(masked))
+        using(var outputBytes=new MemoryStream())
+        {
+            using(var doc=new iText.Kernel.Pdf.PdfDocument(new iText.Kernel.Pdf.PdfReader(input),new iText.Kernel.Pdf.PdfWriter(outputBytes)))
+            {
+                for(int i=1;i<doc.GetNumberOfPdfObjects();i++)
+                    if(doc.GetPdfObject(i) is iText.Kernel.Pdf.PdfStream image && image.GetAsStream(iText.Kernel.Pdf.PdfName.SMask) is {} mask)
+                    {
+                        var raw=mask.GetBytes(true); mask.SetData(raw.SelectMany(v=>new[]{v,v,v}).ToArray());
+                        mask.Put(iText.Kernel.Pdf.PdfName.ColorSpace,iText.Kernel.Pdf.PdfName.DeviceRGB); mask.SetModified();
+                    }
+            }
+            using var broken=new PdfDocument(outputBytes.ToArray());
+            string fixedPath=Path.Combine(output,"auto-repaired-mask.pdf"); broken.SaveNew(fixedPath);
+            PdfImageChecks.Validate(File.ReadAllBytes(fixedPath));
+            Assert(true,"guardar repara automáticamente máscaras RGB sin pedir decisiones técnicas");
+        }
+        PdfImageChecks.Validate(masked);
+        Assert(true,"validación acepta máscaras grises originales");
         var noImages=File.ReadAllBytes(Path.Combine(fixtures,"externo.pdf")); var unchanged=PdfImageOptimizer.Optimize(noImages,i=>null); Assert(unchanged.Bytes.SequenceEqual(noImages),"sin imágenes reducibles no aumenta el tamaño");
         bool blocked=false; try { using var signed=new ReduceSizeDialog(new Window(),File.ReadAllBytes(Path.Combine(fixtures,"firma-sintetica.pdf")),"firmado.pdf"); } catch(InvalidOperationException) { blocked=true; } Assert(blocked,"compresión exige copia editable en documentos firmados");
         using(var composer=new MergeComposerDialog(new Window(),Array.Empty<WorkspaceDocument>()))

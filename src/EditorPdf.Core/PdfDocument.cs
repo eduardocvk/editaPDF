@@ -702,6 +702,12 @@ public sealed class PdfDocument : IDisposable
                     throw new InvalidDataException("La copia no conserva la representación de la página.");
             }
         }
+        bytes=PdfImageChecks.Repair(bytes);
+        using(var repaired=new PdfDocument(bytes))
+        {
+            if(repaired.Count!=Count) throw new InvalidDataException("No se pudieron conservar todas las páginas.");
+            for(int i=0;i<Count;i++) if(repaired.Text(i)!=Text(i) || repaired.Info(i)!=Info(i)) throw new InvalidDataException("No se pudo conservar el contenido de la copia.");
+        }
         var full = Path.GetFullPath(path);
         var temp = Path.Combine(Path.GetDirectoryName(full)!, ".editorpdf-" + Guid.NewGuid().ToString("N") + ".tmp");
         try
