@@ -50,6 +50,7 @@ public sealed class PrintPreviewDialog : Window
     public PrintPreviewDialog(Window owner, PdfDocument document, bool loadPrinters = true)
     {
         this.document = document;
+        ranges.Text=document.Count==1 ? "1" : $"1-{document.Count}";
         if(owner.IsVisible) Owner=owner;
         Title=Ui.T("Impresión"); Width=1040; Height=780; MinWidth=820; MinHeight=580;
         WindowStartupLocation=WindowStartupLocation.CenterOwner;
@@ -194,8 +195,6 @@ public sealed class PrintPreviewDialog : Window
         if(!print.IsEnabled || queue==null || ticket==null || CurrentPaginator==null) return;
         try
         {
-            string port=queue.QueuePort?.Name ?? "";
-            if(!LocalPrinting.IsLocalPort(port) && MessageBox.Show(this,Ui.T("Esta impresora puede enviar el documento por la red. ¿Continuar?"),Ui.T("Impresora de red"),MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes) return;
             // No second settings dialog: this job uses the settings shown beside the preview.
             var job=new PrintDialog { PrintQueue=queue,PrintTicket=ticket };
             print.IsEnabled=false;

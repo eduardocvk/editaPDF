@@ -683,7 +683,7 @@ public sealed class PdfDocument : IDisposable
         Check(ok, "PDFium no pudo guardar el PDF.");
         return stream.ToArray();
     }
-    public void SaveNew(string path)
+    public void SaveNew(string path, bool overwrite = false)
     {
         StructureAllowed();
         path = LocalFiles.Validate(path);
@@ -717,7 +717,7 @@ public sealed class PdfDocument : IDisposable
                 f.Write(bytes);
                 f.Flush(true);
             }
-            File.Move(temp, full, false);
+            File.Move(temp, full, overwrite);
         }
         finally { if (File.Exists(temp)) File.Delete(temp); }
     }

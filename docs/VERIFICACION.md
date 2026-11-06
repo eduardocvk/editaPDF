@@ -1,3 +1,9 @@
+# Correcciones 0.9.4
+
+Sobrescritura explícita de copias tras confirmar en el diálogo, conservando el bloqueo de las rutas originales de la sesión. La escritura usa archivo temporal validado y reemplazo al finalizar. El comportamiento por defecto del motor sigue sin sobrescritura. Regresión: guardar una copia, añadir página, sobrescribir con autorización y reabrir con dos páginas.
+
+Impresión: rango inicial explícito con todas las páginas, cursor normal antes de mostrar el diálogo, sin confirmación adicional de red. El paginador devuelve Canvas en vez de FixedPage para evitar una FixedPage anidada al serializar. La regresión genera un XPS local con el paginador real y comprueba el número de páginas sin enviar trabajos a impresoras. La salida física no se comprueba en esta tarea.
+
 # Guardado automático 0.9.3
 
 El guardado convierte automáticamente las máscaras SMask inválidas a gris mediante el códec WIC de Windows/WPF ya incluido en la distribución. Reescribe únicamente las máscaras, valida su estructura y comprueba texto, geometría, anotaciones y páginas de la copia reparada. No modifica el original. La reparación no es un saneador universal de PDF. Sustituye el bloqueo técnico previsto inicialmente en esta corrección.

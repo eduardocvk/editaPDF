@@ -191,6 +191,20 @@ static class CanvasChecks
             printDocument.Blank(1); printDocument.AddText(1,"Second page",16,40,700);
             printDocument.AddImage(1,2,2,8,Enumerable.Range(0,16).Select(i=>(byte)(i%4 is 2 or 3 ? 255 : 0)).ToArray(),40,500,120,80);
             var printing = new PrintPreviewDialog(window,printDocument,false);
+            if(printing.SelectedPages.Count!=printDocument.Count) throw new Exception("Impresión no comienza con todas las páginas");
+            using(var xps=new System.Windows.Xps.Packaging.XpsDocument(Path.Combine(folder,"print-serialization.xps"),FileAccess.ReadWrite))
+            {
+                System.Windows.Xps.Packaging.XpsDocument.CreateXpsDocumentWriter(xps).Write(printing.CurrentPaginator!);
+                if(xps.GetFixedDocumentSequence().DocumentPaginator.PageCount!=printDocument.Count) throw new Exception("Serialización XPS incompleta");
+            }
+            var saved=Path.Combine(folder,"overwrite-copy.pdf");
+            using(var writable=new Session())
+            {
+                writable.Execute(d=>d.Blank(0)); writable.SaveNew(saved);
+                writable.Execute(d=>d.Blank(1)); writable.SaveNew(saved,true);
+                using var reopened=new PdfDocument(File.ReadAllBytes(saved));
+                if(reopened.Count!=2) throw new Exception("Sobrescritura confirmada no actualiza copia");
+            }
             printing.SetPreviewOptions("2",false,false);
             if(!printing.SelectedPages.SequenceEqual([1]) || printing.CurrentPaginator?.PageCount!=1 || printing.PreviewImage==null || printing.CanPrint)
                 throw new Exception("La vista previa no respeta el rango o permite imprimir sin impresora");

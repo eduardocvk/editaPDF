@@ -292,5 +292,6 @@
   "Imágenes no compatibles": "Unsupported images",
   "No se pudo reducir el PDF.": "Could not reduce the PDF.",
   "No se pudo conservar la estructura del PDF.": "Could not preserve the PDF structure.",
-  "No se pudo conservar el texto o las páginas del PDF.": "Could not preserve the PDF text or pages."
+  "No se pudo conservar el texto o las páginas del PDF.": "Could not preserve the PDF text or pages.",
+  "Arrastra un PDF para empezar.": "Drop a PDF to get started."
 }

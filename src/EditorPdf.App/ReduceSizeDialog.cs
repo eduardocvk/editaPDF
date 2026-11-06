@@ -118,7 +118,7 @@ public sealed class ReduceSizeDialog : Window, IDisposable
         if(candidate==null || !save.IsEnabled) return;
         var dialog=new SaveFileDialog { Filter="PDF (*.pdf)|*.pdf",FileName=suggestedName,Title=Ui.T("Guardar copia reducida") };
         if(dialog.ShowDialog(this)!=true) return;
-        try { candidate.SaveNew(LocalFiles.Validate(dialog.FileName)); }
+        try { candidate.SaveNew(LocalFiles.Validate(dialog.FileName), true); }
         catch(Exception ex) { MessageBox.Show(this,ex.Message,Title,MessageBoxButton.OK,MessageBoxImage.Warning); }
     }
     public void Dispose() { if(disposed) return; disposed=true; pending?.Cancel(); candidate?.Dispose(); source.Dispose(); }

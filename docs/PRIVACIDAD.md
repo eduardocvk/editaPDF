@@ -1,4 +1,4 @@
-# Privacidad de Editor PDF 0.9.3
+# Privacidad de Editor PDF 0.9.4
 
 Los PDF se procesan en el equipo. No se implementan telemetría, analítica, procesamiento remoto, descargas de fuentes ni envío automático de errores. Runtime, motores y fuentes están incluidos. No se ejecuta JavaScript de los PDF.
 
@@ -8,7 +8,7 @@ Las recuperaciones de versiones anteriores no se abren ni se modifican automáti
 
 Los PDF originales no se sobrescriben. Las copias editables de PDF protegidos pierden el cifrado y las firmas con confirmación previa. No se guardan contraseñas.
 
-Imprimir abre una única ventana de configuración y vista previa. Enumera las colas instaladas mediante el servicio local de impresión y consulta las capacidades de la impresora seleccionada. La vista previa se genera localmente usando el mismo paginador del trabajo. Una impresora de red puede enviar documentos por la red; se solicita confirmación antes de imprimir en un puerto que pueda ser remoto. El controlador y la cola pertenecen a Windows.
+Imprimir abre una única ventana de configuración y vista previa. Enumera las colas instaladas mediante el servicio local de impresión y consulta las capacidades de la impresora seleccionada. La vista previa se genera localmente usando el mismo paginador del trabajo. Una impresora de red puede enviar documentos por la red; se utiliza la impresora elegida sin una confirmación adicional de red. El controlador y la cola pertenecen a Windows.
 
 El botón FirmaPDF comprueba una ubicación de instalación local conocida. Si encuentra una instalación compatible, pide guardar una copia y la abre mediante `--open` en FirmaPDF. Se entrega exclusivamente esa ruta mediante argumentos locales, solo por acción explícita del usuario. Si no se detecta la instalación, abre la ficha fija `https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ` sin documentos ni datos de sesión. El comportamiento posterior de FirmaPDF, del navegador y de Microsoft Store corresponde a esas aplicaciones.
 

@@ -10,6 +10,7 @@ public static class LocalPrinting
     public static bool Print(Window owner, PdfDocument document)
     {
         using var snapshot = new PdfDocument(document.SaveBytes());
+        System.Windows.Input.Mouse.OverrideCursor=null;
         return new PrintPreviewDialog(owner, snapshot).ShowDialog() == true;
     }
 }

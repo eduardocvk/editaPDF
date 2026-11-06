@@ -199,7 +199,7 @@ public partial class MainWindow : Window
         var d = new SaveFileDialog { Filter = "PDF (*.pdf)|*.pdf", FileName = "documento_editado.pdf", AddExtension = true, OverwritePrompt = true };
         if (d.ShowDialog(this) != true)
             return false;
-        session.SaveNew(d.FileName);
+        session.SaveNew(d.FileName, true);
         Refresh();
         Recover();
         Status.Text = Ui.T("Copia guardada y comprobada.");

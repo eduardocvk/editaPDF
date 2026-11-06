@@ -22,10 +22,10 @@ public sealed class PdfPaginator(PdfDocument document, Size size, IReadOnlyList<
         bitmap.Freeze();
         BitmapSource source = grayscale ? new FormatConvertedBitmap(bitmap, PixelFormats.Gray8, null, 0) : bitmap;
         var area = imageableArea ?? new Rect(PageSize);
-        var page = new FixedPage { Width = PageSize.Width, Height = PageSize.Height, Background = Brushes.White };
+        var page = new Canvas { Width = PageSize.Width, Height = PageSize.Height, Background = Brushes.White };
         var image = new Image { Source = source, Width = area.Width, Height = area.Height, Stretch = Stretch.Uniform };
-        FixedPage.SetLeft(image, area.Left);
-        FixedPage.SetTop(image, area.Top);
+        Canvas.SetLeft(image, area.Left);
+        Canvas.SetTop(image, area.Top);
         page.Children.Add(image);
         page.Measure(PageSize);
         page.Arrange(new Rect(PageSize));

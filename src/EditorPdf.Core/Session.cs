@@ -130,11 +130,11 @@ public sealed class Session : IDisposable
         Document = restored;
         Dirty = true;
     }
-    public void SaveNew(string path)
+    public void SaveNew(string path, bool overwrite = false)
     {
         if (Originals.Contains(Path.GetFullPath(path), StringComparer.OrdinalIgnoreCase))
             throw new IOException("No se puede sobrescribir un original.");
-        Document.SaveNew(path);
+        Document.SaveNew(path, overwrite);
         Dirty = false;
     }
     public void SaveRecovery(string folder)
