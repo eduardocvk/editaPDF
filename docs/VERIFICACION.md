@@ -1,3 +1,7 @@
+# Nombre reservado de Store
+
+El manifiesto usa EditaPDF tanto en Package/Properties/DisplayName como en uap:VisualElements/DisplayName. Sustituye el nombre Editor PDF que Partner Center rechazó por no estar reservado. Se conserva la identidad EduardoCallejo.EditaPDF y versión 1.0.0.0. El MSIX corregido se entrega como EditaPDF-1.0.0-x64.msix, sin reemplazar el artefacto rechazado.
+
 # Preparación 1.0.0 para Store
 
 Versión de aplicación 1.0.0 y paquete MSIX 1.0.0.0 x64. Identidad oficial facilitada por el titular: EduardoCallejo.EditaPDF, publisher CN=D317ECBE-86A1-4610-9063-9C16F1256EC9, nombre Eduardo Callejo. Datos reproducibles en packaging/StoreIdentity.json. El empaquetado no publica ni envía a certificación. El contenido incluye runtime, fuentes, licencias y Source.zip. El archivo debe superar la validación de MakeAppx; WACK, instalación MSIX y certificación son comprobaciones distintas que no se presuponen.
