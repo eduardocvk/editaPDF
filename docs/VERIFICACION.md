@@ -1,6 +1,12 @@
-# Verificación local — 5 de noviembre de 2026
+# Verificación local — 6 de noviembre de 2026
 
-Versión actual 0.8.0. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+Versión actual 0.8.1. Windows 11 x64, build 26200. SDK .NET 10.0.402, runtime 10.0.13, WPF y PDFium 159.0.8138.0 sin V8/XFA. No se publicó en Store ni se modificó `firmar_certificado`.
+
+## Impresión integrada 0.8.1 — 6 de noviembre de 2026
+
+La impresión usa una única ventana de la aplicación, con selección de impresora, orientación, papel, copias, color y rango. El mismo PdfPaginator representa la vista previa y el trabajo enviado a Windows, con el tamaño y área imprimible validados por el controlador. Se fuerza una página por hoja y escala del controlador al 100 % para evitar opciones de escalado ocultas que no aparezcan en la vista previa.
+
+Las pruebas WPF (`artifacts/test-0.8.1-ui.log`) comprueban rango, orden de páginas, orientación, conversión a gris y bloqueo de rangos inválidos. El diagnóstico `artifacts/test-0.8.1-printers.log` detectó siete colas y validó la predeterminada en vertical/horizontal y Microsoft Print to PDF, sin enviar trabajos. La consulta de impresoras y validación de tickets se realiza sin imprimir documentos. La prueba con impresoras reales es solo de capacidades; la salida física y el comportamiento específico de cada controlador permanecen pendientes.
 
 ## Cambios 0.8.0
 

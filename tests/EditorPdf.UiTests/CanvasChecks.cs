@@ -185,7 +185,31 @@ static class CanvasChecks
         if (paragraphDialog.ParagraphText != "Una línea\nOtra línea" || paragraphDialog.FontChoice != null || paragraphDialog.ParagraphWidth != 240)
             throw new Exception("El editor de párrafos no presenta el texto y la fuente original");
         CaptureDialog(paragraphDialog, Path.Combine(folder, "editor-parrafo.png"), 650, 480);
-        CaptureDialog(new PrintPreviewDialog(window,session.Document),Path.Combine(folder,"vista-previa-impresion.png"),880,760);
+        using(var printDocument = new PdfDocument())
+        {
+            printDocument.Blank(0); printDocument.AddText(0,"First page",16,40,700);
+            printDocument.Blank(1); printDocument.AddText(1,"Second page",16,40,700);
+            printDocument.AddImage(1,2,2,8,Enumerable.Range(0,16).Select(i=>(byte)(i%4 is 2 or 3 ? 255 : 0)).ToArray(),40,500,120,80);
+            var printing = new PrintPreviewDialog(window,printDocument,false);
+            printing.SetPreviewOptions("2",false,false);
+            if(!printing.SelectedPages.SequenceEqual([1]) || printing.CurrentPaginator?.PageCount!=1 || printing.PreviewImage==null || printing.CanPrint)
+                throw new Exception("La vista previa no respeta el rango o permite imprimir sin impresora");
+            var portrait=printing.PreviewImage;
+            printing.SetPreviewOptions("2",true,false);
+            if(printing.SheetSize.Width<=printing.SheetSize.Height || printing.PreviewImage!.PixelWidth<=printing.PreviewImage.PixelHeight || portrait.PixelWidth==printing.PreviewImage.PixelWidth)
+                throw new Exception("La orientación no actualiza la vista previa");
+            CaptureDialog(printing,Path.Combine(folder,"impresion-horizontal-pagina-2.png"),1040,780);
+            var gray = new PrintPreviewDialog(window,printDocument,false);
+            gray.SetPreviewOptions("2,1",false,true,2);
+            if(!gray.SelectedPages.SequenceEqual([1,0]) || !gray.Grayscale || gray.CurrentPaginator?.PageCount!=2)
+                throw new Exception("La vista previa no respeta el orden y el modo gris");
+            var printRaster=gray.PreviewImage!;
+            var pixels=new byte[printRaster.PixelWidth*printRaster.PixelHeight*4]; printRaster.CopyPixels(pixels,printRaster.PixelWidth*4,0);
+            for(int i=0;i<pixels.Length;i+=4) if(pixels[i]!=pixels[i+1] || pixels[i]!=pixels[i+2]) throw new Exception("La vista previa de blanco y negro conserva color");
+            gray.SetPreviewOptions("999",false,false);
+            if(gray.CurrentPaginator!=null || gray.PreviewImage!=null || gray.CanPrint) throw new Exception("Un rango inválido conserva una vista previa imprimible");
+            Console.WriteLine("PASS impresión unificada: rango, orden, orientación, gris y bloqueo de rango inválido");
+        }
         window.SetInterfaceLanguage("en",false);
         capture("english-interface",1280,780,1);
         if(Ui.T("Añadir texto")!="Add text") throw new Exception("No se traduce la interfaz al inglés");

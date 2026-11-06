@@ -13,6 +13,27 @@ static class UiTests
     [STAThread]
     static void Main(string[] args)
     {
+        if(args.FirstOrDefault()=="--diagnose-print")
+        {
+            var printingApp=new Application();
+            printingApp.Resources=(ResourceDictionary)Application.LoadComponent(new Uri("/EditorPDF;component/Theme.xaml",UriKind.Relative));
+            using var sample=new PdfDocument(); sample.Blank(0); sample.AddText(0,"Print settings test",16,40,700);
+            var owner=new Window(); var printing=new PrintPreviewDialog(owner,sample);
+            Console.WriteLine($"Printers={printing.PrinterCount}; CanPrint={printing.CanPrint}; Sheet={printing.SheetSize.Width:0}x{printing.SheetSize.Height:0}; Status={printing.StatusMessage}");
+            Console.WriteLine(printing.ValidationDetails);
+            printing.SetPreviewOptions("1",true,true,2);
+            Console.WriteLine($"Landscape: CanPrint={printing.CanPrint}; Sheet={printing.SheetSize.Width:0}x{printing.SheetSize.Height:0}; Status={printing.StatusMessage}; {printing.ValidationDetails}");
+            var printers=(ComboBox)typeof(PrintPreviewDialog).GetField("printers",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(printing)!;
+            var pdfPrinter=printers.Items.Cast<System.Printing.PrintQueue>().FirstOrDefault(q=>q.Name.Contains("Microsoft Print to PDF",StringComparison.OrdinalIgnoreCase));
+            if(pdfPrinter!=null)
+            {
+                printers.SelectedItem=pdfPrinter;
+                printing.SetPreviewOptions("1",false,false);
+                Console.WriteLine($"PDF printer: CanPrint={printing.CanPrint}; Status={printing.StatusMessage}; {printing.ValidationDetails}");
+            }
+            printing.Close(); owner.Close();
+            return;
+        }
         if (args.FirstOrDefault() == "--diagnose-ui-import")
         {
             var diagnosticApp = new Application();

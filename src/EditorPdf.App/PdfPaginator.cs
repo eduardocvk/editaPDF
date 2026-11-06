@@ -6,7 +6,7 @@ using System.Windows.Media.Imaging;
 using EditorPdf.Core;
 namespace EditorPdf.App;
 
-public sealed class PdfPaginator(PdfDocument document, Size size, IReadOnlyList<int>? pages = null) : DocumentPaginator, IDocumentPaginatorSource
+public sealed class PdfPaginator(PdfDocument document, Size size, IReadOnlyList<int>? pages = null, Rect? imageableArea = null, bool grayscale = false) : DocumentPaginator, IDocumentPaginatorSource
 {
     public override bool IsPageCountValid => true;
     public override int PageCount => pages?.Count ?? document.Count;
@@ -20,11 +20,16 @@ public sealed class PdfPaginator(PdfDocument document, Size size, IReadOnlyList<
         var raster = document.Render(pages == null ? pageNumber : pages[pageNumber], Math.Clamp((int)(PageSize.Width * 2), 600, 2400));
         var bitmap = BitmapSource.Create(raster.Width, raster.Height, 96, 96, PixelFormats.Bgra32, null, raster.Pixels, raster.Stride);
         bitmap.Freeze();
-        var page = new FixedPage { Width = PageSize.Width, Height = PageSize.Height };
-        page.Children.Add(new Image { Source = bitmap, Width = PageSize.Width, Height = PageSize.Height, Stretch = Stretch.Uniform });
+        BitmapSource source = grayscale ? new FormatConvertedBitmap(bitmap, PixelFormats.Gray8, null, 0) : bitmap;
+        var area = imageableArea ?? new Rect(PageSize);
+        var page = new FixedPage { Width = PageSize.Width, Height = PageSize.Height, Background = Brushes.White };
+        var image = new Image { Source = source, Width = area.Width, Height = area.Height, Stretch = Stretch.Uniform };
+        FixedPage.SetLeft(image, area.Left);
+        FixedPage.SetTop(image, area.Top);
+        page.Children.Add(image);
         page.Measure(PageSize);
         page.Arrange(new Rect(PageSize));
         page.UpdateLayout();
-        return new DocumentPage(page, PageSize, new Rect(PageSize), new Rect(PageSize));
+        return new DocumentPage(page, PageSize, new Rect(PageSize), area);
     }
 }

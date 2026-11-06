@@ -1,8 +1,8 @@
 # Editor PDF para Windows 11
 
-Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Vista previa **0.8.0**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
+Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Vista previa **0.8.1**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
 
-[Descargar 0.8.0](https://github.com/eduardocvk/editaPDF/releases/download/v0.8.0/EditorPDF-0.8.0-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
+[Descargar 0.8.1](https://github.com/eduardocvk/editaPDF/releases/download/v0.8.1/EditorPDF-0.8.1-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
 
 Extrae todo el ZIP y abre `EditorPDF.exe`. Incluye runtime, fuentes, motores, licencias y `Source.zip`. No necesita descargar .NET. La distribución portable no tiene firma Authenticode.
 
@@ -12,7 +12,7 @@ Extrae todo el ZIP y abre `EditorPDF.exe`. Incluye runtime, fuentes, motores, li
 - Las acciones de organización están junto a las miniaturas: insertar, extraer, dividir, duplicar, girar, eliminar y reordenar. Insertar permite elegir páginas de los otros documentos abiertos o abrir otro PDF.
 - Añade texto o imágenes desde el panel derecho. Aplica el texto desde el botón dentro de su cuadro. La barra contextual permite editar estilos y eliminar; las imágenes también permiten duplicar y cambiar su orden de pintado.
 - Doble clic para editar texto original compatible. Arrastra desde una zona vacía para seleccionar varios fragmentos y pulsa el botón de edición junto al recuadro. Los párrafos pueden alinearse a izquierda, derecha, centro o justificarse dentro del ancho original.
-- La búsqueda muestra el número de coincidencias y permite recorrerlas con flechas. Imprimir muestra una vista previa antes del diálogo de impresora de Windows.
+- La búsqueda muestra el número de coincidencias y permite recorrerlas con flechas. Imprimir abre una única ventana con impresora, orientación, papel, copias, color y páginas. La vista previa se actualiza con esas opciones y solo muestra las páginas seleccionadas, en su orden. El trabajo utiliza el mismo paginador y los márgenes que informa la impresora, sin un segundo diálogo de opciones.
 - Configuración permite elegir español o inglés. Solo se guarda la preferencia de idioma: no se guarda ni restaura automáticamente una sesión entre ejecuciones. Guarda una copia antes de cerrar si quieres conservar tus cambios.
 - El botón FirmaPDF detecta la instalación portable compatible en su ubicación de usuario. Si está disponible, solicita guardar una copia y la abre con `--open`. Si no, abre su ficha de Store. La detección y activación de la edición MSIX de FirmaPDF aún no están verificadas.
 

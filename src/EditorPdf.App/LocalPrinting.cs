@@ -9,22 +9,7 @@ public static class LocalPrinting
     public static bool IsLocalPort(string port) => port.Equals("PORTPROMPT:", StringComparison.OrdinalIgnoreCase) || port.Equals("FILE:", StringComparison.OrdinalIgnoreCase) || port.Equals("XPSPort:", StringComparison.OrdinalIgnoreCase) || System.Text.RegularExpressions.Regex.IsMatch(port, @"^(USB\d+|LPT\d+:?|COM\d+:?)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
     public static bool Print(Window owner, PdfDocument document)
     {
-        if (new PrintPreviewDialog(owner, document).ShowDialog() != true) return false;
-        var dialog = new PrintDialog { UserPageRangeEnabled = true, PageRange = new PageRange(1, document.Count), MinPage = 1, MaxPage = (uint)document.Count };
-        if (dialog.ShowDialog() != true)
-            return false;
-        var queue = dialog.PrintQueue ?? throw new InvalidOperationException(Ui.T("Selecciona una impresora."));
-        string port = queue.QueuePort?.Name ?? "";
-        if (!IsLocalPort(port) && MessageBox.Show(owner, (Ui.Current.Language=="en" ? "This printer may send the document over a network. Print on " : "Esta impresora puede enviar el documento por la red. ¿Imprimir en ") + queue.Name + "?", Ui.T("Impresora de red"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
-            return false;
-        var selected = dialog.PageRangeSelection == PageRangeSelection.UserPages
-            ? Enumerable.Range(dialog.PageRange.PageFrom - 1, dialog.PageRange.PageTo - dialog.PageRange.PageFrom + 1).ToArray()
-            : null;
-        if (selected != null && (selected.Length == 0 || selected[0] < 0 || selected[^1] >= document.Count))
-            throw new ArgumentException(Ui.T("El rango de impresión está fuera del documento."));
         using var snapshot = new PdfDocument(document.SaveBytes());
-        var paginator = new PdfPaginator(snapshot, new Size(dialog.PrintableAreaWidth, dialog.PrintableAreaHeight), selected);
-        dialog.PrintDocument(paginator, "Editor PDF");
-        return true;
+        return new PrintPreviewDialog(owner, snapshot).ShowDialog() == true;
     }
 }
