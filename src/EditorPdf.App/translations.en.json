@@ -293,5 +293,13 @@
   "No se pudo reducir el PDF.": "Could not reduce the PDF.",
   "No se pudo conservar la estructura del PDF.": "Could not preserve the PDF structure.",
   "No se pudo conservar el texto o las páginas del PDF.": "Could not preserve the PDF text or pages.",
-  "Arrastra un PDF para empezar.": "Drop a PDF to get started."
+  "Arrastra un PDF para empezar.": "Drop a PDF to get started.",
+  "Duplicar selección": "Duplicate selection",
+  "Eliminar selección": "Delete selection",
+  "Páginas por hoja": "Pages per sheet",
+  "Orden en la hoja": "Page order",
+  "Por filas": "Across rows",
+  "Por columnas": "Down columns",
+  "Dibujar bordes": "Draw borders",
+  "Hoja": "Sheet"
 }

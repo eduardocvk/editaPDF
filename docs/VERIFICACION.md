@@ -1,3 +1,9 @@
+# EditaPDF 1.1.0
+
+Ctrl + rueda cambia el zoom alrededor del puntero. Ctrl + clic selecciona texto e imágenes de una página. El arrastre muestra una vista previa y confirma el grupo en una operación. Duplicar y eliminar también se pueden deshacer como una sola operación. El texto duplicado usa la fuente original y comprueba que se conservan los caracteres.
+
+La impresión organiza 1, 2, 4, 6, 9 o 16 páginas por hoja con orden por filas o columnas y bordes opcionales. El paginador produce hojas completas y el controlador recibe una hoja por página del trabajo para evitar una segunda reducción. Se comprobaron la vista previa y la serialización XPS con dos páginas por hoja, sin imprimir físicamente.
+
 # Nombre reservado de Store
 
 El manifiesto usa EditaPDF tanto en Package/Properties/DisplayName como en uap:VisualElements/DisplayName. Sustituye el nombre Editor PDF que Partner Center rechazó por no estar reservado. Se conserva la identidad EduardoCallejo.EditaPDF y versión 1.0.0.0. El MSIX corregido se entrega como EditaPDF-1.0.0-x64.msix, sin reemplazar el artefacto rechazado.

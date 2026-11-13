@@ -18,7 +18,7 @@ public partial class MainWindow : Window
     public static Uri FirmaPdfStoreUri { get; } = new("https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ");
     readonly string recoveryFolder; readonly bool restoreOnLoad; Session session = new(); int page; double zoom = 1; bool refreshing;
     public static string RecoveryFolder => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EditorPDF", "Recovery");
-    PdfDocument Pdf => session.Document; ObjectRow? Selected => ObjectsList.SelectedItem as ObjectRow;
+    PdfDocument Pdf => session.Document; ObjectRow? Selected => ObjectsList.SelectedItems.Count == 1 ? ObjectsList.SelectedItem as ObjectRow : null;
     public MainWindow(string? localRecovery = null, bool restore = true, Action<Uri>? externalLinkOpener = null, Action<Exception>? errorReporter = null)
     {
         recoveryFolder = localRecovery ?? RecoveryFolder;
@@ -234,6 +234,22 @@ public partial class MainWindow : Window
     }
     void DocumentMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.Control && Pdf.Count > 0)
+        {
+            e.Handled = true;
+            Run(() =>
+            {
+                Point before = e.GetPosition(PageImage);
+                Point pointer = e.GetPosition(DocumentScroll);
+                double width = PageImage.Width, height = PageImage.Height;
+                SetZoom(zoom * Math.Pow(1.2, e.Delta / 120.0));
+                DocumentScroll.UpdateLayout();
+                Point after = PageImage.TranslatePoint(new Point(before.X * PageImage.Width / width, before.Y * PageImage.Height / height), DocumentScroll);
+                DocumentScroll.ScrollToHorizontalOffset(DocumentScroll.HorizontalOffset + after.X - pointer.X);
+                DocumentScroll.ScrollToVerticalOffset(DocumentScroll.VerticalOffset + after.Y - pointer.Y);
+            });
+            return;
+        }
         if (Pdf.Count < 2 || Keyboard.Modifiers != ModifierKeys.None || paragraphStart != null || gestureObject != null) return;
         bool next = e.Delta < 0;
         bool atEdge = next ? DocumentScroll.VerticalOffset + DocumentScroll.ViewportHeight >= DocumentScroll.ExtentHeight - 2
@@ -289,6 +305,7 @@ public partial class MainWindow : Window
                 field.Clear();
                 field.IsEnabled = false;
             }
+            if (ObjectsList.SelectedItems.Count > 1) DrawGroupSelection();
             return;
         }
         var o = row.Value;
@@ -355,6 +372,7 @@ public partial class MainWindow : Window
             return;
         Run(() =>
         {
+            PageImage.Focus();
             var point = e.GetPosition(PageImage);
             if (areaSelection != null) CancelParagraphSelection();
             if (paragraphArmed) { StartParagraphSelection(point); e.Handled = true; return; }
@@ -367,14 +385,21 @@ public partial class MainWindow : Window
             FinishInlineText();
             var p = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)point.X, (int)point.Y);
             var hit = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(x => p.X >= x.Value.Left - 3 && p.X <= x.Value.Right + 3 && p.Y >= x.Value.Bottom - 3 && p.Y <= x.Value.Top + 3);
-            if (e.ClickCount == 2 && hit?.Value.Type == 1 && Pdf.ObjectEditBlock == null)
+            if (e.ClickCount == 2 && Keyboard.Modifiers == ModifierKeys.None && hit?.Value.Type == 1 && Pdf.ObjectEditBlock == null)
             {
                 var bounds = DeviceBounds(hit.Value);
                 BeginInlineText(bounds.TopLeft, hit.Value.Text, hit.Value.Index, point);
                 e.Handled = true;
                 return;
             }
-            ObjectsList.SelectedItem = hit;
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && hit != null)
+            {
+                if (ObjectsList.SelectedItems.Contains(hit)) ObjectsList.SelectedItems.Remove(hit);
+                else ObjectsList.SelectedItems.Add(hit);
+                e.Handled = true;
+                return;
+            }
+            if (hit == null || !ObjectsList.SelectedItems.Contains(hit)) ObjectsList.SelectedItem = hit;
             if (hit == null && Pdf.ObjectEditBlock == null)
             {
                 StartParagraphSelection(point, passive: true);
@@ -483,7 +508,12 @@ public partial class MainWindow : Window
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control), shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         if (ctrl)
         {
-            if (e.Key == Key.W)
+            if (e.Key == Key.D && (ObjectsList.IsKeyboardFocusWithin || PageImage.IsKeyboardFocused) && ObjectSelection().Length > 0)
+            {
+                Run(DuplicateSelectedObjects);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.W)
             {
                 if (activeDocument != null)
                     Run(() => CloseDocument(activeDocument));
@@ -532,7 +562,13 @@ public partial class MainWindow : Window
         }
         else if (Keyboard.FocusedElement is not TextBox)
         {
-            if (e.Key == Key.PageDown && page < Pdf.Count - 1)
+            if (e.Key == Key.Delete && ObjectSelection().Length > 0 &&
+                (ObjectsList.IsKeyboardFocusWithin || PageImage.IsKeyboardFocused))
+            {
+                Run(DeleteSelectedObjects);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.PageDown && page < Pdf.Count - 1)
             {
                 PagesList.SelectedIndex = page + 1;
                 e.Handled = true;

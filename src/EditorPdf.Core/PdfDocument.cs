@@ -590,6 +590,46 @@ public sealed class PdfDocument : IDisposable
         Generate(p.H);
         return target;
     }
+    public void DuplicateText(int page, int index)
+    {
+        Mutating();
+        using var p = Open(page);
+        var original = N.FPDFPage_GetObject(p.H, index);
+        if (N.FPDFPageObj_GetType(original) != 1 || N.FPDFTextObj_GetTextRenderMode(original) != 0)
+            throw new InvalidOperationException("Este texto no se puede duplicar conservando su estilo.");
+        var textPage = N.FPDFText_LoadPage(p.H);
+        if (textPage == IntPtr.Zero) throw new InvalidOperationException("No se pudo leer el texto.");
+        string text;
+        try { text = ObjectText(original, textPage); }
+        finally { N.FPDFText_ClosePage(textPage); }
+        if (string.IsNullOrEmpty(text)) throw new InvalidOperationException("Este texto no se puede duplicar.");
+        Check(N.FPDFTextObj_GetFontSize(original, out var size), "No se pudo leer el tamaño del texto.");
+        var copy = N.FPDFPageObj_CreateTextObj(handle, N.FPDFTextObj_GetFont(original), size);
+        if (copy == IntPtr.Zero) throw new InvalidOperationException("No se pudo duplicar el texto.");
+        try
+        {
+            Check(N.FPDFText_SetText(copy, text), "La fuente original no admite duplicar este texto.");
+            Check(N.FPDFPageObj_GetFillColor(original, out var red, out var green, out var blue, out var alpha), "No se pudo leer el color del texto.");
+            Check(N.FPDFPageObj_SetFillColor(copy, red, green, blue, alpha), "No se pudo copiar el color del texto.");
+            Check(N.FPDFPageObj_GetMatrix(original, out var matrix), "No se pudo leer la posición del texto.");
+            matrix.E += 12;
+            matrix.F -= 12;
+            Check(N.FPDFPageObj_SetMatrix(copy, ref matrix), "No se pudo colocar el texto.");
+            N.FPDFPage_InsertObject(p.H, copy);
+            copy = IntPtr.Zero;
+            Generate(p.H);
+            var copiedTextPage = N.FPDFText_LoadPage(p.H);
+            if (copiedTextPage == IntPtr.Zero) throw new InvalidOperationException("No se pudo comprobar el texto duplicado.");
+            try
+            {
+                var inserted = N.FPDFPage_GetObject(p.H, N.FPDFPage_CountObjects(p.H) - 1);
+                if (ObjectText(inserted, copiedTextPage) != text)
+                    throw new InvalidOperationException("La fuente original no conserva todos los caracteres al duplicar.");
+            }
+            finally { N.FPDFText_ClosePage(copiedTextPage); }
+        }
+        finally { if (copy != IntPtr.Zero) N.FPDFPageObj_Destroy(copy); }
+    }
     public void DuplicateImage(int page, int index)
     {
         Mutating(); using var p = Open(page);

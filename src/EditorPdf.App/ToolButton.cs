@@ -10,8 +10,13 @@ public sealed class ToolButton : Button
 {
     public string Icon { get; set; } = "PagePlus";
     public bool IconOnly { get; set; }
+    public double IconSize { get; set; } = 16;
     static readonly Dictionary<string, string> Shapes = new()
     {
+        ["FolderOpen"] = "M2,16 V5 Q2,3 4,3 H8 L10,5 H17 Q18,5 18,7 M2,16 Q2,18 4,18 H16 Q17,18 18,16 L20,9 H5 Z",
+        ["Save"] = "M3,2 H15 L18,5 V17 Q18,18 17,18 H3 Q2,18 2,17 V3 Q2,2 3,2 Z M6,2 V7 H14 V2 M6,18 V11 H14 V18",
+        ["Print"] = "M5,7 V2 H15 V7 M5,14 H2 V8 H18 V14 H15 M5,11 H15 V18 H5 Z M14,9.5 H15",
+        ["Merge"] = "M2,2 H8 V7 H2 Z M2,12 H8 V18 H2 Z M8,5 H11 Q13,5 13,8 V10 M8,15 H11 Q13,15 13,12 V10 H19 M16,7 L19,10 16,13",
         ["Compress"] = "M2,2 L7,7 M2,7 H7 V2 M18,2 L13,7 M13,2 V7 H18 M2,18 L7,13 M2,13 H7 V18 M18,18 L13,13 M13,18 V13 H18",
         ["Undo"] = "M8,3 L3,8 8,13 M3,8 H12 A5,5 0 0 1 12,18",
         ["Redo"] = "M12,3 L17,8 12,13 M17,8 H8 A5,5 0 0 0 8,18",
@@ -51,7 +56,7 @@ public sealed class ToolButton : Button
         var canvas = new Canvas { Width = 20, Height = 20 };
         canvas.Children.Add(path);
         var panel = new StackPanel { Orientation = Orientation.Horizontal };
-        panel.Children.Add(new Viewbox { Width = 16, Height = 16, Child = canvas, Margin = IconOnly ? new Thickness(0) : new Thickness(0, 0, 6, 0) });
+        panel.Children.Add(new Viewbox { Width = IconSize, Height = IconSize, Child = canvas, Margin = IconOnly ? new Thickness(0) : new Thickness(0, 0, 6, 0) });
         if (!IconOnly) { var text=new AccessText { VerticalAlignment=VerticalAlignment.Center }; text.SetBinding(AccessText.TextProperty,new Binding("["+label+"]") { Source=Ui.Current }); panel.Children.Add(text); }
         AutomationProperties.SetName(this, label.Replace("_", ""));
         Content = panel;

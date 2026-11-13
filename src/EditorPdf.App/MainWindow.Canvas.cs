@@ -22,6 +22,7 @@ public partial class MainWindow
     readonly List<ResizeThumb> resizeHandles = [];
     PdfDocument? gesturePreview;
     PdfObject? gestureObject;
+    PdfObject[] gestureObjects = [];
     Rect gestureStartRect, gestureRect;
     Point gestureStartPoint;
     string? resizeCorner;
@@ -108,7 +109,7 @@ public partial class MainWindow
         toolbarColorSwatch = new Border { Width = 20, Height = 14, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Background = new SolidColorBrush(Color.FromRgb((byte)(obj.FillRgb >> 16), (byte)(obj.FillRgb >> 8), (byte)obj.FillRgb)) };
         color.Content = toolbarColorSwatch;
         Small("✓", Ui.T("Aplicar propiedades de texto"), () => Run(ApplyContextTextProperties));
-        Small("×", Ui.T("Eliminar objeto"), () => Run(() => Change(d => d.RemoveObject(page,obj.Index))));
+        Small("", Ui.T("Eliminar objeto"), () => Run(() => Change(d => d.RemoveObject(page,obj.Index)))).Content = ToolButton.MakeIcon("Delete");
         textToolbar = new Border { Background = Brushes.White, BorderBrush = Brushes.RoyalBlue, BorderThickness = new Thickness(1), Padding = new Thickness(4), Child = row, Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 5, Opacity = .18 }, LayoutTransform = new ScaleTransform(Math.Clamp(zoom, .35, 1), Math.Clamp(zoom, .35, 1)) };
         System.Windows.Automation.AutomationProperties.SetName(textToolbar, Ui.T("Barra contextual de texto"));
         Canvas.SetZIndex(textToolbar, 10);
@@ -199,9 +200,11 @@ public partial class MainWindow
             throw new InvalidOperationException(Ui.T("Esta imagen no tiene un recuadro redimensionable."));
         gesturePreview = new PdfDocument(Pdf.SaveBytes());
         gestureObject = obj;
+        var selected = ObjectSelection();
+        gestureObjects = corner == null && selected.Any(o => o.Index == obj.Index) ? selected : [obj];
         resizeCorner = corner;
         gestureStartPoint = pointer;
-        gestureStartRect = gestureRect = DeviceBounds(obj);
+        gestureStartRect = gestureRect = SelectionBounds(gestureObjects);
         gestureChanged = false;
     }
     public void UpdateObjectGesture(Point pointer, bool freeAspect = false)
@@ -261,6 +264,17 @@ public partial class MainWindow
             return;
         }
         var t = GestureTransform();
+        if (gestureObjects.Length > 1)
+        {
+            var current = gesturePreview.Objects(page).ToDictionary(o => o.Index);
+            foreach (var obj in gestureObjects)
+            {
+                var moved = current[obj.Index];
+                gesturePreview.Transform(page, obj.Index, obj.Left + t.Dx - moved.Left, obj.Bottom + t.Dy - moved.Bottom);
+            }
+            PageImage.Source = Bitmap(gesturePreview.RenderPreview(page, Math.Min(1400, (int)PageImage.Width)));
+            return;
+        }
         var previous = gesturePreview.Objects(page).Single(o => o.Index == gestureObject.Index);
         gesturePreview.Transform(page, gestureObject.Index, gestureObject.Left + t.Dx - previous.Left, gestureObject.Bottom + t.Dy - previous.Bottom,
             (gestureObject.Right - gestureObject.Left) * t.Sx / (previous.Right - previous.Left), (gestureObject.Top - gestureObject.Bottom) * t.Sy / (previous.Top - previous.Bottom));
@@ -275,22 +289,25 @@ public partial class MainWindow
     {
         if (gestureObject == null)
             return;
-        int index = gestureObject.Index;
+        var indices = gestureObjects.Select(o => o.Index).ToArray();
         bool changed = gestureChanged;
         var t = GestureTransform();
         ClearGesture();
         PageImage.ReleaseMouseCapture();
         if (changed)
-            Change(d => d.Transform(page, index, t.Dx, t.Dy, t.Sx, t.Sy));
+            Change(d =>
+            {
+                foreach (int index in indices) d.Transform(page, index, t.Dx, t.Dy, t.Sx, t.Sy);
+            });
         else
             ShowPage();
-        SelectObject(index);
-        if (Selected is { } selected) DrawObjectSelection(selected.Value);
+        RestoreObjectSelection(indices);
     }
     void ClearGesture()
     {
         canvasPreviewTimer.Stop();
         gestureObject = null;
+        gestureObjects = [];
         gesturePreview?.Dispose();
         gesturePreview = null;
         resizeCorner = null;
@@ -300,7 +317,7 @@ public partial class MainWindow
     {
         if (gestureObject == null)
             return;
-        int index = gestureObject.Index;
+        var indices = gestureObjects.Select(o => o.Index).ToArray();
         ClearGesture();
         if (Mouse.Captured is ResizeThumb handle && resizeHandles.Contains(handle))
             handle.CancelDrag();
@@ -308,8 +325,7 @@ public partial class MainWindow
         if (redraw)
         {
             ShowPage();
-            SelectObject(index);
-            if (Selected is { } selected) DrawObjectSelection(selected.Value);
+            RestoreObjectSelection(indices);
         }
     }
     void SelectObject(int index)
@@ -473,7 +489,8 @@ public partial class MainWindow
             EditMode.IsSelected = true;
             contextPoint = e.GetPosition(PageImage);
             var p = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)contextPoint.X, (int)contextPoint.Y);
-            ObjectsList.SelectedItem = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(o => p.X >= o.Value.Left && p.X <= o.Value.Right && p.Y >= o.Value.Bottom && p.Y <= o.Value.Top);
+            var hit = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(o => p.X >= o.Value.Left && p.X <= o.Value.Right && p.Y >= o.Value.Bottom && p.Y <= o.Value.Top);
+            if (hit == null || !ObjectsList.SelectedItems.Contains(hit)) ObjectsList.SelectedItem = hit;
         });
     }
     void CanvasContextOpening(object sender, ContextMenuEventArgs e)
@@ -491,6 +508,11 @@ public partial class MainWindow
         bool editable = Pdf.Count > 0 && Pdf.ObjectEditBlock == null;
         Item(Ui.T("Añadir texto aquí"), () => BeginInlineText(contextPoint), editable, "Text");
         Item(Ui.T("Insertar imagen…"), () => AddImageClick(sender, new RoutedEventArgs()), editable, "Image");
+        if (ObjectSelection().Length > 0)
+        {
+            Item(Ui.T("Duplicar selección"), DuplicateSelectedObjects, editable, "Duplicate");
+            Item(Ui.T("Eliminar selección"), DeleteSelectedObjects, editable, "Delete");
+        }
         if (Selected is { } row)
         {
             menu.Items.Add(new Separator());

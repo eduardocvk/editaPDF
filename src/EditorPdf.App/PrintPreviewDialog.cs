@@ -16,6 +16,9 @@ public sealed class PrintPreviewDialog : Window
     readonly ComboBox paper = new() { DisplayMemberPath = "Label" };
     readonly ComboBox color = new() { ItemsSource = new[] { Ui.T("Color"), Ui.T("Blanco y negro") }, SelectedIndex = 0 };
     readonly TextBox ranges = new() { Text = "", ToolTip = Ui.T("Vacío: todas. Ejemplo: 1-3,5") };
+    readonly ComboBox pagesPerSheet = new() { ItemsSource = new[] { 1, 2, 4, 6, 9, 16 }, SelectedIndex = 0 };
+    readonly ComboBox sheetOrder = new() { ItemsSource = new[] { Ui.T("Por filas"), Ui.T("Por columnas") }, SelectedIndex = 0, IsEnabled = false };
+    readonly CheckBox sheetBorders = new() { Content = Ui.T("Dibujar bordes"), Margin = new Thickness(0, 8, 0, 0), IsEnabled = false };
     readonly TextBox copies = new() { Text = "1" };
     readonly TextBlock counter = new() { Margin = new Thickness(12,0,12,0) };
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Firebrick, Margin = new Thickness(0,12,0,0) };
@@ -61,6 +64,9 @@ public sealed class PrintPreviewDialog : Window
         var controls=new StackPanel { Width=240, Margin=new Thickness(0,0,18,0) };
         void Field(string label,Control control) { controls.Children.Add(new Label { Content=Ui.T(label), Target=control, Margin=new Thickness(0,5,0,4) }); controls.Children.Add(control); }
         Field("Impresora",printers); Field("Orientación",orientation); Field("Papel",paper); Field("Copias",copies); Field("Modo de color",color); Field("Páginas",ranges);
+        Field("Páginas por hoja", pagesPerSheet);
+        Field("Orden en la hoja", sheetOrder);
+        controls.Children.Add(sheetBorders);
         controls.Children.Add(error);
         var scroll=new ScrollViewer { Content=controls, VerticalScrollBarVisibility=ScrollBarVisibility.Auto, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled };
         DockPanel.SetDock(scroll,Dock.Left); root.Children.Add(scroll);
@@ -74,11 +80,13 @@ public sealed class PrintPreviewDialog : Window
         paper.SelectedIndex=0;
         refresh.Tick+=(_,_)=>{ refresh.Stop(); UpdatePreview(); };
         printers.SelectionChanged+=(_,_)=>SelectPrinter();
-        foreach(var combo in new[] { orientation,paper,color }) combo.SelectionChanged+=(_,_)=>Schedule();
+        foreach(var combo in new[] { orientation,paper,color,pagesPerSheet,sheetOrder }) combo.SelectionChanged+=(_,_)=>Schedule();
         ranges.TextChanged+=(_,_)=>{ previewIndex=0; Schedule(); };
+        sheetBorders.Checked += (_, _) => Schedule();
+        sheetBorders.Unchecked += (_, _) => Schedule();
         copies.TextChanged+=(_,_)=>Schedule();
         previous.Click+=(_,_)=>{ if(previewIndex>0) { previewIndex--; RenderPreview(); } };
-        next.Click+=(_,_)=>{ if(previewIndex+1<selectedPages.Length) { previewIndex++; RenderPreview(); } };
+        next.Click+=(_,_)=>{ if(previewIndex+1<(CurrentPaginator?.PageCount ?? 0)) { previewIndex++; RenderPreview(); } };
         print.Click+=(_,_)=>PrintNow();
         Closed+=(_,_)=>{ refresh.Stop(); foreach(var q in queues) q.Dispose(); queueCollection?.Dispose(); server?.Dispose(); };
         if(loadPrinters) LoadPrinters();
@@ -126,10 +134,11 @@ public sealed class PrintPreviewDialog : Window
         finally { updating=false; }
         UpdatePreview();
     }
-    public void SetPreviewOptions(string pages, bool landscape, bool blackAndWhite, int copyCount=1)
+    public void SetPreviewOptions(string pages, bool landscape, bool blackAndWhite, int copyCount=1, int perSheet=1, bool downFirst=false, bool drawBorders=false)
     {
         updating=true;
         ranges.Text=pages; orientation.SelectedIndex=landscape ? 1 : 0; color.SelectedIndex=blackAndWhite ? 1 : 0; copies.Text=copyCount.ToString();
+        pagesPerSheet.SelectedItem = perSheet; sheetOrder.SelectedIndex = downFirst ? 1 : 0; sheetBorders.IsChecked = drawBorders;
         updating=false; previewIndex=0; UpdatePreview();
     }
     void UpdatePreview()
@@ -169,8 +178,14 @@ public sealed class PrintPreviewDialog : Window
                 printable=Rect.Intersect(new Rect(sheet),new Rect(area.OriginWidth,area.OriginHeight,area.ExtentWidth,area.ExtentHeight));
                 if(printable.IsEmpty || printable.Width<=0 || printable.Height<=0) throw new InvalidOperationException(Ui.T("El área imprimible no es válida."));
             }
-            CurrentPaginator=new PdfPaginator(document,sheet,selectedPages,printable,monochrome);
-            previewIndex=Math.Clamp(previewIndex,0,selectedPages.Length-1);
+            int countPerSheet = pagesPerSheet.SelectedItem is int value ? value : 1;
+            int columns = countPerSheet switch { 2 => 1, 4 or 6 => 2, 9 => 3, 16 => 4, _ => 1 };
+            int rows = countPerSheet / columns;
+            if (sheet.Width > sheet.Height) (rows, columns) = (columns, rows);
+            sheetOrder.IsEnabled = sheetBorders.IsEnabled = countPerSheet > 1;
+            CurrentPaginator = new PdfPaginator(document, sheet, selectedPages, printable, monochrome, columns, rows,
+                sheetOrder.SelectedIndex == 1, sheetBorders.IsEnabled && sheetBorders.IsChecked == true);
+            previewIndex = Math.Clamp(previewIndex, 0, CurrentPaginator.PageCount - 1);
             RenderPreview();
             if(queue!=null) error.Text="";
             print.IsEnabled=queue!=null;
@@ -186,8 +201,8 @@ public sealed class PrintPreviewDialog : Window
         double scale=Math.Min(1,1100/Math.Max(sheet.Width,sheet.Height));
         var bitmap=new RenderTargetBitmap((int)Math.Ceiling(sheet.Width*scale),(int)Math.Ceiling(sheet.Height*scale),96*scale,96*scale,PixelFormats.Pbgra32);
         bitmap.Render(page.Visual); bitmap.Freeze(); image.Source=bitmap;
-        counter.Text=$"{previewIndex+1} / {selectedPages.Length} · {Ui.T("Página")} {selectedPages[previewIndex]+1}";
-        previous.IsEnabled=previewIndex>0; next.IsEnabled=previewIndex+1<selectedPages.Length;
+        counter.Text = $"{Ui.T("Hoja")} {previewIndex + 1} / {CurrentPaginator.PageCount}";
+        previous.IsEnabled=previewIndex>0; next.IsEnabled=previewIndex+1<(CurrentPaginator?.PageCount ?? 0);
     }
     void PrintNow()
     {

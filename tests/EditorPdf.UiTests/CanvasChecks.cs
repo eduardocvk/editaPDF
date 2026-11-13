@@ -92,6 +92,32 @@ static class CanvasChecks
         typeof(MainWindow).GetMethod("CanvasContextOpening", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [image, null]);
         if (!image.ContextMenu!.Items.OfType<MenuItem>().Any(i => Equals(i.Header, "Traer al frente")))
             throw new Exception("Falta menú contextual de orden");
+        var groupText = objects.Items.Cast<MainWindow.ObjectRow>().First(o => o.Value.Text == "Texto escrito sobre la pagina");
+        var groupImage = objects.Items.Cast<MainWindow.ObjectRow>().Last(o => o.Value.Type == 3);
+        objects.SelectedItems.Clear();
+        objects.SelectedItems.Add(groupText);
+        objects.SelectedItems.Add(groupImage);
+        capture("seleccion-multiple",1280,780,1);
+        window.BeginObjectGesture(groupText.Value, new Point(120,200));
+        window.UpdateObjectGesture(new Point(150,220));
+        window.RenderGesturePreview();
+        window.CommitObjectGesture();
+        var afterDrag = objects.SelectedItems.Cast<MainWindow.ObjectRow>().Select(o => o.Value).ToArray();
+        if(afterDrag.Length != 2 || afterDrag.Any(o => Math.Abs(o.Left - (o.Index == groupText.Value.Index ? groupText.Value.Left : groupImage.Value.Left)) < 10))
+            throw new Exception("El arrastre no desplaza los dos objetos seleccionados");
+        int countBeforeCopy = session.Document.Objects(0).Count;
+        typeof(MainWindow).GetMethod("DuplicateSelectedObjects", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        if(objects.SelectedItems.Count != 2 || session.Document.Objects(0).Count != countBeforeCopy + 2)
+            throw new Exception("No se duplica el grupo completo");
+        typeof(MainWindow).GetMethod("DeleteSelectedObjects", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        if(session.Document.Objects(0).Count != countBeforeCopy)
+            throw new Exception("No se elimina el grupo completo");
+        session.Undo();
+        if(session.Document.Objects(0).Count != countBeforeCopy + 2)
+            throw new Exception("Deshacer no recupera el grupo en una operación");
+        session.Undo(); session.Undo();
+        typeof(MainWindow).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        Console.WriteLine("PASS selección múltiple mixta: arrastre, duplicación, borrado y deshacer");
         session.SaveNew(Path.Combine(folder, "edicion-canvas.pdf"));
         var picker = new PageSelectionDialog(session.Document, "Elegir páginas", 0, session.Document.Count);
         picker.SetSelection(false);
@@ -220,6 +246,16 @@ static class CanvasChecks
             var printRaster=gray.PreviewImage!;
             var pixels=new byte[printRaster.PixelWidth*printRaster.PixelHeight*4]; printRaster.CopyPixels(pixels,printRaster.PixelWidth*4,0);
             for(int i=0;i<pixels.Length;i+=4) if(pixels[i]!=pixels[i+1] || pixels[i]!=pixels[i+2]) throw new Exception("La vista previa de blanco y negro conserva color");
+            gray.SetPreviewOptions("2,1", true, false, perSheet: 2, downFirst: true, drawBorders: true);
+            var tiled = gray.CurrentPaginator!;
+            if (tiled.PageCount != 1 || ((Canvas)tiled.GetPage(0).Visual).Children.Count != 2)
+                throw new Exception("Dos páginas no caben en una sola hoja");
+            using (var xps = new System.Windows.Xps.Packaging.XpsDocument(Path.Combine(folder,"dos-paginas-por-hoja.xps"),FileAccess.ReadWrite))
+            {
+                System.Windows.Xps.Packaging.XpsDocument.CreateXpsDocumentWriter(xps).Write(tiled);
+                if (xps.GetFixedDocumentSequence().DocumentPaginator.PageCount != 1) throw new Exception("El trabajo XPS no conserva una hoja");
+            }
+            CaptureDialog(gray,Path.Combine(folder,"impresion-dos-por-hoja.png"),1040,780);
             gray.SetPreviewOptions("999",false,false);
             if(gray.CurrentPaginator!=null || gray.PreviewImage!=null || gray.CanPrint) throw new Exception("Un rango inválido conserva una vista previa imprimible");
             Console.WriteLine("PASS impresión unificada: rango, orden, orientación, gris y bloqueo de rango inválido");
