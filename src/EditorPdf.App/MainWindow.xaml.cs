@@ -531,9 +531,9 @@ public partial class MainWindow : Window
         var executable=useFirmaBridge ? FirmaPdfBridge.FindExecutable() : null;
         if(executable==null) { openExternal(FirmaPdfStoreUri); return; }
         FinishInlineText(); RequireDocument();
-        var save=new SaveFileDialog { Filter="PDF (*.pdf)|*.pdf",FileName=SuggestedSigningFileName(),Title=Ui.T("Guardar copia para FirmaPDF") };
+        var save=new SaveFileDialog { Filter="PDF (*.pdf)|*.pdf",FileName=SuggestedSigningFileName(),Title=Ui.T("Guardar copia para FirmaPDF"),OverwritePrompt=true };
         if(save.ShowDialog(this)!=true) return;
-        Pdf.SaveNew(save.FileName);
+        Pdf.SaveNew(save.FileName, overwrite: true);
         FirmaPdfBridge.Open(executable,save.FileName);
     });
     void PrivacyClick(object sender, RoutedEventArgs e) => MessageBox.Show(this,

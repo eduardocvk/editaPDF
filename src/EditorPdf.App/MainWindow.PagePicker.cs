@@ -56,17 +56,17 @@ public partial class MainWindow
         var picker = Picker(Pdf, Ui.T("Extraer páginas"), page);
         if (picker.ShowDialog() != true)
             return;
-        var save = new SaveFileDialog { Filter = "PDF (*.pdf)|*.pdf", FileName = "paginas.pdf" };
+        var save = new SaveFileDialog { Filter = "PDF (*.pdf)|*.pdf", FileName = "paginas.pdf", OverwritePrompt = true };
         if (save.ShowDialog(this) == true)
-            ExtractSelectedPages(picker.SelectedPages, save.FileName);
+            ExtractSelectedPages(picker.SelectedPages, save.FileName, overwrite: true);
     });
-    public void ExtractSelectedPages(int[] pages, string path)
+    public void ExtractSelectedPages(int[] pages, string path, bool overwrite = false)
     {
         FinishInlineText();
         using var extracted = new PdfDocument();
         extracted.Import(Pdf, pages, 0);
-        extracted.SaveNew(path);
-        Status.Text = Ui.T("Páginas extraídas; original intacto.");
+        extracted.SaveNew(path, overwrite);
+        Status.Text = Ui.T("Páginas extraídas.");
     }
     void SplitVisualClick(object sender, RoutedEventArgs e) => Run(() =>
     {

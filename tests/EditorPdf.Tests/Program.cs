@@ -138,6 +138,23 @@ using (var pdf = new PdfDocument(original))
     Assert(collision, "no sobrescribe archivos existentes");
 }
 Assert(hash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(Path.Combine(output, "original.pdf")))), "original intacto SHA256");
+using (var overwriteSession = new Session())
+{
+    string overwritePath = Path.Combine(output, "sobrescribir-original.pdf");
+    File.Copy(Path.Combine(output, "original.pdf"), overwritePath);
+    byte[] beforeOverwrite = File.ReadAllBytes(overwritePath);
+    overwriteSession.Open(overwritePath);
+    overwriteSession.Execute(d => d.AddText(0, "Cambio guardado en el mismo archivo", 14, 60, 650));
+    bool collision = false;
+    try { overwriteSession.SaveNew(overwritePath); }
+    catch (IOException) { collision = true; }
+    Assert(collision && beforeOverwrite.SequenceEqual(File.ReadAllBytes(overwritePath)) && overwriteSession.Dirty,
+        "guardar sin confirmación conserva el PDF de origen");
+    overwriteSession.SaveNew(overwritePath, overwrite: true);
+    using var reopened = new PdfDocument(File.ReadAllBytes(overwritePath));
+    Assert(reopened.Text(0).Contains("Cambio guardado en el mismo archivo") && !overwriteSession.Dirty,
+        "sobrescritura confirmada guarda y reabre el mismo PDF de origen");
+}
 var fixture = Path.Combine(output, "fixtures", "externo.pdf");
 if (File.Exists(fixture))
 {

@@ -132,8 +132,6 @@ public sealed class Session : IDisposable
     }
     public void SaveNew(string path, bool overwrite = false)
     {
-        if (Originals.Contains(Path.GetFullPath(path), StringComparer.OrdinalIgnoreCase))
-            throw new IOException("No se puede sobrescribir un original.");
         Document.SaveNew(path, overwrite);
         Dirty = false;
     }

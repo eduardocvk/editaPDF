@@ -1,4 +1,4 @@
-param([string]$Version='1.2.3',[string]$AppDirectory='artifacts/app')
+param([string]$Version='1.2.4',[string]$AppDirectory='artifacts/app')
 $ErrorActionPreference='Stop'
 if($Version -notmatch '^\d+\.\d+\.\d+$'){throw 'Versión no válida.'}
 $root=Split-Path $PSScriptRoot -Parent

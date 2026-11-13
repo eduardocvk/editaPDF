@@ -1,6 +1,6 @@
 # Editor PDF para Windows 11
 
-Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Versión **1.2.3**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
+Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Versión **1.2.4**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
 
 [Descargar 1.0.0](https://github.com/eduardocvk/editaPDF/releases/download/v1.0.0/EditorPDF-1.0.0-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
 
@@ -20,7 +20,7 @@ Extrae todo el ZIP y abre `EditorPDF.exe`. Incluye runtime, fuentes, motores, li
 
 ## Texto, seguridad y privacidad
 
-Guardar exige un nombre nuevo: no reemplaza originales ni otros archivos. El resultado se reabre y se comprueba antes de publicarlo. Deshacer/rehacer conserva el historial en memoria mientras el documento está abierto.
+Al guardar puedes elegir un nombre nuevo o reemplazar un PDF existente, incluido el que abriste. El cuadro de guardado pide confirmación antes de reemplazarlo. La aplicación comprueba el resultado antes de escribirlo. Deshacer/rehacer conserva el historial en memoria mientras el documento está abierto.
 
 La edición real depende de la estructura y las fuentes del PDF. Se conserva la fuente original cuando admite los caracteres. Los estilos mixtos de una selección pueden unificarse mediante una fuente incluida, con aviso. No se ofrece edición universal, OCR, censura segura ni reconstrucción de documentos como Word. Texto anidado en Form/XObjects, escrituras complejas y algunos modos especiales permanecen limitados. El reflujo rechaza desbordamientos y solapamientos con objetos no seleccionados.
 
@@ -30,7 +30,7 @@ El procesamiento es local, sin telemetría, descargas de recursos ni envío auto
 
 ## Teclado
 
-Ctrl+O abre; Ctrl+S guarda copia; Ctrl+P imprime; Ctrl+F busca; Ctrl+Z/Ctrl+Y deshace/rehace. Ctrl+Tab cambia de documento y Ctrl+W cierra su pestaña. Intro confirma la edición directa y Esc cancela el borrador o selección. Tab y Mayús+Tab recorren controles con nombres accesibles.
+Ctrl+O abre; Ctrl+S guarda el PDF; Ctrl+P imprime; Ctrl+F busca; Ctrl+Z/Ctrl+Y deshace/rehace. Ctrl+Tab cambia de documento y Ctrl+W cierra su pestaña. Intro confirma la edición directa y Esc cancela el borrador o selección. Tab y Mayús+Tab recorren controles con nombres accesibles.
 
 El botón **Reducir tamaño del PDF**, al pie del panel derecho, abre una barra de calidad con vista previa, comparación con el original, zoom y estimación del peso. Guarda una copia `_reducido.pdf`. Recomprime imágenes RGB/grises compatibles y puede reducir su resolución; conserva texto, OCR existente y estructuras. Las imágenes con transparencias, máscaras, espacios de color especiales o más de 50 megapíxeles se dejan intactas. La reducción es con pérdida visual y no todos los PDF permiten ahorrar espacio. Los originales firmados o protegidos requieren primero una copia editable.
 

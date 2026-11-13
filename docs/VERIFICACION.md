@@ -1,3 +1,7 @@
+# EditaPDF 1.2.4
+
+Guardar permite reemplazar el PDF de origen al confirmar la sobrescritura. Las exportaciones con diálogo individual de extracción y FirmaPDF respetan la misma confirmación. La escritura mantiene la validación del PDF y el reemplazo desde un archivo temporal. La prueba abre un PDF existente, modifica una página, comprueba que guardar sin permiso de sobrescritura conserva los bytes y vuelve a abrir el archivo después del reemplazo autorizado.
+
 # EditaPDF 1.2.2
 
 El borrado de página comprueba sus anotaciones y las referencias que apuntan a ella. Si el usuario confirma, se eliminan las anotaciones de esa página y se redirigen sus destinos a la siguiente página o a la anterior si era la última. Se compara la geometría, texto, anotaciones y render de las páginas restantes antes de actualizar el documento. Se conserva el bloqueo de la última página y de documentos que requieren copia editable.

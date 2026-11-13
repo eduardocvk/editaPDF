@@ -1,12 +1,12 @@
-# Privacidad de Editor PDF 1.2.3
+# Privacidad de Editor PDF 1.2.4
 
 Los PDF se procesan en el equipo. No se implementan telemetría, analítica, procesamiento remoto, descargas de fuentes ni envío automático de errores. Runtime, motores y fuentes están incluidos. No se ejecuta JavaScript de los PDF.
 
-No se guarda ni se restaura automáticamente una sesión entre ejecuciones. Los documentos y borradores abiertos permanecen en memoria. El compositor visual mantiene copias transitorias de los PDF de origen en memoria y no modifica sus pestañas; al crearlo, el resultado se abre como otro documento. La transferencia de páginas entre pestañas también conserva el origen. Guardar, extraer, dividir o enviar a FirmaPDF crea archivos nuevos en las ubicaciones elegidas por el usuario. La elección de idioma se conserva en `%LOCALAPPDATA%\EditorPDF\language.txt`; ese archivo no contiene datos de documentos.
+No se guarda ni se restaura automáticamente una sesión entre ejecuciones. Los documentos y borradores abiertos permanecen en memoria. El compositor visual mantiene copias transitorias de los PDF de origen en memoria y no modifica sus pestañas; al crearlo, el resultado se abre como otro documento. La transferencia de páginas entre pestañas también conserva el origen. Guardar, extraer o preparar el PDF para FirmaPDF escribe en la ubicación elegida y pide confirmación si ya existe un archivo. Dividir crea archivos nuevos. La elección de idioma se conserva en `%LOCALAPPDATA%\EditorPDF\language.txt`; ese archivo no contiene datos de documentos.
 
 Las recuperaciones de versiones anteriores no se abren ni se modifican automáticamente. Si existen, permanecen en la carpeta Recovery de la versión anterior hasta que el usuario las retire.
 
-Los PDF originales no se sobrescriben. Las copias editables de PDF protegidos pierden el cifrado y las firmas con confirmación previa. No se guardan contraseñas.
+El archivo original solo se reemplaza si eliges su ruta y confirmas la sobrescritura. Las copias editables de PDF protegidos pierden el cifrado y las firmas con confirmación previa. No se guardan contraseñas.
 
 Imprimir abre una única ventana de configuración y vista previa. Enumera las colas instaladas mediante el servicio local de impresión y consulta las capacidades de la impresora seleccionada. La vista previa se genera localmente usando el mismo paginador del trabajo. Una impresora de red puede enviar documentos por la red; se utiliza la impresora elegida sin una confirmación adicional de red. El controlador y la cola pertenecen a Windows.
 
