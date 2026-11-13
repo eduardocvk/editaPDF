@@ -13,6 +13,11 @@ public sealed class ToolButton : Button
     public double IconSize { get; set; } = 16;
     static readonly Dictionary<string, string> Shapes = new()
     {
+        ["Search"] = "M14,8 A6,6 0 1 1 2,8 A6,6 0 1 1 14,8 M12.5,12.5 L18,18",
+        ["Plus"] = "M3,10 H17 M10,3 V17",
+        ["Minus"] = "M3,10 H17",
+        ["Fit"] = "M7,3 H3 V7 M13,3 H17 V7 M17,13 V17 H13 M7,17 H3 V13",
+        ["Cut"] = "M8,6 A3,3 0 1 1 2,6 A3,3 0 1 1 8,6 M8,14 A3,3 0 1 1 2,14 A3,3 0 1 1 8,14 M7,8 L18,16 M7,12 L18,4",
         ["FolderOpen"] = "M2,16 V5 Q2,3 4,3 H8 L10,5 H17 Q18,5 18,7 M2,16 Q2,18 4,18 H16 Q17,18 18,16 L20,9 H5 Z",
         ["Save"] = "M3,2 H15 L18,5 V17 Q18,18 17,18 H3 Q2,18 2,17 V3 Q2,2 3,2 Z M6,2 V7 H14 V2 M6,18 V11 H14 V18",
         ["Print"] = "M5,7 V2 H15 V7 M5,14 H2 V8 H18 V14 H15 M5,11 H15 V18 H5 Z M14,9.5 H15",

@@ -590,6 +590,78 @@ public sealed class PdfDocument : IDisposable
         Generate(p.H);
         return target;
     }
+    // Keep the actual PDF objects and their resources in a one-page clipboard document.
+    public byte[] CopyObjects(int page, int[] indices)
+    {
+        Editable();
+        if (indices.Length == 0) throw new ArgumentException("Selecciona texto o imágenes.");
+        var wanted = indices.ToHashSet();
+        var originals = Objects(page).Where(obj => wanted.Contains(obj.Index)).ToArray();
+        if (originals.Length != wanted.Count) throw new ArgumentException("La selección de objetos ya no es válida.");
+        using var copy = new PdfDocument();
+        Check(N.FPDF_ImportPagesByIndex(copy.handle, handle, [page], 1, 0), "No se pudieron copiar los objetos.");
+        using (var p = copy.Open(0))
+        {
+            for (int i = N.FPDFPage_CountObjects(p.H) - 1; i >= 0; i--)
+            {
+                if (wanted.Contains(i)) continue;
+                var obj = N.FPDFPage_GetObject(p.H, i);
+                Check(N.FPDFPage_RemoveObject(p.H, obj), "No se pudo preparar la selección.");
+                N.FPDFPageObj_Destroy(obj);
+            }
+            Generate(p.H);
+        }
+        var bytes = copy.SaveBytes();
+        using var check = new PdfDocument(bytes);
+        if (!check.Objects(0).Select(obj => (obj.Type, obj.Text)).SequenceEqual(originals.Select(obj => (obj.Type, obj.Text))))
+            throw new InvalidOperationException("No se pudo conservar la selección al copiar.");
+        return bytes;
+    }
+
+    public int[] PasteObjects(int page, byte[] bytes)
+    {
+        Mutating();
+        using var copy = new PdfDocument(bytes);
+        var expected = copy.Objects(0);
+        if (copy.Count != 1 || expected.Count == 0) throw new ArgumentException("La selección copiada está vacía.");
+        int temporaryPage = Count;
+        Check(N.FPDF_ImportPagesByIndex(handle, copy.handle, [0], 1, temporaryPage), "No se pudo preparar la página de destino.");
+        int first;
+        try
+        {
+            using var source = Open(temporaryPage);
+            using var destination = Open(page);
+            first = N.FPDFPage_CountObjects(destination.H);
+            var sourceSize = Info(temporaryPage);
+            var targetSize = Info(page);
+            // Map three points in the displayed page to keep the group upright on rotated pages.
+            (double X, double Y) Map(double x, double y)
+            {
+                const int scale = 10;
+                var point = ToDevice(temporaryPage, (int)(sourceSize.Width * scale), (int)(sourceSize.Height * scale), x, y);
+                return ToPage(page, (int)(targetSize.Width * scale), (int)(targetSize.Height * scale), point.X, point.Y);
+            }
+            var origin = Map(0, 0);
+            var xAxis = Map(100, 0);
+            var yAxis = Map(0, 100);
+            foreach (var _ in expected)
+            {
+                var obj = N.FPDFPage_GetObject(source.H, 0);
+                Check(N.FPDFPage_RemoveObject(source.H, obj), "No se pudo trasladar un objeto.");
+                N.FPDFPageObj_Transform(obj, (xAxis.X - origin.X) / 100, (xAxis.Y - origin.Y) / 100,
+                    (yAxis.X - origin.X) / 100, (yAxis.Y - origin.Y) / 100, origin.X, origin.Y);
+                N.FPDFPage_InsertObject(destination.H, obj);
+            }
+            Generate(destination.H);
+        }
+        finally { N.FPDFPage_Delete(handle, temporaryPage); }
+        var indices = Enumerable.Range(first, expected.Count).ToArray();
+        if (!Objects(page).Where(obj => indices.Contains(obj.Index)).Select(obj => (obj.Type, obj.Text))
+            .SequenceEqual(expected.Select(obj => (obj.Type, obj.Text))))
+            throw new InvalidOperationException("No se pudo conservar la selección al pegar.");
+        return indices;
+    }
+
     public void DuplicateText(int page, int index)
     {
         Mutating();

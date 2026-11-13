@@ -118,6 +118,45 @@ static class CanvasChecks
         session.Undo(); session.Undo();
         typeof(MainWindow).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS selección múltiple mixta: arrastre, duplicación, borrado y deshacer");
+        var toMove = objects.Items.Cast<MainWindow.ObjectRow>().Where(o => o.Value.Type == 3 || o.Value.Text == "Texto escrito sobre la pagina").ToArray();
+        objects.UnselectAll();
+        foreach (var item in toMove) objects.SelectedItems.Add(item);
+        int targetBefore = session.Document.Objects(1).Count;
+        typeof(MainWindow).GetMethod("MoveSelectionToPage", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [1]);
+        if (session.Document.Objects(1).Count != targetBefore + toMove.Length ||
+            session.Document.Objects(0).Any(o => o.Text == "Texto escrito sobre la pagina"))
+            throw new Exception("El grupo no se ha trasladado entre páginas");
+        using (var reopenedMove = new PdfDocument(session.Document.SaveBytes()))
+            if (!reopenedMove.Text(1).Contains("Texto escrito sobre la pagina") || !reopenedMove.Objects(1).Any(o => o.Type == 3))
+                throw new Exception("Los objetos trasladados no sobreviven al guardado");
+        session.Undo();
+        ((ListBox)window.FindName("PagesList")).SelectedIndex = 0;
+        typeof(MainWindow).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        Console.WriteLine("PASS traslado de texto e imagen entre páginas, reapertura y deshacer");
+        var setZoom = typeof(MainWindow).GetMethod("SetZoom", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        setZoom.Invoke(window, [.5]);
+        capture("paginas-en-paralelo", 1280, 780, 1);
+        if (((Button)window.FindName("AdjacentPage")).Visibility != Visibility.Visible)
+            throw new Exception("No aparecen dos páginas cuando caben");
+        setZoom.Invoke(window, [1.0]);
+        if (((Button)window.FindName("AdjacentPage")).Visibility != Visibility.Collapsed)
+            throw new Exception("La segunda página no se oculta al ampliar");
+        var cutRows = objects.Items.Cast<MainWindow.ObjectRow>().Where(o => o.Value.Type == 3 || o.Value.Text == "Texto escrito sobre la pagina").ToArray();
+        foreach (var item in cutRows) objects.SelectedItems.Add(item);
+        var copyCommand = typeof(MainWindow).GetMethod("CopySelectedObjects", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var pasteCommand = typeof(MainWindow).GetMethod("PasteSelectedObjects", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        copyCommand.Invoke(window, [true]);
+        if (session.Document.Objects(0).Any(o => o.Text == "Texto escrito sobre la pagina"))
+            throw new Exception("Cortar conserva el texto en origen");
+        ((ListBox)window.FindName("PagesList")).SelectedIndex = 1;
+        pasteCommand.Invoke(window, null);
+        if (objects.SelectedItems.Count != cutRows.Length || !session.Document.Text(1).Contains("Texto escrito sobre la pagina"))
+            throw new Exception("Pegar no recupera todos los objetos cortados");
+        session.Undo();
+        session.Undo();
+        ((ListBox)window.FindName("PagesList")).SelectedIndex = 0;
+        typeof(MainWindow).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        Console.WriteLine("PASS vista doble según zoom y portapapeles entre páginas");
         session.SaveNew(Path.Combine(folder, "edicion-canvas.pdf"));
         var picker = new PageSelectionDialog(session.Document, "Elegir páginas", 0, session.Document.Count);
         picker.SetSelection(false);
@@ -280,7 +319,7 @@ static class CanvasChecks
         typeof(MainWindow).GetMethod("CancelParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         typeof(MainWindow).GetMethod("StartParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.TopLeft, true]);
         typeof(MainWindow).GetMethod("CompleteParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [area.BottomRight]);
-        if (!overlay.Children.OfType<ToolButton>().Any(b => Equals(b.ToolTip, "Editar texto seleccionado")))
+        if (objects.SelectedItems.Count == 0 || !overlay.Children.OfType<ToolButton>().Any(b => Equals(b.ToolTip, "Editar texto seleccionado")))
             throw new Exception("La selección de texto por arrastre no ofrece el botón contextual de edición");
         typeof(MainWindow).GetMethod("CancelParagraphSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
         Console.WriteLine("PASS lienzo: texto visible, movimiento con vista previa, cancelación, esquinas, menú contextual y selección visual de páginas");

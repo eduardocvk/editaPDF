@@ -301,5 +301,19 @@
   "Por filas": "Across rows",
   "Por columnas": "Down columns",
   "Dibujar bordes": "Draw borders",
-  "Hoja": "Sheet"
+  "Hoja": "Sheet",
+  "Activar página contigua": "Activate adjacent page",
+  "Imprimir · Ctrl+P": "Print · Ctrl+P",
+  "Copiar objetos": "Copy objects",
+  "Cortar objetos": "Cut objects",
+  "Pegar objetos": "Paste objects",
+  "Objetos copiados.": "Objects copied.",
+  "Objetos cortados. Elige una página y pega.": "Objects cut. Choose a page and paste.",
+  "Mover a página…": "Move to page…",
+  "Página de destino": "Destination page",
+  "Mover": "Move",
+  "Doble cara": "Two-sided printing",
+  "Una cara": "One-sided",
+  "Doble cara · borde largo": "Two-sided · long edge",
+  "Doble cara · borde corto": "Two-sided · short edge"
 }

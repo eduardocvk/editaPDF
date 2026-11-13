@@ -37,6 +37,7 @@ public partial class MainWindow : Window
         FontChoice.SelectedIndex = 1;
         InitializeWorkspace();
         InitializeCanvas();
+        DocumentScroll.SizeChanged += (_, _) => UpdateAdjacentPage();
         Icon = BitmapFrame.Create(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "EditorPDF.ico")));
         HeaderLogo.Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")));
         FontFamily = new FontFamily(new Uri(AppContext.BaseDirectory), "./assets/#Noto Sans");
@@ -132,6 +133,7 @@ public partial class MainWindow : Window
         {
             PageImage.Source = null;
             ObjectsList.ItemsSource = null;
+            UpdateAdjacentPage();
             return;
         }
         var info = Pdf.Info(page);
@@ -144,6 +146,7 @@ public partial class MainWindow : Window
         Paper.Width = raster.Width;
         Paper.Height = raster.Height;
         ObjectsList.ItemsSource = Pdf.Objects(page).Select(x => new ObjectRow(x)).ToArray();
+        UpdateAdjacentPage();
         ZoomLabel.Text = $"{zoom * 100:0} %";
         Status.Text = (Ui.Current.Language=="en" ? $"Page {page+1} of {Pdf.Count}" : $"Página {page+1} de {Pdf.Count}") + (Pdf.EditBlock != null ? (Ui.Current.Language=="en" ? " · Read only" : " · Solo lectura") : "") + (session.Dirty ? (Ui.Current.Language=="en" ? " · Unsaved changes" : " · Cambios sin guardar") : "");
         if (Pdf.EditBlock != null)
@@ -374,8 +377,19 @@ public partial class MainWindow : Window
         {
             PageImage.Focus();
             var point = e.GetPosition(PageImage);
-            if (areaSelection != null) CancelParagraphSelection();
+            if (areaSelection != null)
+            {
+                areaSelection = null;
+                if (ObjectsList.SelectedItems.Count > 1) { Overlay.Children.Clear(); DrawGroupSelection(); }
+            }
             if (paragraphArmed) { StartParagraphSelection(point); e.Handled = true; return; }
+            if (Keyboard.Modifiers == ModifierKeys.Shift && Pdf.ObjectEditBlock == null && !addTextArmed)
+            {
+                FinishInlineText();
+                StartParagraphSelection(point, passive: true);
+                e.Handled = true;
+                return;
+            }
             if (addTextArmed)
             {
                 BeginInlineText(point);
@@ -417,7 +431,14 @@ public partial class MainWindow : Window
     {
         if (paragraphStart != null) { Run(() => CompleteParagraphSelection(e.GetPosition(PageImage))); e.Handled = true; return; }
         if (gestureObject != null && resizeCorner == null)
-            Run(CommitObjectGesture);
+        {
+            if (gestureChanged && adjacentIndex >= 0 && new Rect(AdjacentPage.RenderSize).Contains(e.GetPosition(AdjacentPage)))
+            {
+                int destination = adjacentIndex;
+                Run(() => { CancelCanvasGesture(); MoveSelectionToPage(destination); });
+            }
+            else Run(CommitObjectGesture);
+        }
     }
     void SetZoom(double value)
     {
@@ -493,6 +514,12 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        if (e.Key == Key.Escape && ObjectSelection().Length > 0 && Keyboard.FocusedElement is not TextBox)
+        {
+            ObjectsList.UnselectAll();
+            e.Handled = true;
+            return;
+        }
         if (inlineText != null && e.Key == Key.Enter)
         {
             Run(FinishInlineText);
@@ -508,7 +535,19 @@ public partial class MainWindow : Window
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control), shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         if (ctrl)
         {
-            if (e.Key == Key.D && (ObjectsList.IsKeyboardFocusWithin || PageImage.IsKeyboardFocused) && ObjectSelection().Length > 0)
+            bool objectKeys = Keyboard.FocusedElement is not TextBox &&
+                (PageImage.IsKeyboardFocused || ObjectsList.IsKeyboardFocusWithin || PagesList.IsKeyboardFocusWithin || AdjacentPage.IsKeyboardFocused);
+            if (objectKeys && e.Key is Key.C or Key.X && ObjectSelection().Length > 0)
+            {
+                Run(() => CopySelectedObjects(e.Key == Key.X));
+                e.Handled = true;
+            }
+            else if (objectKeys && e.Key == Key.V && copiedObjects != null && Pdf.Count > 0)
+            {
+                Run(PasteSelectedObjects);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.D && (ObjectsList.IsKeyboardFocusWithin || PageImage.IsKeyboardFocused) && ObjectSelection().Length > 0)
             {
                 Run(DuplicateSelectedObjects);
                 e.Handled = true;
@@ -563,7 +602,7 @@ public partial class MainWindow : Window
         else if (Keyboard.FocusedElement is not TextBox)
         {
             if (e.Key == Key.Delete && ObjectSelection().Length > 0 &&
-                (ObjectsList.IsKeyboardFocusWithin || PageImage.IsKeyboardFocused))
+                !PagesList.IsKeyboardFocusWithin && !DocumentTabs.IsKeyboardFocusWithin)
             {
                 Run(DeleteSelectedObjects);
                 e.Handled = true;

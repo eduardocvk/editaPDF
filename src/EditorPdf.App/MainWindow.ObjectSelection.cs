@@ -8,6 +8,42 @@ namespace EditorPdf.App;
 
 public partial class MainWindow
 {
+    byte[]? copiedObjects;
+
+    void CopySelectedObjects(bool cut)
+    {
+        var indices = ObjectSelection().Select(obj => obj.Index).ToArray();
+        if (indices.Length == 0) return;
+        var copy = Pdf.CopyObjects(page, indices);
+        if (cut) DeleteSelectedObjects();
+        copiedObjects = copy;
+        Status.Text = Ui.T(cut ? "Objetos cortados. Elige una página y pega." : "Objetos copiados.");
+    }
+
+    void PasteSelectedObjects()
+    {
+        if (copiedObjects is not { } copy || Pdf.Count == 0) return;
+        int[] added = [];
+        Change(document => added = document.PasteObjects(page, copy));
+        RestoreObjectSelection(added);
+    }
+
+    void MoveSelectionToPage(int destination)
+    {
+        if (destination == page) return;
+        int source = page;
+        int[] indices = ObjectSelection().Select(obj => obj.Index).ToArray();
+        if (indices.Length == 0) return;
+        byte[] copy = Pdf.CopyObjects(source, indices);
+        int[] added = [];
+        Change(document =>
+        {
+            added = document.PasteObjects(destination, copy);
+            foreach (int index in indices.OrderDescending()) document.RemoveObject(source, index);
+        }, destination);
+        RestoreObjectSelection(added);
+    }
+
     PdfObject[] ObjectSelection() => ObjectsList.SelectedItems.Cast<ObjectRow>().Select(row => row.Value).OrderBy(obj => obj.Index).ToArray();
 
     Rect SelectionBounds(IEnumerable<PdfObject> objects)
@@ -47,6 +83,16 @@ public partial class MainWindow
             Overlay.Children.Add(textToolbar);
         }
         PositionSelection(SelectionBounds(ObjectSelection()));
+        var selectedIndices = ObjectSelection().Select(obj => obj.Index).ToHashSet();
+        var paragraph = areaSelection?.Where(obj => selectedIndices.Contains(obj.Index)).ToArray();
+        if (paragraph?.Length > 0)
+        {
+            var edit = new ToolButton { Icon = "Paragraph", IconOnly = true, Content = "Editar texto seleccionado", ToolTip = Ui.T("Editar texto seleccionado") };
+            edit.Click += (_, _) => Run(() => EditParagraphObjects(paragraph));
+            Canvas.SetLeft(edit, Math.Clamp(SelectionBounds(ObjectSelection()).Right + 5, 0, Math.Max(0, Overlay.Width - 34)));
+            Canvas.SetTop(edit, Math.Clamp(SelectionBounds(ObjectSelection()).Top, 0, Math.Max(0, Overlay.Height - 34)));
+            Overlay.Children.Add(edit);
+        }
     }
 
     void DeleteSelectedObjects()

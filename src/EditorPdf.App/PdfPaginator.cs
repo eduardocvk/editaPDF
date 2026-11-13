@@ -9,6 +9,16 @@ namespace EditorPdf.App;
 public sealed class PdfPaginator(PdfDocument document, Size size, IReadOnlyList<int>? pages = null, Rect? imageableArea = null, bool grayscale = false, int columns = 1, int rows = 1, bool downFirst = false, bool borders = false) : DocumentPaginator, IDocumentPaginatorSource
 {
     public override bool IsPageCountValid => true;
+    internal static (int Columns, int Rows) Layout(int count, bool landscape)
+    {
+        int columns = count switch { 4 or 6 => 2, 9 => 3, 16 => 4, _ => 1 };
+        int rows = count / columns;
+        return landscape ? (rows, columns) : (columns, rows);
+    }
+
+    internal static (int Column, int Row) Cell(int index, int columns, int rows, bool downFirst) =>
+        downFirst ? (index / rows, index % rows) : (index % columns, index / columns);
+
     int PagesPerSheet => columns * rows;
     int DocumentPageCount => pages?.Count ?? document.Count;
     public override int PageCount => (DocumentPageCount + PagesPerSheet - 1) / PagesPerSheet;
@@ -26,8 +36,7 @@ public sealed class PdfPaginator(PdfDocument document, Size size, IReadOnlyList<
         {
             int selectedIndex = pageNumber * PagesPerSheet + cell;
             if (selectedIndex >= DocumentPageCount) break;
-            int column = downFirst ? cell / rows : cell % columns;
-            int row = downFirst ? cell % rows : cell / columns;
+            var (column, row) = Cell(cell, columns, rows, downFirst);
             var slot = new Rect(area.Left + column * cellWidth, area.Top + row * cellHeight, cellWidth, cellHeight);
             if (PagesPerSheet > 1) slot.Inflate(-Math.Min(4, cellWidth / 8), -Math.Min(4, cellHeight / 8));
             AddPage(sheet, pages == null ? selectedIndex : pages[selectedIndex], slot);

@@ -508,8 +508,12 @@ public partial class MainWindow
         bool editable = Pdf.Count > 0 && Pdf.ObjectEditBlock == null;
         Item(Ui.T("Añadir texto aquí"), () => BeginInlineText(contextPoint), editable, "Text");
         Item(Ui.T("Insertar imagen…"), () => AddImageClick(sender, new RoutedEventArgs()), editable, "Image");
+        Item(Ui.T("Pegar objetos"), PasteSelectedObjects, editable && copiedObjects != null, "Insert");
         if (ObjectSelection().Length > 0)
         {
+            Item(Ui.T("Copiar objetos"), () => CopySelectedObjects(false), editable, "Duplicate");
+            Item(Ui.T("Cortar objetos"), () => CopySelectedObjects(true), editable, "Cut");
+            Item(Ui.T("Mover a página…"), ChooseObjectDestination, editable && Pdf.Count > 1, "Position");
             Item(Ui.T("Duplicar selección"), DuplicateSelectedObjects, editable, "Duplicate");
             Item(Ui.T("Eliminar selección"), DeleteSelectedObjects, editable, "Delete");
         }

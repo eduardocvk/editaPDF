@@ -75,15 +75,17 @@ public partial class MainWindow
     void CompleteParagraphSelection(Point point)
     {
         if (paragraphStart is not { } start) return;
-        var area = new Rect(start, point);
+        var area = new Rect(start, new Point(Math.Clamp(point.X, 0, PageImage.Width), Math.Clamp(point.Y, 0, PageImage.Height)));
         bool passive = paragraphPassive;
         CancelParagraphSelection();
         if (area.Width < 8 || area.Height < 8) { Status.Text = Ui.T("Selecciona el texto dibujando un rectángulo alrededor."); return; }
         var group = ParagraphObjectsIn(area);
-        if (group.Length == 0) { Status.Text = Ui.T("No hay texto compatible dentro del recuadro."); return; }
         if (passive)
         {
-            areaSelection = group;
+            var enclosed = Pdf.Objects(page).Where(obj => area.Contains(DeviceBounds(obj))).Select(obj => obj.Index).ToArray();
+            areaSelection = group.Where(obj => enclosed.Contains(obj.Index)).ToArray();
+            RestoreObjectSelection(enclosed);
+            if (enclosed.Length != 1 || areaSelection.Length == 0) return;
             paragraphOutline = new Rectangle { Width = area.Width, Height = area.Height, Stroke = Brushes.RoyalBlue, StrokeThickness = 1.5, StrokeDashArray = new DoubleCollection { 4, 3 }, IsHitTestVisible = false };
             Canvas.SetLeft(paragraphOutline, area.Left);
             Canvas.SetTop(paragraphOutline, area.Top);
@@ -96,6 +98,7 @@ public partial class MainWindow
             Status.Text = (Ui.Current.Language=="en" ? $"{group.Length} selected fragments. Use the button next to the rectangle to edit." : $"{group.Length} fragmentos seleccionados. Pulsa el botón junto al recuadro para editarlos.");
             return;
         }
+        if (group.Length == 0) { Status.Text = Ui.T("No hay texto compatible dentro del recuadro."); return; }
         EditParagraphObjects(group);
     }
 

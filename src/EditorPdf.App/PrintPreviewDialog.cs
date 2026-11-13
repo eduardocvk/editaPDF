@@ -16,9 +16,13 @@ public sealed class PrintPreviewDialog : Window
     readonly ComboBox paper = new() { DisplayMemberPath = "Label" };
     readonly ComboBox color = new() { ItemsSource = new[] { Ui.T("Color"), Ui.T("Blanco y negro") }, SelectedIndex = 0 };
     readonly TextBox ranges = new() { Text = "", ToolTip = Ui.T("Vacío: todas. Ejemplo: 1-3,5") };
-    readonly ComboBox pagesPerSheet = new() { ItemsSource = new[] { 1, 2, 4, 6, 9, 16 }, SelectedIndex = 0 };
-    readonly ComboBox sheetOrder = new() { ItemsSource = new[] { Ui.T("Por filas"), Ui.T("Por columnas") }, SelectedIndex = 0, IsEnabled = false };
+    static readonly int[] SheetCounts = [1, 2, 4, 6, 9, 16];
+    int pagesPerSheet = 1;
+    bool columnsFirst;
     readonly CheckBox sheetBorders = new() { Content = Ui.T("Dibujar bordes"), Margin = new Thickness(0, 8, 0, 0), IsEnabled = false };
+    readonly ComboBox duplex = new() { DisplayMemberPath = "Label", IsEnabled = false };
+    readonly WrapPanel layoutCards = new();
+    readonly StackPanel orderCards = new() { Orientation = Orientation.Horizontal };
     readonly TextBox copies = new() { Text = "1" };
     readonly TextBlock counter = new() { Margin = new Thickness(12,0,12,0) };
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Firebrick, Margin = new Thickness(0,12,0,0) };
@@ -48,6 +52,7 @@ public sealed class PrintPreviewDialog : Window
     public bool CanPrint => print.IsEnabled;
     public int PrinterCount => queues.Length;
     public string ValidationDetails { get; private set; } = "";
+    sealed record DuplexOption(Duplexing Mode, string Label);
     public sealed record PaperOption(PageMediaSize Media, string Label);
 
     public PrintPreviewDialog(Window owner, PdfDocument document, bool loadPrinters = true)
@@ -64,8 +69,11 @@ public sealed class PrintPreviewDialog : Window
         var controls=new StackPanel { Width=240, Margin=new Thickness(0,0,18,0) };
         void Field(string label,Control control) { controls.Children.Add(new Label { Content=Ui.T(label), Target=control, Margin=new Thickness(0,5,0,4) }); controls.Children.Add(control); }
         Field("Impresora",printers); Field("Orientación",orientation); Field("Papel",paper); Field("Copias",copies); Field("Modo de color",color); Field("Páginas",ranges);
-        Field("Páginas por hoja", pagesPerSheet);
-        Field("Orden en la hoja", sheetOrder);
+        Field("Doble cara", duplex);
+        controls.Children.Add(new Label { Content = Ui.T("Páginas por hoja") });
+        controls.Children.Add(layoutCards);
+        controls.Children.Add(new Label { Content = Ui.T("Orden en la hoja") });
+        controls.Children.Add(orderCards);
         controls.Children.Add(sheetBorders);
         controls.Children.Add(error);
         var scroll=new ScrollViewer { Content=controls, VerticalScrollBarVisibility=ScrollBarVisibility.Auto, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled };
@@ -80,10 +88,13 @@ public sealed class PrintPreviewDialog : Window
         paper.SelectedIndex=0;
         refresh.Tick+=(_,_)=>{ refresh.Stop(); UpdatePreview(); };
         printers.SelectionChanged+=(_,_)=>SelectPrinter();
-        foreach(var combo in new[] { orientation,paper,color,pagesPerSheet,sheetOrder }) combo.SelectionChanged+=(_,_)=>Schedule();
+        foreach(var combo in new[] { orientation,paper,color }) combo.SelectionChanged+=(_,_)=>Schedule();
         ranges.TextChanged+=(_,_)=>{ previewIndex=0; Schedule(); };
         sheetBorders.Checked += (_, _) => Schedule();
         sheetBorders.Unchecked += (_, _) => Schedule();
+        duplex.SelectionChanged += (_, _) => Schedule();
+        duplex.ItemsSource = new[] { new DuplexOption(Duplexing.OneSided, Ui.T("Una cara")) };
+        duplex.SelectedIndex = 0;
         copies.TextChanged+=(_,_)=>Schedule();
         previous.Click+=(_,_)=>{ if(previewIndex>0) { previewIndex--; RenderPreview(); } };
         next.Click+=(_,_)=>{ if(previewIndex+1<(CurrentPaginator?.PageCount ?? 0)) { previewIndex++; RenderPreview(); } };
@@ -119,6 +130,14 @@ public sealed class PrintPreviewDialog : Window
             var defaults=selected.UserPrintTicket ?? selected.DefaultPrintTicket;
             defaults=selected.MergeAndValidatePrintTicket(defaults,null).ValidatedPrintTicket;
             var caps=selected.GetPrintCapabilities(defaults);
+            var sides = new List<DuplexOption> { new(Duplexing.OneSided, Ui.T("Una cara")) };
+            if (caps.DuplexingCapability.Contains(Duplexing.TwoSidedLongEdge))
+                sides.Add(new(Duplexing.TwoSidedLongEdge, Ui.T("Doble cara · borde largo")));
+            if (caps.DuplexingCapability.Contains(Duplexing.TwoSidedShortEdge))
+                sides.Add(new(Duplexing.TwoSidedShortEdge, Ui.T("Doble cara · borde corto")));
+            duplex.ItemsSource = sides;
+            duplex.SelectedIndex = 0;
+            duplex.IsEnabled = sides.Count > 1;
             var papers=caps.PageMediaSizeCapability.Where(m=>m.Width>0 && m.Height>0).Select(m=>new PaperOption(m,m.PageMediaSizeName switch
             { PageMediaSizeName.ISOA4=>"A4", PageMediaSizeName.ISOA3=>"A3", PageMediaSizeName.ISOA5=>"A5", PageMediaSizeName.NorthAmericaLetter=>"Letter", PageMediaSizeName.NorthAmericaLegal=>"Legal", _=>$"{m.Width*25.4/96:0} × {m.Height*25.4/96:0} mm" })).ToArray();
             if(papers.Length==0) throw new InvalidOperationException(Ui.T("La impresora no informa del tamaño de papel."));
@@ -138,7 +157,7 @@ public sealed class PrintPreviewDialog : Window
     {
         updating=true;
         ranges.Text=pages; orientation.SelectedIndex=landscape ? 1 : 0; color.SelectedIndex=blackAndWhite ? 1 : 0; copies.Text=copyCount.ToString();
-        pagesPerSheet.SelectedItem = perSheet; sheetOrder.SelectedIndex = downFirst ? 1 : 0; sheetBorders.IsChecked = drawBorders;
+        pagesPerSheet = SheetCounts.Contains(perSheet) ? perSheet : 1; columnsFirst = downFirst; sheetBorders.IsChecked = drawBorders;
         updating=false; previewIndex=0; UpdatePreview();
     }
     void UpdatePreview()
@@ -160,6 +179,8 @@ public sealed class PrintPreviewDialog : Window
                 var desired=baseTicket.Clone(); desired.CopyCount=count;
                 desired.PagesPerSheet=1;
                 desired.PageScalingFactor=100;
+                if (duplex.SelectedItem is DuplexOption side)
+                    desired.Duplexing = side.Mode;
                 desired.PageMediaSize=chosen.Media;
                 desired.PageOrientation=landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
                 var caps=queue.GetPrintCapabilities(desired);
@@ -170,7 +191,7 @@ public sealed class PrintPreviewDialog : Window
                 ticket=validation.ValidatedPrintTicket;
                 ValidationDetails=$"Orientation {desired.PageOrientation}/{ticket.PageOrientation}; Paper {desired.PageMediaSize.PageMediaSizeName}/{ticket.PageMediaSize?.PageMediaSizeName}; Copies {desired.CopyCount}/{ticket.CopyCount}; Color {desired.OutputColor}/{ticket.OutputColor}";
                 bool colorMatches=monochrome ? ticket.OutputColor is OutputColor.Monochrome or OutputColor.Grayscale : ticket.OutputColor==OutputColor.Color;
-                if(ticket.PageOrientation!=desired.PageOrientation || ticket.PageMediaSize?.PageMediaSizeName!=desired.PageMediaSize.PageMediaSizeName || ticket.CopyCount!=desired.CopyCount || !colorMatches || (ticket.PagesPerSheet ?? 1)!=1 || (ticket.PageScalingFactor ?? 100)!=100)
+                if(ticket.PageOrientation!=desired.PageOrientation || ticket.PageMediaSize?.PageMediaSizeName!=desired.PageMediaSize.PageMediaSizeName || ticket.CopyCount!=desired.CopyCount || !colorMatches || (ticket.Duplexing ?? Duplexing.OneSided) != desired.Duplexing || (ticket.PagesPerSheet ?? 1)!=1 || (ticket.PageScalingFactor ?? 100)!=100)
                     throw new InvalidOperationException(Ui.T("La impresora no admite esta combinación de opciones."));
                 caps=queue.GetPrintCapabilities(ticket);
                 if(caps.OrientedPageMediaWidth is >0 && caps.OrientedPageMediaHeight is >0) sheet=new Size(caps.OrientedPageMediaWidth.Value,caps.OrientedPageMediaHeight.Value);
@@ -178,13 +199,12 @@ public sealed class PrintPreviewDialog : Window
                 printable=Rect.Intersect(new Rect(sheet),new Rect(area.OriginWidth,area.OriginHeight,area.ExtentWidth,area.ExtentHeight));
                 if(printable.IsEmpty || printable.Width<=0 || printable.Height<=0) throw new InvalidOperationException(Ui.T("El área imprimible no es válida."));
             }
-            int countPerSheet = pagesPerSheet.SelectedItem is int value ? value : 1;
-            int columns = countPerSheet switch { 2 => 1, 4 or 6 => 2, 9 => 3, 16 => 4, _ => 1 };
-            int rows = countPerSheet / columns;
-            if (sheet.Width > sheet.Height) (rows, columns) = (columns, rows);
-            sheetOrder.IsEnabled = sheetBorders.IsEnabled = countPerSheet > 1;
+            int countPerSheet = pagesPerSheet;
+            var (columns, rows) = PdfPaginator.Layout(countPerSheet, sheet.Width > sheet.Height);
+            UpdateLayoutCards(countPerSheet);
+            sheetBorders.IsEnabled = countPerSheet > 1;
             CurrentPaginator = new PdfPaginator(document, sheet, selectedPages, printable, monochrome, columns, rows,
-                sheetOrder.SelectedIndex == 1, sheetBorders.IsEnabled && sheetBorders.IsChecked == true);
+                columnsFirst, sheetBorders.IsEnabled && sheetBorders.IsChecked == true);
             previewIndex = Math.Clamp(previewIndex, 0, CurrentPaginator.PageCount - 1);
             RenderPreview();
             if(queue!=null) error.Text="";
@@ -193,6 +213,55 @@ public sealed class PrintPreviewDialog : Window
         catch(Exception ex) when(ex is not OutOfMemoryException)
         { CurrentPaginator=null; image.Source=null; counter.Text=""; error.Text=Ui.T(ex.Message); print.IsEnabled=false; previous.IsEnabled=next.IsEnabled=false; }
     }
+    void UpdateLayoutCards(int selected)
+    {
+        layoutCards.Children.Clear();
+        orderCards.Children.Clear();
+        bool landscape = sheet.Width > sheet.Height;
+        foreach (int count in SheetCounts)
+        {
+            string title = $"{count}";
+            var button = LayoutCard(count, landscape, columnsFirst, title, count == selected);
+            button.ToolTip = $"{title} · {Ui.T("Páginas por hoja")}";
+            button.Click += (_, _) => { pagesPerSheet = count; Schedule(); };
+            layoutCards.Children.Add(button);
+        }
+        foreach (bool orderByColumns in new[] { false, true })
+        {
+            string title = Ui.T(orderByColumns ? "Por columnas" : "Por filas");
+            var button = LayoutCard(selected, landscape, orderByColumns, title, columnsFirst == orderByColumns);
+            button.IsEnabled = selected > 1;
+            button.Click += (_, _) => { columnsFirst = orderByColumns; Schedule(); };
+            orderCards.Children.Add(button);
+        }
+    }
+
+    static Button LayoutCard(int count, bool landscape, bool columnsFirst, string label, bool selected)
+    {
+        var (columns, rows) = PdfPaginator.Layout(count, landscape);
+        var grid = new Grid { Width = landscape ? 47 : 38, Height = landscape ? 32 : 42, Margin = new Thickness(0, 0, 0, 3) };
+        for (int i = 0; i < columns; i++) grid.ColumnDefinitions.Add(new ColumnDefinition());
+        for (int i = 0; i < rows; i++) grid.RowDefinitions.Add(new RowDefinition());
+        for (int i = 0; i < count; i++)
+        {
+            var (column, row) = PdfPaginator.Cell(i, columns, rows, columnsFirst);
+            var cell = new Border { Background = Brushes.White, BorderBrush = Brushes.SteelBlue,
+                BorderThickness = new Thickness(.7), Margin = new Thickness(.6) };
+            cell.Child = new Viewbox { MaxHeight = 12, Child = new TextBlock { Text = $"{i + 1}", Foreground = Brushes.MidnightBlue } };
+            Grid.SetColumn(cell, column);
+            Grid.SetRow(cell, row);
+            grid.Children.Add(cell);
+        }
+        var stack = new StackPanel();
+        stack.Children.Add(grid);
+        stack.Children.Add(new TextBlock { Text = label, HorizontalAlignment = HorizontalAlignment.Center });
+        var button = new Button { Content = stack, Padding = new Thickness(5), Margin = new Thickness(2),
+            Background = selected ? new SolidColorBrush(Color.FromRgb(218, 234, 255)) : Brushes.White,
+            BorderBrush = selected ? Brushes.RoyalBlue : Brushes.LightSlateGray };
+        System.Windows.Automation.AutomationProperties.SetName(button, label);
+        return button;
+    }
+
     void RenderPreview()
     {
         if(CurrentPaginator==null) return;

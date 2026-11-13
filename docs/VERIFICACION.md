@@ -1,3 +1,9 @@
+# EditaPDF 1.2.0
+
+La selección por recuadro incluye texto e imágenes de una página. Supr elimina la selección fuera de campos de texto. Ctrl+C, Ctrl+X y Ctrl+V usan el portapapeles interno de EditaPDF. El traslado conserva los objetos PDF y sus recursos, con una única operación de deshacer al usar Mover a página o arrastrar a la página contigua. Cuando el ancho y el zoom lo permiten, se muestran dos páginas juntas.
+
+El diálogo de impresión usa tarjetas numeradas para la distribución y el orden. La doble cara se limita a los modos que informa el controlador. La vista previa y la salida usan el mismo paginador. Las pruebas no envían trabajos a impresoras físicas.
+
 # EditaPDF 1.1.0
 
 Ctrl + rueda cambia el zoom alrededor del puntero. Ctrl + clic selecciona texto e imágenes de una página. El arrastre muestra una vista previa y confirma el grupo en una operación. Duplicar y eliminar también se pueden deshacer como una sola operación. El texto duplicado usa la fuente original y comprueba que se conservan los caracteres.
