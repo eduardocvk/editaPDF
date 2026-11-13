@@ -45,6 +45,14 @@ internal static class N
     [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFPage_GetObject(IntPtr p, int i);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetType(IntPtr o);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetBounds(IntPtr o, out float l, out float b, out float r, out float t);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPath_CountSegments(IntPtr path);
+    [DllImport(D, CallingConvention = C)] internal static extern IntPtr FPDFPath_GetPathSegment(IntPtr path, int index);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPathSegment_GetPoint(IntPtr segment, out float x, out float y);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPathSegment_GetType(IntPtr segment);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPathSegment_GetClose(IntPtr segment);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPath_GetDrawMode(IntPtr path, out int fill, out int stroke);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetStrokeWidth(IntPtr path, out float width);
+    [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetStrokeColor(IntPtr path, out uint r, out uint g, out uint b, out uint a);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_GetMatrix(IntPtr o, out Matrix m);
     [DllImport(D, CallingConvention = C)] internal static extern int FPDFPageObj_SetMatrix(IntPtr o, ref Matrix m);
     [DllImport(D, CallingConvention = C)] internal static extern void FPDFPageObj_Transform(IntPtr o, double a, double b, double c, double d, double e, double f);

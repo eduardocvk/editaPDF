@@ -1,8 +1,8 @@
-param([string]$Version='1.2.0')
+param([string]$Version='1.2.1',[string]$AppDirectory='artifacts/app')
 $ErrorActionPreference='Stop'
 if($Version -notmatch '^\d+\.\d+\.\d+$'){throw 'Versión no válida.'}
 $root=Split-Path $PSScriptRoot -Parent
-$app=Join-Path $root 'artifacts/app'
+$app=Join-Path $root $AppDirectory
 foreach($file in @('EditorPDF.exe','EditorPDF.dll','pdfium.dll','Source.zip','assets/NotoSans-Regular.ttf','LICENSE.txt','NOTICE.txt')){if(!(Test-Path -LiteralPath (Join-Path $app $file))){throw "Falta $file. Ejecuta Build.ps1 primero."}}
 $output=Join-Path $root "artifacts/EditorPDF-$Version-win-x64.zip"
 if(Test-Path -LiteralPath $output){throw 'El ZIP ya existe. Conserva las versiones publicadas; utiliza un destino o una versión nuevos.'}

@@ -101,7 +101,7 @@ public partial class MainWindow : Window
     }
     public sealed record ObjectRow(PdfObject Value)
     {
-        public string Label => Value.Type == 3 ? Ui.T("Imagen") : string.IsNullOrWhiteSpace(Value.Text) ? "Texto (sin mapa Unicode)" : Value.Text.Replace("\r", " ").Replace("\n", " ");
+        public string Label => Value.Type == 3 ? Ui.T("Imagen") : Value.Type == 2 ? Ui.T("Forma vectorial") : string.IsNullOrWhiteSpace(Value.Text) ? "Texto (sin mapa Unicode)" : Value.Text.Replace("\r", " ").Replace("\n", " ");
     }
     void Refresh()
     {
@@ -367,7 +367,7 @@ public partial class MainWindow : Window
             throw new ArgumentException(Ui.T("Introduce una medida válida."));
         return n;
     }
-    void ApplyPositionClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } row) throw new InvalidOperationException(Ui.T("Selecciona texto o imagen.")); var o = row.Value; float x = Number(XValue.Text), y = Number(YValue.Text), w = Number(WValue.Text), h = Number(HValue.Text); if (w <= 0 || h <= 0 || o.Right <= o.Left || o.Top <= o.Bottom) throw new ArgumentException("Ancho y alto deben ser mayores que cero."); if (o.Type == 1 && (Math.Abs(w - (o.Right - o.Left)) > 0.05 || Math.Abs(h - (o.Top - o.Bottom)) > 0.05)) throw new InvalidOperationException(Ui.T("El cambio de tamaño mediante ancho y alto está disponible para imágenes. El texto puede moverse.")); Change(d => d.Transform(page, o.Index, x - o.Left, y - o.Bottom, o.Type == 3 ? w / (o.Right - o.Left) : 1, o.Type == 3 ? h / (o.Top - o.Bottom) : 1)); });
+    void ApplyPositionClick(object sender, RoutedEventArgs e) => Run(() => { if (Selected is not { } row) throw new InvalidOperationException(Ui.T("Selecciona texto o imagen.")); var o = row.Value; float x = Number(XValue.Text), y = Number(YValue.Text); if (o.Type == 2) { Change(d => d.Transform(page, o.Index, x - o.Left, y - o.Bottom)); return; } float w = Number(WValue.Text), h = Number(HValue.Text); if (w <= 0 || h <= 0 || o.Right <= o.Left || o.Top <= o.Bottom) throw new ArgumentException("Ancho y alto deben ser mayores que cero."); if (o.Type == 1 && (Math.Abs(w - (o.Right - o.Left)) > 0.05 || Math.Abs(h - (o.Top - o.Bottom)) > 0.05)) throw new InvalidOperationException(Ui.T("El cambio de tamaño mediante ancho y alto está disponible para imágenes. El texto puede moverse.")); Change(d => d.Transform(page, o.Index, x - o.Left, y - o.Bottom, o.Type == 3 ? w / (o.Right - o.Left) : 1, o.Type == 3 ? h / (o.Top - o.Bottom) : 1)); });
     void AddImageClick(object sender, RoutedEventArgs e) => Run(() => { RequireDocument(); var dialog = new OpenFileDialog { Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp" }; if (dialog.ShowDialog(this) != true) return; BitmapSource image; using (var file = File.OpenRead(LocalFiles.Validate(dialog.FileName))) { var decoder = BitmapDecoder.Create(file, BitmapCreateOptions.IgnoreImageCache, BitmapCacheOption.OnLoad); image = new FormatConvertedBitmap(decoder.Frames[0], PixelFormats.Bgra32, null, 0); } if ((long)image.PixelWidth * image.PixelHeight > 25_000_000) throw new InvalidOperationException(Ui.T("La imagen supera 25 megapíxeles.")); int stride = image.PixelWidth * 4; var pixels = new byte[stride * image.PixelHeight]; image.CopyPixels(pixels, stride, 0); FinishInlineText(); float width = Math.Min(240, Pdf.Info(page).Width - 80), height = width * image.PixelHeight / image.PixelWidth; Change(d => d.AddImage(page, image.PixelWidth, image.PixelHeight, stride, pixels, 40, Math.Max(20, Pdf.Info(page).Height - height - 60), width, height)); ObjectsList.SelectedItem = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(); });
     void PageMouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -397,8 +397,7 @@ public partial class MainWindow : Window
                 return;
             }
             FinishInlineText();
-            var p = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)point.X, (int)point.Y);
-            var hit = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(x => p.X >= x.Value.Left - 3 && p.X <= x.Value.Right + 3 && p.Y >= x.Value.Bottom - 3 && p.Y <= x.Value.Top + 3);
+            var hit = HitObject(point);
             if (e.ClickCount == 2 && Keyboard.Modifiers == ModifierKeys.None && hit?.Value.Type == 1 && Pdf.ObjectEditBlock == null)
             {
                 var bounds = DeviceBounds(hit.Value);

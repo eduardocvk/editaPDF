@@ -41,6 +41,36 @@ static class CanvasChecks
         if (handles.Any(h => !h.IsHitTestVisible || !ReferenceEquals(System.Windows.Media.VisualTreeHelper.GetParent(h), overlay)))
             throw new Exception("Las esquinas no están conectadas al lienzo interactivo");
         var image = (Image)window.FindName("PageImage");
+        var hitTest = typeof(MainWindow).GetMethod("HitObject", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        MainWindow.ObjectRow? Hit(double x, double y)
+        {
+            var p = session.Document.ToDevice(0, (int)image.Width, (int)image.Height, x, y);
+            return (MainWindow.ObjectRow?)hitTest.Invoke(window, [new Point(p.X, p.Y)]);
+        }
+        var line = Hit(50, 580);
+        var background = Hit(12, 815);
+        if (line?.Value.Type != 2 || background?.Value.Type != 2 || Hit(52, 565)?.Value.Index != line.Value.Index)
+            throw new Exception("No se selecciona el borde fino o el fondo relleno");
+        if (Hit(85, 570)?.Value.Index == line.Value.Index)
+            throw new Exception("El interior vacío del marco intercepta el clic");
+        objects.SelectedItem = line;
+        window.BeginObjectGesture(line.Value, new Point(50,200));
+        window.UpdateObjectGesture(new Point(75,220));
+        window.RenderGesturePreview();
+        window.CommitObjectGesture();
+        var movedShape = session.Document.Objects(0).Single(o => o.Index == line.Value.Index);
+        if (movedShape.Left <= line.Value.Left + 10)
+            throw new Exception("El trazado no se mueve al arrastrarlo");
+        typeof(MainWindow).GetMethod("DeleteSelectedObjects", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        using (var reopened = new PdfDocument(session.Document.SaveBytes()))
+            if (reopened.Objects(0).Any(o => o.Type == 2 && Math.Abs(o.Left - movedShape.Left) < 0.1 && Math.Abs(o.Bottom - movedShape.Bottom) < 0.1))
+                throw new Exception("El trazado borrado permanece en el PDF");
+        session.Undo();
+        session.Undo();
+        typeof(MainWindow).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
+        row = objects.Items.Cast<MainWindow.ObjectRow>().Last(o => o.Value.Type == 3);
+        objects.SelectedItem = row;
+        Console.WriteLine("PASS formas vectoriales: clic en línea y relleno, arrastre, borrado, guardado y deshacer");
         var original = session.Document;
         var raster = SHA256.HashData(original.Render(0, 600).Pixels);
         window.BeginObjectGesture(row.Value, new Point(100, 200));

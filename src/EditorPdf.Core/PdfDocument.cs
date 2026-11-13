@@ -130,7 +130,7 @@ public sealed class PdfDocument : IDisposable
             {
                 var o = N.FPDFPage_GetObject(p.H, j);
                 var type = N.FPDFPageObj_GetType(o);
-                if (type != 1 && type != 3)
+                if (type is not (1 or 2 or 3))
                     continue;
                 N.FPDFPageObj_GetBounds(o, out var l, out var b, out var r, out var top);
                 string text = "", font = "";
@@ -164,6 +164,40 @@ public sealed class PdfDocument : IDisposable
         }
         finally { if (t != IntPtr.Zero) N.FPDFText_ClosePage(t); }
     }
+    public sealed record PathPoint(int Kind, double X, double Y, bool Closes);
+    public sealed record PathOutline(int FillRule, bool Stroked, double StrokeWidth, IReadOnlyList<PathPoint> Points);
+
+    public PathOutline? GetPathOutline(int page, int index)
+    {
+        using var opened = Open(page);
+        var path = N.FPDFPage_GetObject(opened.H, index);
+        if (path == IntPtr.Zero || N.FPDFPageObj_GetType(path) != 2 ||
+            N.FPDFPath_GetDrawMode(path, out int fill, out int stroke) == 0 ||
+            N.FPDFPageObj_GetMatrix(path, out var matrix) == 0)
+            return null;
+
+        if (N.FPDFPageObj_GetFillColor(path, out _, out _, out _, out uint fillAlpha) != 0 && fillAlpha == 0)
+            fill = 0;
+        if (N.FPDFPageObj_GetStrokeColor(path, out _, out _, out _, out uint strokeAlpha) != 0 && strokeAlpha == 0)
+            stroke = 0;
+        N.FPDFPageObj_GetStrokeWidth(path, out var width);
+        double scaledWidth = width * Math.Max(Math.Sqrt(matrix.A * matrix.A + matrix.B * matrix.B),
+            Math.Sqrt(matrix.C * matrix.C + matrix.D * matrix.D));
+
+        var points = new List<PathPoint>();
+        int count = N.FPDFPath_CountSegments(path);
+        for (int i = 0; i < count; i++)
+        {
+            var segment = N.FPDFPath_GetPathSegment(path, i);
+            if (segment == IntPtr.Zero || N.FPDFPathSegment_GetPoint(segment, out var x, out var y) == 0)
+                return null;
+            points.Add(new PathPoint(N.FPDFPathSegment_GetType(segment),
+                matrix.A * x + matrix.C * y + matrix.E, matrix.B * x + matrix.D * y + matrix.F,
+                N.FPDFPathSegment_GetClose(segment) != 0));
+        }
+        return new PathOutline(fill, stroke != 0, scaledWidth, points);
+    }
+
     public void Blank(int at)
     {
         Mutating(true);
@@ -522,7 +556,7 @@ public sealed class PdfDocument : IDisposable
         using var p = Open(page);
         var o = N.FPDFPage_GetObject(p.H, index);
         var type = N.FPDFPageObj_GetType(o);
-        if (type != 1 && type != 3)
+        if (type is not (1 or 2 or 3))
             throw new InvalidOperationException("Objeto no editable.");
         Check(N.FPDFPage_RemoveObject(p.H, o), "No se pudo eliminar el objeto.");
         N.FPDFPageObj_Destroy(o);
@@ -549,7 +583,7 @@ public sealed class PdfDocument : IDisposable
             throw new ArgumentException("Medidas no válidas.");
         using var p = Open(page);
         var o = N.FPDFPage_GetObject(p.H, index);
-        if (N.FPDFPageObj_GetType(o) != 1 && N.FPDFPageObj_GetType(o) != 3)
+        if (N.FPDFPageObj_GetType(o) is not (1 or 2 or 3))
             throw new InvalidOperationException("Objeto no editable.");
         Check(N.FPDFPageObj_GetBounds(o, out var l, out var b, out _, out _), "No se pudieron leer las medidas.");
         N.FPDFPageObj_Transform(o, sx, 0, 0, sy, dx + l * (1 - sx), dy + b * (1 - sy));
@@ -573,7 +607,7 @@ public sealed class PdfDocument : IDisposable
         if (index < 0 || index >= count || direction is not (-1 or 1))
             throw new ArgumentOutOfRangeException(nameof(index));
         var obj = N.FPDFPage_GetObject(p.H, index);
-        if (N.FPDFPageObj_GetType(obj) is not (1 or 3))
+        if (N.FPDFPageObj_GetType(obj) is not (1 or 2 or 3))
             throw new InvalidOperationException("Selecciona texto o imagen.");
         int target = extreme ? direction > 0 ? count - 1 : 0 : Math.Clamp(index + direction, 0, count - 1);
         if (target == index)

@@ -110,6 +110,17 @@ public partial class MainWindow
         var selected = ObjectSelection();
         if (selected.Length == 0) return;
         int[] copies = [];
+        if (selected.Any(obj => obj.Type == 2))
+        {
+            byte[] payload = Pdf.CopyObjects(page, selected.Select(obj => obj.Index).ToArray());
+            Change(document =>
+            {
+                copies = document.PasteObjects(page, payload);
+                foreach (int index in copies) document.Transform(page, index, 12, -12);
+            });
+            RestoreObjectSelection(copies);
+            return;
+        }
         Change(document =>
         {
             var added = new List<int>();

@@ -75,7 +75,7 @@ public partial class MainWindow
         }
         if (obj.Type == 1 && EditMode.IsSelected && Pdf.ObjectEditBlock == null)
             BuildTextToolbar(obj);
-        if (obj.Type == 3 && Pdf.ObjectEditBlock == null) BuildImageToolbar(obj);
+        if (obj.Type is 2 or 3 && Pdf.ObjectEditBlock == null) BuildGraphicToolbar(obj);
         PositionSelection(DeviceBounds(obj));
     }
     void BuildTextToolbar(PdfObject obj)
@@ -125,11 +125,11 @@ public partial class MainWindow
         if (toolbarFont != null) toolbarFont.SelectedItem = family;
         Status.Text = (Ui.Current.Language=="en" ? $"{family} will be used for this style." : $"Se usará {family} para el estilo elegido.");
     }
-    void BuildImageToolbar(PdfObject obj)
+    void BuildGraphicToolbar(PdfObject obj)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         void Add(string label,string icon,Action action) { var button=new ToolButton { Icon=icon,IconOnly=true,Content=label,ToolTip=label,Padding=new Thickness(5),MinHeight=28 }; button.Click+=(_,_)=>Run(action); row.Children.Add(button); }
-        Add(Ui.T("Duplicar imagen"),"Duplicate",()=>{ Change(d=>d.DuplicateImage(page,obj.Index)); SelectObject(Pdf.Objects(page).Last().Index); });
+        Add(Ui.T(obj.Type == 3 ? "Duplicar imagen" : "Duplicar forma"), "Duplicate", DuplicateSelectedObjects);
         Add(Ui.T("Adelantar"),"Up",()=>OrderSelectedObject(1)); Add(Ui.T("Atrasar"),"Down",()=>OrderSelectedObject(-1));
         Add(Ui.T("Eliminar objeto"),"Delete",()=>Change(d=>d.RemoveObject(page,obj.Index)));
         textToolbar=new Border { Background=Brushes.White,BorderBrush=Brushes.RoyalBlue,BorderThickness=new Thickness(1),Child=row };
@@ -277,7 +277,8 @@ public partial class MainWindow
         }
         var previous = gesturePreview.Objects(page).Single(o => o.Index == gestureObject.Index);
         gesturePreview.Transform(page, gestureObject.Index, gestureObject.Left + t.Dx - previous.Left, gestureObject.Bottom + t.Dy - previous.Bottom,
-            (gestureObject.Right - gestureObject.Left) * t.Sx / (previous.Right - previous.Left), (gestureObject.Top - gestureObject.Bottom) * t.Sy / (previous.Top - previous.Bottom));
+            resizeCorner == null ? 1 : (gestureObject.Right - gestureObject.Left) * t.Sx / (previous.Right - previous.Left),
+            resizeCorner == null ? 1 : (gestureObject.Top - gestureObject.Bottom) * t.Sy / (previous.Top - previous.Bottom));
         PageImage.Source = Bitmap(gesturePreview.RenderPreview(page, Math.Min(1400, (int)PageImage.Width)));
         var value = gesturePreview.Objects(page).Single(o => o.Index == gestureObject.Index);
         XValue.Text = value.Left.ToString("0.##");
@@ -488,8 +489,7 @@ public partial class MainWindow
             CancelCanvasGesture();
             EditMode.IsSelected = true;
             contextPoint = e.GetPosition(PageImage);
-            var p = Pdf.ToPage(page, (int)PageImage.Width, (int)PageImage.Height, (int)contextPoint.X, (int)contextPoint.Y);
-            var hit = ObjectsList.Items.Cast<ObjectRow>().LastOrDefault(o => p.X >= o.Value.Left && p.X <= o.Value.Right && p.Y >= o.Value.Bottom && p.Y <= o.Value.Top);
+            var hit = HitObject(contextPoint);
             if (hit == null || !ObjectsList.SelectedItems.Contains(hit)) ObjectsList.SelectedItem = hit;
         });
     }

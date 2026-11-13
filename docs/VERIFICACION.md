@@ -1,3 +1,7 @@
+# EditaPDF 1.2.1
+
+Las líneas, marcos y rellenos que son trazados independientes de página se pueden seleccionar, mover y eliminar. El clic usa la geometría de los trazados y una tolerancia en pantalla para líneas finas. No se descomponen imágenes, formularios XObject ni otros objetos compuestos. La prueba sintética comprueba el clic en un relleno y un marco, el arrastre, el borrado y la reapertura.
+
 # EditaPDF 1.2.0
 
 La selección por recuadro incluye texto e imágenes de una página. Supr elimina la selección fuera de campos de texto. Ctrl+C, Ctrl+X y Ctrl+V usan el portapapeles interno de EditaPDF. El traslado conserva los objetos PDF y sus recursos, con una única operación de deshacer al usar Mover a página o arrastrar a la página contigua. Cuando el ancho y el zoom lo permiten, se muestran dos páginas juntas.
