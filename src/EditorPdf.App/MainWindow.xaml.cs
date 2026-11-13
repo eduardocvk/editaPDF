@@ -218,20 +218,35 @@ public partial class MainWindow : Window
     {
         FinishInlineText();
         var impact = Pdf.ReviewPageDeletion(index);
-        var details = new List<string>();
-        if (impact.Annotations > 0) details.Add($"{Ui.T("Anotaciones o campos de la página que se eliminarán")} · {impact.Annotations}");
-        if (impact.Links > 0) details.Add($"{Ui.T("Enlaces internos")} · {impact.Links}");
-        if (impact.Bookmarks > 0) details.Add($"{Ui.T("Marcadores")} · {impact.Bookmarks}");
-        if (impact.NamedDestinations > 0) details.Add($"{Ui.T("Destinos con nombre")} · {impact.NamedDestinations}");
-        if (impact.OtherDestinations > 0) details.Add($"{Ui.T("Otros destinos")} · {impact.OtherDestinations}");
-        if (details.Count > 0)
+        var references = new List<string>();
+        if (impact.Links > 0) references.Add($"{impact.Links} {Ui.T(impact.Links == 1 ? "enlace interno" : "enlaces internos")}");
+        if (impact.Bookmarks > 0) references.Add($"{impact.Bookmarks} {Ui.T(impact.Bookmarks == 1 ? "marcador" : "marcadores")}");
+        if (impact.NamedDestinations > 0) references.Add($"{impact.NamedDestinations} {Ui.T(impact.NamedDestinations == 1 ? "destino guardado en el PDF" : "destinos guardados en el PDF")}");
+        if (impact.OtherDestinations > 0) references.Add($"{impact.OtherDestinations} {Ui.T(impact.OtherDestinations == 1 ? "otra referencia" : "otras referencias")}");
+
+        if (references.Count > 0 || impact.Annotations > 0)
         {
-            var separator = Environment.NewLine;
-            var text = $"{Ui.T("Eliminar página")} {index + 1}" + separator + separator + string.Join(separator, details);
-            if (impact.Links + impact.Bookmarks + impact.NamedDestinations + impact.OtherDestinations > 0)
-                text += separator + separator + string.Format(Ui.T("Las referencias pasarán a la página {0} del documento actual."), impact.ReplacementPage);
+            var paragraphs = new List<string>
+            {
+                string.Format(Ui.T("¿Quieres borrar la página {0}?"), index + 1)
+            };
+            if (impact.Annotations > 0)
+                paragraphs.Add(string.Format(Ui.T(impact.Annotations == 1
+                    ? "La página contiene {0} anotación o campo de formulario. Se borrará junto con la página."
+                    : "La página contiene {0} anotaciones o campos de formulario. Se borrarán junto con la página."), impact.Annotations));
+            if (references.Count > 0)
+            {
+                paragraphs.Add(Ui.T("Estos elementos apuntan a la página que vas a borrar.") +
+                    Environment.NewLine + string.Join(Environment.NewLine, references.Select(reference => $"• {reference}")));
+                int finalPage = impact.ReplacementPage > index + 1 ? impact.ReplacementPage - 1 : impact.ReplacementPage;
+                paragraphs.Add(finalPage == impact.ReplacementPage
+                    ? string.Format(Ui.T("Si aceptas, esos elementos pasarán a apuntar a la página {0}."), finalPage)
+                    : string.Format(Ui.T("Si aceptas, esos elementos apuntarán a la que ahora es la página {0}. Tras el borrado, será la página {1}."), impact.ReplacementPage, finalPage));
+            }
+            paragraphs.Add(Ui.T("Pulsa Cancelar para conservar la página y sus referencias."));
+            var text = string.Join(Environment.NewLine + Environment.NewLine, paragraphs);
             Mouse.OverrideCursor = null;
-            if (MessageBox.Show(this, text, Ui.T("Eliminar página"), MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK)
+            if (MessageBox.Show(this, text, Ui.T("Eliminar página"), MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) != MessageBoxResult.OK)
                 return;
         }
         Change(d => d.Delete(index), Math.Min(index, Pdf.Count - 2));

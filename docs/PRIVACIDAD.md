@@ -1,4 +1,4 @@
-# Privacidad de Editor PDF 1.2.2
+# Privacidad de Editor PDF 1.2.3
 
 Los PDF se procesan en el equipo. No se implementan telemetría, analítica, procesamiento remoto, descargas de fuentes ni envío automático de errores. Runtime, motores y fuentes están incluidos. No se ejecuta JavaScript de los PDF.
 

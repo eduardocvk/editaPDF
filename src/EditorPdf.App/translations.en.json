@@ -323,5 +323,20 @@
   "Marcadores": "Bookmarks",
   "Destinos con nombre": "Named destinations",
   "Otros destinos": "Other destinations",
-  "Las referencias pasarán a la página {0} del documento actual.": "References will point to page {0} of the current document."
+  "Las referencias pasarán a la página {0} del documento actual.": "References will point to page {0} of the current document.",
+  "enlace interno": "internal link",
+  "enlaces internos": "internal links",
+  "marcador": "bookmark",
+  "marcadores": "bookmarks",
+  "destino guardado en el PDF": "destination saved in the PDF",
+  "destinos guardados en el PDF": "destinations saved in the PDF",
+  "otra referencia": "other reference",
+  "otras referencias": "other references",
+  "¿Quieres borrar la página {0}?": "Do you want to delete page {0}?",
+  "La página contiene {0} anotación o campo de formulario. Se borrará junto con la página.": "This page contains {0} annotation or form field. It will be deleted along with the page.",
+  "La página contiene {0} anotaciones o campos de formulario. Se borrarán junto con la página.": "This page contains {0} annotations or form fields. They will be deleted along with the page.",
+  "Estos elementos apuntan a la página que vas a borrar.": "These items point to the page you are about to delete.",
+  "Si aceptas, esos elementos pasarán a apuntar a la página {0}.": "If you continue, those items will point to page {0}.",
+  "Si aceptas, esos elementos apuntarán a la que ahora es la página {0}. Tras el borrado, será la página {1}.": "If you continue, those items will point to the current page {0}, which will become page {1} after deletion.",
+  "Pulsa Cancelar para conservar la página y sus referencias.": "Select Cancel to keep the page and its references."
 }

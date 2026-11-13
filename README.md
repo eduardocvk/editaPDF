@@ -1,6 +1,6 @@
 # Editor PDF para Windows 11
 
-Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Versión **1.2.2**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
+Aplicación gratuita y de código abierto, WPF/.NET 10, PDFium e iText Community. Versión **1.2.3**, licencia **AGPL-3.0-or-later**. Windows 11 x64. No publicada en Microsoft Store.
 
 [Descargar 1.0.0](https://github.com/eduardocvk/editaPDF/releases/download/v1.0.0/EditorPDF-1.0.0-win-x64.zip) · [Código y versiones](https://github.com/eduardocvk/editaPDF)
 
