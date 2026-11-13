@@ -212,7 +212,30 @@ public partial class MainWindow : Window
     void BlankClick(object sender, RoutedEventArgs e) => Run(() => { if (Pdf.Count == 0) { session.Execute(d => d.Blank(0)); Refresh(); Recover(); } else Change(d => d.Blank(page + 1), page + 1); });
     void DuplicateClick(object sender, RoutedEventArgs e) => Run(() => Change(d => d.Duplicate(page), page + 1));
     void RotateClick(object sender, RoutedEventArgs e) => Run(() => Change(d => d.Rotate(page)));
-    void DeletePageClick(object sender, RoutedEventArgs e) => Run(() => Change(d => d.Delete(page)));
+    void DeletePageClick(object sender, RoutedEventArgs e) => Run(() => DeletePage(page));
+
+    void DeletePage(int index)
+    {
+        FinishInlineText();
+        var impact = Pdf.ReviewPageDeletion(index);
+        var details = new List<string>();
+        if (impact.Annotations > 0) details.Add($"{Ui.T("Anotaciones o campos de la página que se eliminarán")} · {impact.Annotations}");
+        if (impact.Links > 0) details.Add($"{Ui.T("Enlaces internos")} · {impact.Links}");
+        if (impact.Bookmarks > 0) details.Add($"{Ui.T("Marcadores")} · {impact.Bookmarks}");
+        if (impact.NamedDestinations > 0) details.Add($"{Ui.T("Destinos con nombre")} · {impact.NamedDestinations}");
+        if (impact.OtherDestinations > 0) details.Add($"{Ui.T("Otros destinos")} · {impact.OtherDestinations}");
+        if (details.Count > 0)
+        {
+            var separator = Environment.NewLine;
+            var text = $"{Ui.T("Eliminar página")} {index + 1}" + separator + separator + string.Join(separator, details);
+            if (impact.Links + impact.Bookmarks + impact.NamedDestinations + impact.OtherDestinations > 0)
+                text += separator + separator + string.Format(Ui.T("Las referencias pasarán a la página {0} del documento actual."), impact.ReplacementPage);
+            Mouse.OverrideCursor = null;
+            if (MessageBox.Show(this, text, Ui.T("Eliminar página"), MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK)
+                return;
+        }
+        Change(d => d.Delete(index), Math.Min(index, Pdf.Count - 2));
+    }
     void MoveUpClick(object sender, RoutedEventArgs e) => Run(() => { if (page > 0) { int from = page; Change(d => d.Move(from, from - 1), from - 1); } });
     void MoveDownClick(object sender, RoutedEventArgs e) => Run(() => { if (page < Pdf.Count - 1) { int from = page; Change(d => d.Move(from, from + 1), from + 1); } });
     void UndoClick(object sender, RoutedEventArgs e) => Run(() => { session.Undo(); Refresh(); Recover(); });
@@ -231,7 +254,7 @@ public partial class MainWindow : Window
                 case "down" when index < Pdf.Count - 1: Change(d => d.Move(index, index + 1), index + 1); break;
                 case "duplicate": Change(d => d.Duplicate(index), index + 1); break;
                 case "rotate": Change(d => d.Rotate(index), index); break;
-                case "delete": Change(d => d.Delete(index), Math.Min(index, Pdf.Count - 2)); break;
+                case "delete": DeletePage(index); break;
             }
         });
     }

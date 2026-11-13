@@ -23,6 +23,82 @@ internal static class PdfStructure
         return output.ToArray();
     }
 
+    internal static PageDeletionImpact GetDeletionImpact(byte[] bytes, int index)
+    {
+        using var document = new Document(new PdfReader(new MemoryStream(bytes, false)));
+        return ReviewPageDestinations(document, index, redirect: false);
+    }
+
+    internal static byte[] Delete(byte[] bytes, int index) => Rewrite(bytes, document =>
+    {
+        ReviewPageDestinations(document, index, redirect: true);
+        document.RemovePage(index + 1);
+    });
+
+    static PageDeletionImpact ReviewPageDestinations(Document document, int index, bool redirect)
+    {
+        var removed = document.GetPage(index + 1);
+        var target = removed.GetPdfObject();
+        int replacement = index + 1 < document.GetNumberOfPages() ? index + 2 : index;
+        var names = document.GetCatalog().GetNameTree(PdfName.Dests).GetNames();
+        var destinations = new HashSet<PdfArray>(ReferenceEqualityComparer.Instance);
+
+        bool PointsToRemoved(iText.Kernel.Pdf.PdfObject? destination)
+        {
+            if (destination is PdfName name) names.TryGetValue(new PdfString(name.GetValue()), out destination);
+            else if (destination is PdfString text) names.TryGetValue(text, out destination);
+            if (destination is PdfDictionary entry) destination = entry.Get(PdfName.D);
+            if (destination is not PdfArray array || array.Size() == 0 ||
+                !ReferenceEquals(array.GetAsDictionary(0), target)) return false;
+            destinations.Add(array);
+            return true;
+        }
+
+        int named = names.Values.Count(value => PointsToRemoved(value));
+        int links = 0, bookmarks = 0, other = 0;
+        var pending = new Stack<iText.Kernel.Pdf.PdfObject>();
+        var visited = new HashSet<iText.Kernel.Pdf.PdfObject>(ReferenceEqualityComparer.Instance);
+        var catalog = document.GetCatalog().GetPdfObject();
+        if (catalog.Get(PdfName.OpenAction) is PdfArray opening && PointsToRemoved(opening)) other++;
+        pending.Push(catalog);
+        while (pending.TryPop(out var item))
+        {
+            var obj = item is PdfIndirectReference reference ? reference.GetRefersTo() : item;
+            if (obj == null || ReferenceEquals(obj, target) || !visited.Add(obj)) continue;
+            if (obj is PdfDictionary dictionary)
+            {
+                var action = dictionary.GetAsDictionary(PdfName.A);
+                var destination = dictionary.Get(PdfName.Dest) ??
+                    (PdfName.GoTo.Equals(action?.GetAsName(PdfName.S)) ? action!.Get(PdfName.D) : null);
+                if (PointsToRemoved(destination))
+                {
+                    if (PdfName.Link.Equals(dictionary.GetAsName(PdfName.Subtype))) links++;
+                    else if (dictionary.ContainsKey(PdfName.Title)) bookmarks++;
+                    else other++;
+                }
+                // Also collect targets reached through chained or additional actions.
+                if (PdfName.GoTo.Equals(dictionary.GetAsName(PdfName.S))) PointsToRemoved(dictionary.Get(PdfName.D));
+                foreach (var value in dictionary.Values(false)) pending.Push(value);
+            }
+            else if (obj is PdfArray array)
+                for (int i = 0; i < array.Size(); i++) pending.Push(array.Get(i, false));
+        }
+
+        if (redirect)
+        {
+            var reference = document.GetPage(replacement).GetPdfObject().GetIndirectReference();
+            foreach (var destination in destinations)
+            {
+                destination.Clear();
+                destination.Add(reference);
+                destination.Add(PdfName.Fit);
+                destination.SetModified();
+            }
+        }
+        return new PageDeletionImpact(removed.GetAnnotations().Count, links, bookmarks, named,
+            other == 0 && destinations.Count > 0 && links + bookmarks + named == 0 ? destinations.Count : other, replacement);
+    }
+
     internal static byte[] Move(byte[] bytes, int from, int to) => Rewrite(bytes, document => document.MovePage(from + 1, to > from ? to + 2 : to + 1));
     internal static byte[] Reorder(byte[] bytes, int[] order) => Rewrite(bytes, document =>
     {

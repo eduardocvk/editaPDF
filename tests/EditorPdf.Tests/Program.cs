@@ -276,6 +276,29 @@ if (File.Exists(fixture))
         s.Execute(d => d.Blank(0));
         Assert(s.Document.Count == 1, "sesion nueva sin PDF previo");
     }
+    using (var deletion = new Session())
+    {
+        deletion.Open(Path.Combine(output, "fixtures", "pagina-blanca-con-destinos.pdf"));
+        var review = deletion.Document.ReviewPageDeletion(1);
+        Assert(review.Annotations == 0 && review.Links == 1 && review.Bookmarks == 1 &&
+            review.NamedDestinations == 1 && review.ReplacementPage == 3,
+            "borrado explica qué referencias apuntan a la página en blanco");
+        deletion.Execute(d => d.Delete(1));
+        Assert(deletion.Document.Count == 2 && deletion.Document.NamedDestinations == 2 && deletion.Document.Attachments == 1,
+            "borrado de página en blanco conserva referencias y adjunto");
+        deletion.SaveNew(Path.Combine(output, "borrado-pagina-blanca.pdf"));
+        deletion.Undo();
+        Assert(deletion.Document.Count == 3, "deshacer restaura la página borrada");
+    }
+    using (var deletion = new Session())
+    {
+        deletion.Open(Path.Combine(output, "fixtures", "pagina-blanca-sin-destinos.pdf"));
+        var review = deletion.Document.ReviewPageDeletion(2);
+        Assert(review.Annotations + review.Links + review.Bookmarks + review.NamedDestinations + review.OtherDestinations == 0,
+            "marcadores y anotaciones ajenos no impiden borrar página");
+        deletion.Execute(d => d.Delete(2));
+        Assert(deletion.Document.Count == 2 && deletion.Document.Bookmarks, "borrado conserva marcador de otra página");
+    }
     foreach (var name in new[] { "estructuras", "anotaciones", "destinos" })
     {
         var path = Path.Combine(output, "fixtures", name + ".pdf");

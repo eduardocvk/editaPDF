@@ -317,5 +317,11 @@
   "Doble cara · borde largo": "Two-sided · long edge",
   "Doble cara · borde corto": "Two-sided · short edge",
   "Forma vectorial": "Vector shape",
-  "Duplicar forma": "Duplicate shape"
+  "Duplicar forma": "Duplicate shape",
+  "Anotaciones o campos de la página que se eliminarán": "Page annotations or fields to be removed",
+  "Enlaces internos": "Internal links",
+  "Marcadores": "Bookmarks",
+  "Destinos con nombre": "Named destinations",
+  "Otros destinos": "Other destinations",
+  "Las referencias pasarán a la página {0} del documento actual.": "References will point to page {0} of the current document."
 }

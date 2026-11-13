@@ -1,4 +1,4 @@
-Editor PDF 1.2.1
+Editor PDF 1.2.2
 Copyright (C) 2026 Contributors to Editor PDF
 SPDX-License-Identifier: AGPL-3.0-or-later
 

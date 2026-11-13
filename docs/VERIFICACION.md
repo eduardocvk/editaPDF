@@ -1,3 +1,7 @@
+# EditaPDF 1.2.2
+
+El borrado de página comprueba sus anotaciones y las referencias que apuntan a ella. Si el usuario confirma, se eliminan las anotaciones de esa página y se redirigen sus destinos a la siguiente página o a la anterior si era la última. Se compara la geometría, texto, anotaciones y render de las páginas restantes antes de actualizar el documento. Se conserva el bloqueo de la última página y de documentos que requieren copia editable.
+
 # EditaPDF 1.2.1
 
 Las líneas, marcos y rellenos que son trazados independientes de página se pueden seleccionar, mover y eliminar. El clic usa la geometría de los trazados y una tolerancia en pantalla para líneas finas. No se descomponen imágenes, formularios XObject ni otros objetos compuestos. La prueba sintética comprueba el clic en un relleno y un marco, el arrastre, el borrado y la reapertura.

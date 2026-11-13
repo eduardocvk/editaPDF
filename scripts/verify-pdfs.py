@@ -24,6 +24,13 @@ if sys.argv[1]=='--composition':
     print('PASS pypdf: compositor conserva orden, destino con nombre, marcador y enlace interno hacia la página nueva correcta')
     sys.exit(0)
 p=Path(sys.argv[1])
+deleted=PdfReader(p/'borrado-pagina-blanca.pdf')
+assert len(deleted.pages)==2 and 'Segunda pagina' in deleted.pages[1].extract_text()
+assert [deleted.get_destination_page_number(item) for item in deleted.outline]==[0,1,1]
+assert all(deleted.get_destination_page_number(item)==1 for item in deleted.named_destinations.values())
+assert all(ref.get_object().raw_get('/Dest')[0]==deleted.pages[1].indirect_reference for ref in deleted.pages[0]['/Annots'])
+assert deleted.attachments['nota.txt'][0]==b'Adjunto sintetico local'
+print('PASS pypdf: borrar página conserva marcadores, enlaces, destinos y adjunto')
 original=PdfReader(p/'fixtures'/'externo.pdf'); edited=PdfReader(p/'externo-editado.pdf')
 assert len(original.pages)==len(edited.pages)==2
 assert 'Edicion real 456' in edited.pages[0].extract_text()

@@ -3,6 +3,7 @@ using System.Text;
 using System.Security.Cryptography;
 namespace EditorPdf.Core;
 
+public sealed record PageDeletionImpact(int Annotations, int Links, int Bookmarks, int NamedDestinations, int OtherDestinations, int ReplacementPage);
 public sealed record PageInfo(int Index, float Width, float Height, int Rotation, int Annotations);
 public sealed record PdfObject(int Index, int Type, string Text, string Font, float Size, float Left, float Bottom, float Right, float Top)
 {
@@ -258,15 +259,35 @@ public sealed class PdfDocument : IDisposable
         }
         ReplaceBytes(bytes);
     }
+    void CheckPageDeletion(int i)
+    {
+        StructureAllowed();
+        if (i < 0 || i >= Count) throw new ArgumentOutOfRangeException(nameof(i));
+        if (Count <= 1) throw new InvalidOperationException("Debe quedar al menos una página.");
+    }
+
+    public PageDeletionImpact ReviewPageDeletion(int i)
+    {
+        CheckPageDeletion(i);
+        return PdfStructure.GetDeletionImpact(SaveBytes(), i);
+    }
+
     public void Delete(int i)
     {
-        Mutating(true);
-        if (Count <= 1)
-            throw new InvalidOperationException("Debe quedar al menos una página.");
-        using (var p = Open(i))
+        CheckPageDeletion(i);
+        var bytes = PdfStructure.Delete(SaveBytes(), i);
+        using var check = new PdfDocument(bytes);
+        if (check.Count != Count - 1 || check.Attachments != Attachments || check.Tagged != Tagged ||
+            check.Bookmarks != Bookmarks || check.NamedDestinations != NamedDestinations)
+            throw new InvalidDataException("No se pudieron conservar los adjuntos, etiquetas o destinos del documento.");
+        for (int n = 0; n < check.Count; n++)
         {
+            int original = n < i ? n : n + 1;
+            if (check.Info(n) != (Info(original) with { Index = n }) || check.Text(n) != Text(original) ||
+                !check.Render(n, 600).Pixels.AsSpan().SequenceEqual(Render(original, 600).Pixels))
+                throw new InvalidDataException($"No se pudo conservar la página {original + 1} al borrar la página {i + 1}.");
         }
-        N.FPDFPage_Delete(handle, i);
+        ReplaceBytes(bytes);
     }
     public void Duplicate(int i)
     {

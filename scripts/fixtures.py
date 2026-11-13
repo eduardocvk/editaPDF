@@ -81,3 +81,21 @@ w.write(out/'escaneo.pdf')
 transparent=Image.new('RGBA',(300,100),(40,80,160,120))
 b=BytesIO(); c=Canvas(b); c.drawImage(ImageReader(transparent),40,600,300,100,mask='auto'); c.save()
 (out/'mascara-transparente.pdf').write_bytes(b.getvalue())
+
+w=PdfWriter(clone_from=PdfReader(BytesIO(base)))
+w.insert_blank_page(width=595.276,height=841.89,index=1)
+w.add_outline_item('Inicio conservado',0)
+w.add_outline_item('Marcador en blanco',1)
+w.add_outline_item('Final conservado',2)
+w.add_named_destination('destino-en-blanco',1)
+w.add_named_destination('destino-final',2)
+w.add_attachment('nota.txt',b'Adjunto sintetico local')
+w.add_annotation(0,Link(rect=(50,690,400,720),target_page_index=1))
+w.pages[0]['/Annots'][-1].get_object()['/Dest'][0]=w.pages[1].indirect_reference
+w.add_annotation(0,Link(rect=(50,630,400,660),target_page_index=2))
+w.pages[0]['/Annots'][-1].get_object()['/Dest'][0]=w.pages[2].indirect_reference
+w.write(out/'pagina-blanca-con-destinos.pdf')
+
+w=PdfWriter(clone_from=PdfReader(out/'estructuras.pdf'))
+w.add_blank_page(width=595.276,height=841.89)
+w.write(out/'pagina-blanca-sin-destinos.pdf')
