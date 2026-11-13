@@ -338,5 +338,6 @@
   "Estos elementos apuntan a la página que vas a borrar.": "These items point to the page you are about to delete.",
   "Si aceptas, esos elementos pasarán a apuntar a la página {0}.": "If you continue, those items will point to page {0}.",
   "Si aceptas, esos elementos apuntarán a la que ahora es la página {0}. Tras el borrado, será la página {1}.": "If you continue, those items will point to the current page {0}, which will become page {1} after deletion.",
-  "Pulsa Cancelar para conservar la página y sus referencias.": "Select Cancel to keep the page and its references."
+  "Pulsa Cancelar para conservar la página y sus referencias.": "Select Cancel to keep the page and its references.",
+  "Versión": "Version"
 }

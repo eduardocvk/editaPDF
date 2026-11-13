@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     readonly Action<Uri> openExternal;
     readonly bool useFirmaBridge;
     readonly Action<Exception>? reportError;
+    public static string ApplicationVersion { get; } = typeof(MainWindow).Assembly.GetName().Version!.ToString(3);
     public static Uri FirmaPdfStoreUri { get; } = new("https://apps.microsoft.com/detail/9P5ZK5W4J9ZJ");
     readonly string recoveryFolder; readonly bool restoreOnLoad; Session session = new(); int page; double zoom = 1; bool refreshing;
     public static string RecoveryFolder => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EditorPDF", "Recovery");
